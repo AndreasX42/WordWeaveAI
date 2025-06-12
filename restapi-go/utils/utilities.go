@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"regexp"
 )
 
 func AwsString(s string) *string {
@@ -19,14 +18,22 @@ func GetTableName(baseName string) string {
 	return baseName
 }
 
-func IsValidEmail(email string) bool {
-	re := regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
-	return re.MatchString(email)
-}
-
 func GenerateConfirmationCode() string {
 	n, _ := rand.Int(rand.Reader, big.NewInt(1000000))
 	return fmt.Sprintf("%06d", n.Int64())
+}
+
+func GenerateRandomString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyz" +
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" +
+		"!@#$%^&*()-_=+[]{}<>?,./~`"
+
+	result := make([]byte, length)
+	for i := 0; i < length; i++ {
+		idx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		result[i] = charset[idx.Int64()]
+	}
+	return string(result)
 }
 
 func GetEnvWithDefault(key, defaultValue string) string {
