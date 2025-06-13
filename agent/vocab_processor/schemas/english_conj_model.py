@@ -1,13 +1,10 @@
-from pydantic import BaseModel, Field, constr
-from typing import Dict, Literal, Annotated
+from typing import Annotated, Dict, Literal
+
 from langchain.prompts import PromptTemplate
+from pydantic import BaseModel, Field, constr
 
 # Type definitions for better LLM understanding
-NonPersonalForms = Literal[
-    "infinitive",
-    "present participle",
-    "past participle"
-]
+NonPersonalForms = Literal["infinitive", "present participle", "past participle"]
 IndicativeTenses = Literal[
     "present",
     "past",
@@ -16,33 +13,39 @@ IndicativeTenses = Literal[
     "present perfect progressive",
     "past perfect progressive",
     "future",
-    "future perfect"
+    "future perfect",
 ]
 SubjunctiveTenses = Literal["present", "past"]
 
+
 class EnglishConjugationForm(BaseModel):
     """Represents a complete set of conjugations for a specific tense."""
+
     I: Annotated[str, Field(description="First person singular form")]
     you: Annotated[str, Field(description="Second person singular form")]
-    he_she_it: Annotated[str, Field(
-        alias="he/she/it",
-        description="Third person singular form"
-    )]
+    he_she_it: Annotated[
+        str, Field(alias="he/she/it", description="Third person singular form")
+    ]
     we: Annotated[str, Field(description="First person plural form")]
-    you_plural: Annotated[str, Field(
-        alias="you (plural)",
-        description="Second person plural form"
-    )]
+    you_plural: Annotated[
+        str, Field(alias="you (plural)", description="Second person plural form")
+    ]
     they: Annotated[str, Field(description="Third person plural form")]
 
 
 class EnglishVerbConjugation(BaseModel):
     """Complete conjugation table for an English verb."""
-    non_personal_forms: Annotated[Dict[NonPersonalForms, str], Field(
-        description="The non-personal forms of the verb, i.e. infinitive, present participle, and past participle"
-    )]
-    indicative: Annotated[Dict[IndicativeTenses, EnglishConjugationForm], Field(
-        description="""All indicative mood forms:
+
+    non_personal_forms: Annotated[
+        Dict[NonPersonalForms, str],
+        Field(
+            description="The non-personal forms of the verb, i.e. infinitive, present participle, and past participle"
+        ),
+    ]
+    indicative: Annotated[
+        Dict[IndicativeTenses, EnglishConjugationForm],
+        Field(
+            description="""All indicative mood forms:
         - present: Simple present tense (adds -s for third person singular)
         - past: Simple past tense (usually -ed for regular verbs)
         - present perfect: Present perfect (have/has + past participle)
@@ -51,16 +54,20 @@ class EnglishVerbConjugation(BaseModel):
         - past perfect progressive: Past perfect progressive (had been + past participle)
         - future: Future tense (will + infinitive)
         - future perfect: Future perfect (will have + past participle)"""
-    )]
-    subjunctive: Annotated[Dict[SubjunctiveTenses, EnglishConjugationForm], Field(
-        description="""Subjunctive mood forms:
+        ),
+    ]
+    subjunctive: Annotated[
+        Dict[SubjunctiveTenses, EnglishConjugationForm],
+        Field(
+            description="""Subjunctive mood forms:
         - present: Present subjunctive (same as infinitive)
         - past: Past subjunctive (same as past tense)"""
-    )]
+        ),
+    ]
 
 
-
-english_conjugation_prompt = PromptTemplate.from_template("""
+english_conjugation_prompt = PromptTemplate.from_template(
+    """
 Given the following English verb "{verb}", build a english conjugation table in this JSON format, like for the example verb "work":
 
 {{
@@ -154,4 +161,5 @@ Given the following English verb "{verb}", build a english conjugation table in 
 }}
 
 Return the conjugation table for the verb "{verb}" in the same JSON format.
-""")
+"""
+)

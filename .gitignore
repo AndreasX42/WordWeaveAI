@@ -12,3 +12,4 @@ wheels/
 # Project files
 .env
 .langgraph_api
+downloads

@@ -1,49 +1,61 @@
-from pydantic import BaseModel, Field, constr
-from typing import Dict, Literal, Annotated
+from typing import Annotated, Dict, Literal
+
 from langchain.prompts import PromptTemplate
+from pydantic import BaseModel, Field, constr
 
 # Type definitions for better LLM understanding
 NonPersonalForms = Literal["infinitive", "partizip präsens", "partizip perfekt"]
-IndicativeTenses = Literal["praesens", "praeteritum", "perfekt", "plusquamperfekt", "futur I", "futur II"]
+IndicativeTenses = Literal[
+    "praesens", "praeteritum", "perfekt", "plusquamperfekt", "futur I", "futur II"
+]
 KonjunktivTenses = Literal["konjunktiv I", "konjunktiv II"]
+
 
 # Pydantic models for German verb conjugation
 class GermanConjugationForm(BaseModel):
     """Represents a complete set of conjugations for a specific tense."""
+
     ich: Annotated[str, Field(description="First person singular form")]
     du: Annotated[str, Field(description="Second person singular form")]
     er_sie_es: Annotated[str, Field(description="Third person singular form")]
     wir: Annotated[str, Field(description="First person plural form")]
     ihr: Annotated[str, Field(description="Second person plural form")]
-    sie: Annotated[str, Field(
-        description="Third person plural form"
-    )]
+    sie: Annotated[str, Field(description="Third person plural form")]
 
 
 class GermanVerbConjugation(BaseModel):
     """Complete conjugation table for a German verb."""
-    non_personal_forms: Annotated[NonPersonalForms, Field(
-        description="The non-personal forms of the verb, i.e. infinitive, partizip praesens, and partizip perfekt"
-    )]
-    indikativ: Annotated[Dict[IndicativeTenses, GermanConjugationForm], Field(
-        description="""All indicative forms:
+
+    non_personal_forms: Annotated[
+        NonPersonalForms,
+        Field(
+            description="The non-personal forms of the verb, i.e. infinitive, partizip praesens, and partizip perfekt"
+        ),
+    ]
+    indikativ: Annotated[
+        Dict[IndicativeTenses, GermanConjugationForm],
+        Field(
+            description="""All indicative forms:
         - praesens: Simple present tense
         - praeteritum: Simple past tense
         - perfekt: Present perfect (auxiliary + past participle)
         - plusquamperfekt: Past perfect (auxiliary + past participle)
         - futur I: Future tense (werde + infinitive)
         - futur II: Future perfect (werde + past participle + haben/sein)"""
-    )]
-    konjunktiv: Annotated[Dict[KonjunktivTenses, GermanConjugationForm], Field(
-        description="""Konjunktiv forms (for indirect speech):
+        ),
+    ]
+    konjunktiv: Annotated[
+        Dict[KonjunktivTenses, GermanConjugationForm],
+        Field(
+            description="""Konjunktiv forms (for indirect speech):
         - konjunktiv I: Konjunktiv I forms
         - konjunktiv II: Konjunktiv II forms"""
-    )]
+        ),
+    ]
 
 
-
-
-german_conjugation_prompt = PromptTemplate.from_template("""
+german_conjugation_prompt = PromptTemplate.from_template(
+    """
 Given the following German verb "{verb}", build a german conjugation table in the following JSON format like for the example verb "arbeiten":
 
 {{
@@ -121,4 +133,5 @@ Given the following German verb "{verb}", build a german conjugation table in th
 }}
 
 Return the conjugation table for the verb "{verb}" in the same JSON format.
-""")
+"""
+)

@@ -1,4 +1,4 @@
-from my_agent.agent import graph
+from vocab_processor.agent import graph
 import asyncio
 
 async def main():

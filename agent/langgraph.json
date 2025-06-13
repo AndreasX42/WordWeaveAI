@@ -1,7 +1,7 @@
 {
-  "dependencies": ["./my_agent"],
+  "dependencies": ["./vocab_processor"],
   "graphs": {
-    "vocab": "./my_agent/agent.py:graph"
+    "vocab": "./vocab_processor/agent.py:graph"
   },
   "env": ".env"
 }

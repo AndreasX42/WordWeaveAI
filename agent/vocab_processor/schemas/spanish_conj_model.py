@@ -1,12 +1,9 @@
+from typing import Annotated, Dict, Literal
+
 from pydantic import BaseModel, Field
-from typing import Dict, Literal, Annotated
 
 # Type definitions for better LLM understanding
-NonPersonalForms = Literal[
-    "infinitivo",
-    "participio",
-    "gerundio"
-]
+NonPersonalForms = Literal["infinitivo", "participio", "gerundio"]
 IndicativeTenses = Literal[
     "presente",
     "preterito perfecto simple",
@@ -16,7 +13,7 @@ IndicativeTenses = Literal[
     "futuro",
     "futuro perfecto",
     "condicional",
-    "condicional perfecto"
+    "condicional perfecto",
 ]
 SubjunctiveTenses = Literal[
     "presente",
@@ -26,33 +23,37 @@ SubjunctiveTenses = Literal[
     "futuro",
 ]
 
+
 class SpanishConjugationForm(BaseModel):
     """Represents a complete set of conjugations for a specific tense."""
+
     yo: Annotated[str, Field(description="First person singular form")]
-    tu: Annotated[str, Field(
-        description="Second person singular informal form"
-    )]
-    el_ella_usted: Annotated[str, Field(
-        description="Third person singular or formal singular form"
-    )]
-    nosotros_nosotras: Annotated[str, Field(
-        description="First person plural form"
-    )]
-    vosotros_vosotras: Annotated[str, Field(
-        description="Second person plural informal form"
-    )]
-    ellos_ellas_ustedes: Annotated[str, Field(
-        description="Third person plural or formal plural form"
-    )]
+    tu: Annotated[str, Field(description="Second person singular informal form")]
+    el_ella_usted: Annotated[
+        str, Field(description="Third person singular or formal singular form")
+    ]
+    nosotros_nosotras: Annotated[str, Field(description="First person plural form")]
+    vosotros_vosotras: Annotated[
+        str, Field(description="Second person plural informal form")
+    ]
+    ellos_ellas_ustedes: Annotated[
+        str, Field(description="Third person plural or formal plural form")
+    ]
 
 
 class SpanishVerbConjugation(BaseModel):
     """Complete conjugation table for a Spanish verb."""
-    formas_no_personales: Annotated[Dict[NonPersonalForms, str], Field(
-        description="The non-personal forms of the verb, i.e. infinitivo, participio, and gerundio"
-    )]
-    indicativo: Annotated[Dict[IndicativeTenses, SpanishConjugationForm], Field(
-        description="""All indicative mood forms:
+
+    formas_no_personales: Annotated[
+        Dict[NonPersonalForms, str],
+        Field(
+            description="The non-personal forms of the verb, i.e. infinitivo, participio, and gerundio"
+        ),
+    ]
+    indicativo: Annotated[
+        Dict[IndicativeTenses, SpanishConjugationForm],
+        Field(
+            description="""All indicative mood forms:
         - presente: Present tense
         - preterito perfecto simple: Simple past tense
         - preterito imperfecto: Past continuous/descriptive tense
@@ -61,21 +62,26 @@ class SpanishVerbConjugation(BaseModel):
         - futuro: Future tense
         - futuro perfecto: Future perfect tense
         - condicional: Conditional tense
-        - condicional perfecto: Perfect conditional tense"""    
-    )]
-    subjuntivo: Annotated[Dict[SubjunctiveTenses, SpanishConjugationForm], Field(
-        description="""Subjunctive mood forms:
+        - condicional perfecto: Perfect conditional tense"""
+        ),
+    ]
+    subjuntivo: Annotated[
+        Dict[SubjunctiveTenses, SpanishConjugationForm],
+        Field(
+            description="""Subjunctive mood forms:
         - presente: Present subjunctive
         - preterito imperfecto: Past subjunctive
         - preterito perfecto compuesto: Past perfect subjunctive
         - preterito pluscuamperfecto: Past pluperfect subjunctive
         - futuro: Future subjunctive"""
-    )]
+        ),
+    ]
 
 
 from langchain.prompts import PromptTemplate
 
-spanish_conjugation_prompt = PromptTemplate.from_template("""
+spanish_conjugation_prompt = PromptTemplate.from_template(
+    """
 Given the following Spanish verb "{verb}", return its full conjugation table in this JSON format, like for the example verb "trabajar":
 
 ### Example
@@ -205,7 +211,5 @@ Given the following Spanish verb "{verb}", return its full conjugation table in 
 ###
                                                           
 Return the conjugation table for the verb "{verb}" **IN THE SAME JSON FORMAT** and **including all forms and tenses**.
-""")
-
-
-
+"""
+)
