@@ -5,6 +5,7 @@ import (
 
 	"github.com/AndreasX42/wordweave-go/config"
 	"github.com/AndreasX42/wordweave-go/middlewares"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -19,6 +20,9 @@ func main() {
 	// Setup Gin server
 	server := gin.Default()
 
+	// Configure CORS middleware
+	server.Use(cors.New(middlewares.GetCORSConfig()))
+
 	// Register routes with dependency injection
 	registerRoutes(server, container)
 
@@ -27,15 +31,25 @@ func main() {
 }
 
 func registerRoutes(server *gin.Engine, container *config.Container) {
+	// Initialize JWT middleware
+	authMiddleware, err := middlewares.JWTMiddleware(container.UserService)
+	if err != nil {
+		log.Fatal("JWT Error: " + err.Error())
+	}
+
 	// Public routes
 	server.POST("/users/register", container.UserHandler.Register)
-	server.POST("/users/login", container.UserHandler.Login)
 	server.POST("/users/confirm-email", container.UserHandler.ConfirmEmail)
 	server.POST("/users/reset-password", container.UserHandler.ResetPassword)
 
+	// JWT routes
+	server.POST("/auth/login", authMiddleware.LoginHandler)
+	server.POST("/auth/logout", authMiddleware.LogoutHandler)
+	server.POST("/auth/refresh", authMiddleware.RefreshHandler)
+
 	// Authenticated routes
 	authenticated := server.Group("/users")
-	authenticated.Use(middlewares.Authentication(container.UserService))
+	authenticated.Use(authMiddleware.MiddlewareFunc())
 	authenticated.DELETE("/delete", container.UserHandler.Delete)
 	authenticated.PUT("/update", container.UserHandler.Update)
 }

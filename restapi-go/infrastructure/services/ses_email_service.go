@@ -193,7 +193,7 @@ func (s *SESEmailService) createPasswordResetHTMLBody(password string) string {
         .content { padding: 20px; background-color: #f9f9f9; }
         .content h2 { color: #000; }
         .content p { color: #000; }
-        .password { font-size: 24px; font-weight: bold; color:#e93030; background-color: #f0f0f0; padding: 10px; text-align: center; border-radius: 5px; margin: 20px 0; }
+        .password { font-size: 24px; font-weight: bold; color: #e93030; background-color: #f0f0f0; padding: 10px; text-align: center; border-radius: 5px; margin: 20px 0; }
         .warning { background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }
         .warning p { color: #000; }
         .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
