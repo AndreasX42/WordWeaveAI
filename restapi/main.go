@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/AndreasX42/restapi/config"
 	"github.com/AndreasX42/restapi/middlewares"
@@ -37,6 +38,9 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 		log.Fatal("JWT Error: " + err.Error())
 	}
 
+	// Health check routes
+	server.GET("/health", container.HealthHandler.HealthCheck)
+
 	// Public routes
 	server.POST("/users/register", container.UserHandler.Register)
 	server.POST("/users/confirm-email", container.UserHandler.ConfirmEmail)
@@ -55,8 +59,17 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 }
 
 func initEnvs() {
-	err := godotenv.Load()
+	// In production/release mode, use environment variables passed to container
+	if os.Getenv("GIN_MODE") == "release" {
+		log.Println("Running in release mode, using system environment variables")
+		return
+	}
+
+	// In development mode, try to load .env files
+	err := godotenv.Load("/app/.env", ".env")
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Println("No .env file found, using system environment variables:", err)
+	} else {
+		log.Println("Loaded .env file successfully")
 	}
 }

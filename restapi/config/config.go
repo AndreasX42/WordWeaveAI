@@ -23,6 +23,7 @@ type Container struct {
 	EmailService   repositories.EmailService
 	UserService    *services.UserService
 	UserHandler    *handlers.UserHandler
+	HealthHandler  *handlers.HealthHandler
 	DynamoDB       *dynamo.DB
 	SESClient      *ses.Client
 }
@@ -84,6 +85,7 @@ func (c *Container) initServices() {
 
 func (c *Container) initHandlers() {
 	c.UserHandler = handlers.NewUserHandler(c.UserService)
+	c.HealthHandler = handlers.NewHealthHandler(c.DynamoDB)
 }
 
 func (c *Container) createTables() {

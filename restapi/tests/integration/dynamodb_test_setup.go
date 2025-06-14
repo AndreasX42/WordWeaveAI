@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	DynamoDBLocalEndpoint = "http://localhost:8000"
+	DynamoDBLocalEndpoint = "http://localhost:8081"
 	TestTableName         = "users-test"
 )
 
