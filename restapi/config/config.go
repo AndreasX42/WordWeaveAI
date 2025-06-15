@@ -33,20 +33,26 @@ func NewContainer() *Container {
 	container := &Container{}
 
 	// Initialize AWS services
+	log.Println("Initializing AWS services")
 	container.initAWS()
 
 	// Initialize repositories
+	log.Println("Initializing repositories")
 	container.initRepositories()
 
 	// Initialize services
+	log.Println("Initializing services")
 	container.initServices()
 
 	// Initialize handlers
+	log.Println("Initializing handlers")
 	container.initHandlers()
 
 	// Create database tables
+	log.Println("Creating database tables")
 	container.createTables()
 
+	log.Println("Container initialized successfully")
 	return container
 }
 
@@ -72,7 +78,7 @@ func (c *Container) initAWS() {
 
 func (c *Container) initRepositories() {
 	// Create DynamoDB table reference
-	usersTable := c.DynamoDB.Table(utils.GetTableName("users"))
+	usersTable := c.DynamoDB.Table(utils.GetTableName(os.Getenv("DYNAMODB_USER_TABLE_NAME")))
 
 	// Initialize repositories
 	c.UserRepository = infraRepos.NewDynamoUserRepository(usersTable)
@@ -90,7 +96,7 @@ func (c *Container) initHandlers() {
 
 func (c *Container) createTables() {
 	ctx := context.Background()
-	tableName := utils.GetTableName("users")
+	tableName := utils.GetTableName(os.Getenv("DYNAMODB_USER_TABLE_NAME"))
 
 	// Check if table exists first
 	table := c.DynamoDB.Table(tableName)

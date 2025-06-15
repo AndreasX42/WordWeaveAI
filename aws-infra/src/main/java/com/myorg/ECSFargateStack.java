@@ -35,6 +35,8 @@ import software.amazon.awscdk.services.iam.IRole;
 import software.amazon.awscdk.services.iam.ManagedPolicy;
 import software.amazon.awscdk.services.logs.LogGroup;
 import software.amazon.awscdk.services.sqs.Queue;
+import software.amazon.awscdk.services.ssm.IStringParameter;
+import software.amazon.awscdk.services.ssm.StringParameter;
 import software.constructs.Construct;
 
 public class ECSFargateStack extends Stack {
@@ -58,7 +60,7 @@ public class ECSFargateStack extends Stack {
 		super(scope, id, props);
 
 		// get the db secrets of rds postgres
-		// Map<String, Secret> ssmSecretsMap = getSSMParams();
+		Map<String, Secret> ssmSecretsMap = getSSMParams();
 
 		// create ECS cluster
 		Cluster cluster = Cluster.Builder.create(this, "vCluster")
@@ -83,8 +85,9 @@ public class ECSFargateStack extends Stack {
 
 		// Frontend Task Definition
 		this.frontendTaskDef = FargateTaskDefinition.Builder.create(this, "FrontendTaskDef")
-				.memoryLimitMiB(128)
-				.cpu(64)
+				.memoryLimitMiB(
+						512)
+				.cpu(256)
 				.build();
 
 		// Get the frontend ecr repo
@@ -103,13 +106,13 @@ public class ECSFargateStack extends Stack {
 						.awsLogs(AwsLogDriverProps.builder()
 								.logGroup(frontendLogGroup)
 								.streamPrefix("angular-").build()))
-				.healthCheck(software.amazon.awscdk.services.ecs.HealthCheck.builder()
-						.command(List.of("CMD-SHELL", "curl -f http://localhost/ || exit 1"))
-						.interval(Duration.seconds(17))
-						.timeout(Duration.seconds(2))
-						.retries(3)
-						.startPeriod(Duration.seconds(15))
-						.build())
+				// .healthCheck(software.amazon.awscdk.services.ecs.HealthCheck.builder()
+				// .command(List.of("CMD-SHELL", "curl -f http://localhost/ || exit 1"))
+				// .interval(Duration.seconds(30))
+				// .timeout(Duration.seconds(5))
+				// .retries(3)
+				// .startPeriod(Duration.seconds(20))
+				// .build())
 				.build());
 
 		// Frontend Fargate Service
@@ -139,10 +142,10 @@ public class ECSFargateStack extends Stack {
 						.path("/")
 						.port("80")
 						.protocol(Protocol.HTTP)
-						.interval(Duration.seconds(7))
-						.timeout(Duration.seconds(2))
+						.interval(Duration.seconds(10))
+						.timeout(Duration.seconds(5))
 						.healthyThresholdCount(2)
-						.unhealthyThresholdCount(5)
+						.unhealthyThresholdCount(3)
 						.build())
 				.build());
 
@@ -162,8 +165,8 @@ public class ECSFargateStack extends Stack {
 
 		// Backend Task Definition
 		this.backendTaskDef = FargateTaskDefinition.Builder.create(this, "BackendTaskDef")
-				.memoryLimitMiB(256)
-				.cpu(128)
+				.memoryLimitMiB(512)
+				.cpu(256)
 				.build();
 
 		// Get the backend ecr repos
@@ -175,7 +178,8 @@ public class ECSFargateStack extends Stack {
 		// grant backend task permission to read from secrets manager and ssm parameter
 		// store
 		grantEcsSqsSendMessageAccess(queue);
-		// grantEcsSSMReadAccess();
+		grantEcsSSMReadAccess();
+		grantEcsSESAccess();
 
 		// Explicit Log Group for SpringBoot with DESTROY policy
 		LogGroup backendLogGroup = LogGroup.Builder.create(this, "BackendLogGroup")
@@ -189,28 +193,29 @@ public class ECSFargateStack extends Stack {
 						AwsLogDriverProps.builder()
 								.logGroup(backendLogGroup)
 								.streamPrefix("backend-").build()))
-				.healthCheck(software.amazon.awscdk.services.ecs.HealthCheck.builder()
-						.command(List.of("CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"))
-						.interval(Duration.seconds(11))
-						.timeout(Duration.seconds(2))
-						.retries(3)
-						.startPeriod(Duration.seconds(60))
-						.build())
+				// .healthCheck(software.amazon.awscdk.services.ecs.HealthCheck.builder()
+				// .command(List.of("CMD-SHELL", "curl -f http://localhost:8080/health || exit
+				// 1"))
+				// .interval(Duration.seconds(11))
+				// .timeout(Duration.seconds(2))
+				// .retries(3)
+				// .startPeriod(Duration.seconds(60))
+				// .build())
 				.environment(Map.of(
 						"AWS_SQS_QUEUE_URL", queue.getQueueUrl()))
-				// .secrets(Map.of(
-				// // // From fromSecrets Manager
-				// // "SPRING_DATASOURCE_HOST", dbSecretsMap.get("host"),
-				// // "SPRING_DATASOURCE_PORT", dbSecretsMap.get("port"),
-				// // "SPRING_DATASOURCE_USERNAME", dbSecretsMap.get("username"),
-				// // "SPRING_DATASOURCE_PASSWORD", dbSecretsMap.get("password"),
-				// // "SPRING_DATASOURCE_DATABASE", dbSecretsMap.get("dbname"),
-				// // From SSM Parameter Store - Use keys matching @Value annotations
-				// "APP_HOST", ssmSecretsMap.get("appHost"),
-				// "SPRING_JPA_HIBERNATE_DDL_AUTO", ssmSecretsMap.get("ddlAuto"),
-				// "SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI",
-				// ssmSecretsMap.get("oauth2IssuerUrl"),
-				// "SPRING_PROFILES_ACTIVE", ssmSecretsMap.get("profilesActive")))
+				.secrets(Map.of(
+						// // // From fromSecrets Manager
+						// // "SPRING_DATASOURCE_HOST", dbSecretsMap.get("host"),
+						// // "SPRING_DATASOURCE_PORT", dbSecretsMap.get("port"),
+						// // "SPRING_DATASOURCE_USERNAME", dbSecretsMap.get("username"),
+						// // "SPRING_DATASOURCE_PASSWORD", dbSecretsMap.get("password"),
+						// // "SPRING_DATASOURCE_DATABASE", dbSecretsMap.get("dbname"),
+						// // From SSM Parameter Store - Use keys matching @Value annotations
+						"JWT_SECRET_KEY", ssmSecretsMap.get("jwtSecret"),
+						"JWT_EXPIRATION_TIME", ssmSecretsMap.get("jwtExpire"),
+						"DYNAMODB_TABLE_PREFIX", ssmSecretsMap.get("ddbTablePrefix"),
+						"DYNAMODB_USER_TABLE_NAME", ssmSecretsMap.get("ddbUserTableName"),
+						"CORS_ALLOWED_ORIGINS", ssmSecretsMap.get("corsAllowedOrigins")))
 				.build());
 
 		// Backend Fargate Service
@@ -240,10 +245,10 @@ public class ECSFargateStack extends Stack {
 						.path("/health")
 						.port("8080")
 						.protocol(Protocol.HTTP)
-						.interval(Duration.seconds(7))
-						.timeout(Duration.seconds(2))
+						.interval(Duration.seconds(10))
+						.timeout(Duration.seconds(5))
 						.healthyThresholdCount(2)
-						.unhealthyThresholdCount(5)
+						.unhealthyThresholdCount(3)
 						.build())
 				.build());
 
@@ -287,18 +292,21 @@ public class ECSFargateStack extends Stack {
 		return backendSg;
 	}
 
+	private IStringParameter param(String id, String name) {
+		return StringParameter.fromStringParameterName(this, id, name);
+	}
+
 	Map<String, Secret> getSSMParams() {
 
-		// return Map.of(
-		// "appHost", Secret.fromSsmParameter(param("AppHostParam", "/api/APP_HOST")),
-		// "ddlAuto", Secret.fromSsmParameter(param("DdlAutoParam",
-		// "/api/SPRING_JPA_HIBERNATE_DDL_AUTO")),
-		// "profilesActive", Secret.fromSsmParameter(param("ProfilesActiveParam",
-		// "/api/SPRING_PROFILES_ACTIVE")),
-		// "oauth2IssuerUrl", Secret.fromSsmParameter(
-		// param("Oauth2IssuerUrlParam", "/cognito/COGNITO_USER_POOL_ISSUER_URL")));
+		return Map.of(
+				"jwtSecret", Secret.fromSsmParameter(param("JwtSecretParam", "/restapi/JWT_SECRET_KEY")),
+				"jwtExpire", Secret.fromSsmParameter(param("JwtExpireParam", "/restapi/JWT_EXPIRATION_TIME")),
+				"ddbTablePrefix", Secret.fromSsmParameter(param("DdbTablePrefixParam", "/ddb/DYNAMODB_TABLE_PREFIX")),
+				"ddbUserTableName",
+				Secret.fromSsmParameter(param("DdbUserTableNameParam", "/ddb/DYNAMODB_USER_TABLE_NAME")),
+				"corsAllowedOrigins",
+				Secret.fromSsmParameter(param("CorsAllowedOriginsParam", "/restapi/CORS_ALLOWED_ORIGINS")));
 
-		return Map.of();
 	}
 
 	public void grantEcsSSMReadAccess() {
@@ -312,6 +320,14 @@ public class ECSFargateStack extends Stack {
 		// Grant permission to the Task Role, which the container assumes at runtime
 		if (this.backendTaskDef != null && this.backendTaskDef.getTaskRole() != null) {
 			queue.grantSendMessages(this.backendTaskDef.getTaskRole());
+		}
+	}
+
+	public void grantEcsSESAccess() {
+		// Grant permission to the Task Role for SES email sending
+		if (this.backendTaskDef != null && this.backendTaskDef.getTaskRole() != null) {
+			this.backendTaskDef.getTaskRole().addManagedPolicy(
+					ManagedPolicy.fromAwsManagedPolicyName("AmazonSESFullAccess"));
 		}
 	}
 

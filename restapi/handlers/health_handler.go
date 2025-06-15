@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/AndreasX42/restapi/utils"
@@ -84,7 +85,7 @@ func (h *HealthHandler) HealthCheck(c *gin.Context) {
 func (h *HealthHandler) checkDynamoDB(ctx context.Context) ServiceInfo {
 	startTime := time.Now()
 
-	tableName := utils.GetTableName("users")
+	tableName := utils.GetTableName(os.Getenv("DYNAMODB_USER_TABLE_NAME"))
 	table := h.dynamoDB.Table(tableName)
 
 	// Try to describe the table to test connectivity

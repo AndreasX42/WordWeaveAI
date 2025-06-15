@@ -65,6 +65,8 @@ public class SqsLambdaStack extends Stack {
 
 		// Retrieve SSM parameter values at deployment time
 		String openaiApiKey = StringParameter.valueForStringParameter(this, "/apikeys/DEFAULT_OPENAI_API_KEY");
+		String pexelsApiKey = StringParameter.valueForStringParameter(this, "/apikeys/PEXELS_API_KEY");
+		String elevenLabsApiKey = StringParameter.valueForStringParameter(this, "/apikeys/ELEVENLABS_API_KEY");
 
 		// define the Lambda Function
 		this.vocabProcessorLambda = Function.Builder.create(this, "VocabProcessorLambda")
@@ -75,7 +77,9 @@ public class SqsLambdaStack extends Stack {
 				.timeout(Duration.seconds(120))
 				.layers(List.of(layer))
 				.environment(Map.of(
-						"DEFAULT_OPENAI_API_KEY", openaiApiKey))
+						"DEFAULT_OPENAI_API_KEY", openaiApiKey,
+						"pexels_API_KEY", pexelsApiKey,
+						"ELEVENLABS_API_KEY", elevenLabsApiKey))
 				.vpc(vpc)
 				.vpcSubnets(SubnetSelection.builder()
 						.subnetType(SubnetType.PRIVATE_ISOLATED)

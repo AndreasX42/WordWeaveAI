@@ -24,6 +24,12 @@ import software.amazon.awscdk.services.elasticloadbalancingv2.IApplicationLoadBa
 import software.amazon.awscdk.services.elasticloadbalancingv2.ListenerAction;
 import software.amazon.awscdk.services.elasticloadbalancingv2.ListenerCertificate;
 import software.amazon.awscdk.services.elasticloadbalancingv2.RedirectOptions;
+import software.amazon.awscdk.services.route53.ARecord;
+import software.amazon.awscdk.services.route53.HostedZone;
+import software.amazon.awscdk.services.route53.HostedZoneProviderProps;
+import software.amazon.awscdk.services.route53.IHostedZone;
+import software.amazon.awscdk.services.route53.RecordTarget;
+import software.amazon.awscdk.services.route53.targets.LoadBalancerTarget;
 import software.constructs.Construct;
 
 public class ALBStack extends Stack {
@@ -104,26 +110,26 @@ public class ALBStack extends Stack {
 
 		// --- Route 53 Integration ---
 
-		// // 1. Look up the hosted zone in Route 53
-		// IHostedZone hostedZone = HostedZone.fromLookup(this, "HostedZone",
-		// HostedZoneProviderProps.builder()
-		// .domainName(getFrontendDomainName())
-		// .build());
+		// 1. Look up the hosted zone in Route 53
+		IHostedZone hostedZone = HostedZone.fromLookup(this, "HostedZone",
+				HostedZoneProviderProps.builder()
+						.domainName(getFrontendDomainName())
+						.build());
 
-		// // 2. Create Alias records pointing to the ALB
-		// // Alias record for the apex domain (e.g., quizstreams.com)
-		// ARecord.Builder.create(this, "ApexAliasRecord")
-		// .zone(hostedZone)
-		// .recordName(getFrontendDomainName())
-		// .target(RecordTarget.fromAlias(new LoadBalancerTarget(this.loadBalancer)))
-		// .build();
+		// 2. Create Alias records pointing to the ALB
+		// Alias record for the apex domain (e.g., quizstreams.com)
+		ARecord.Builder.create(this, "ApexAliasRecord")
+				.zone(hostedZone)
+				.recordName(getFrontendDomainName())
+				.target(RecordTarget.fromAlias(new LoadBalancerTarget(this.loadBalancer)))
+				.build();
 
-		// // Alias record for the subdomain (e.g., api.quizstreams.com)
-		// ARecord.Builder.create(this, "ApiAliasRecord")
-		// .zone(hostedZone)
-		// .recordName(getBackendDomainName())
-		// .target(RecordTarget.fromAlias(new LoadBalancerTarget(this.loadBalancer)))
-		// .build();
+		// Alias record for the subdomain (e.g., api.quizstreams.com)
+		ARecord.Builder.create(this, "ApiAliasRecord")
+				.zone(hostedZone)
+				.recordName(getBackendDomainName())
+				.target(RecordTarget.fromAlias(new LoadBalancerTarget(this.loadBalancer)))
+				.build();
 	}
 
 	// Getters for other stacks to use

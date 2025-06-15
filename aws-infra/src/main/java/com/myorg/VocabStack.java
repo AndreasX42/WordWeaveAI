@@ -30,10 +30,6 @@ public class VocabStack extends Stack {
 		SqsLambdaStack sqsLambdaStack = new SqsLambdaStack(this, "SqsLambdaStack", nestedStackProps,
 				vpcStack.getVpc());
 
-		// create S3 bucket and DynamoDB tables
-		DataStack dataStack = new DataStack(this, "DataStack", nestedStackProps,
-				sqsLambdaStack.getVocabProcessorLambda());
-
 		// // create ECS Fargate cluster and services
 		ECSFargateStack ecsFargateStack = new ECSFargateStack(this, "EcsFargate",
 				nestedStackProps,
@@ -43,6 +39,12 @@ public class VocabStack extends Stack {
 				albStack.getFrontendDomainName(),
 				albStack.getBackendDomainName(),
 				albStack.getAlbSecurityGroup().getSecurityGroupId());
+
+		// create S3 bucket and DynamoDB tables - pass ECS task role for specific
+		// permissions
+		DataStack dataStack = new DataStack(this, "DataStack", nestedStackProps,
+				sqsLambdaStack.getVocabProcessorLambda(),
+				ecsFargateStack.getBackendTaskRole());
 
 		// create Angular CodePipeline
 		// FrontendCodePipelineStack frontendCodePipelineStack = new

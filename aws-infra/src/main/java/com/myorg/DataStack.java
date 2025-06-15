@@ -2,6 +2,7 @@ package com.myorg;
 
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
+import software.amazon.awscdk.services.iam.IRole;
 import software.constructs.Construct;
 
 public class DataStack extends Stack {
@@ -23,7 +24,8 @@ public class DataStack extends Stack {
 	}
 
 	public DataStack(final Construct scope, final String id, final StackProps props,
-			final software.amazon.awscdk.services.lambda.Function lambdaFunction) {
+			final software.amazon.awscdk.services.lambda.Function lambdaFunction,
+			final IRole ecsTaskRole) {
 		super(scope, id, props);
 
 		// Create S3 bucket for vocab data storage
@@ -99,6 +101,13 @@ public class DataStack extends Stack {
 		// Grant Lambda function permissions to DynamoDB tables
 		this.userDataTable.grantFullAccess(lambdaFunction);
 		this.vocabDataTable.grantFullAccess(lambdaFunction);
+
+		// Grant ECS task role permissions to DynamoDB tables and S3 bucket
+		if (ecsTaskRole != null) {
+			this.userDataTable.grantFullAccess(ecsTaskRole);
+			this.vocabDataTable.grantFullAccess(ecsTaskRole);
+			this.vocabBucket.grantReadWrite(ecsTaskRole);
+		}
 
 		// Add environment variables to Lambda function for table names and bucket name
 		lambdaFunction.addEnvironment("USER_DATA_TABLE_NAME", this.userDataTable.getTableName());

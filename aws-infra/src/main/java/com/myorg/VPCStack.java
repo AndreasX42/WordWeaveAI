@@ -34,7 +34,7 @@ public class VPCStack extends Stack {
 		super(scope, id, props);
 
 		this.vpc = new Vpc(this, "vVpc", VpcProps.builder()
-				.maxAzs(1)
+				.maxAzs(2)
 				.natGateways(0)
 				.subnetConfiguration(Arrays.asList(
 						SubnetConfiguration.builder()
@@ -75,6 +75,12 @@ public class VPCStack extends Stack {
 		// Add S3 Gateway Endpoint (no SG applicable)
 		vpc.addGatewayEndpoint("S3Endpoint", GatewayVpcEndpointOptions.builder()
 				.service(GatewayVpcEndpointAwsService.S3)
+				.subnets(List.of(privateSubnetSelection))
+				.build());
+
+		// Add DynamoDB Gateway Endpoint (no SG applicable)
+		vpc.addGatewayEndpoint("DynamoDbEndpoint", GatewayVpcEndpointOptions.builder()
+				.service(GatewayVpcEndpointAwsService.DYNAMODB)
 				.subnets(List.of(privateSubnetSelection))
 				.build());
 
@@ -132,6 +138,14 @@ public class VPCStack extends Stack {
 		// Add SQS Interface Endpoint
 		vpc.addInterfaceEndpoint("SqsEndpoint", InterfaceVpcEndpointOptions.builder()
 				.service(InterfaceVpcEndpointAwsService.SQS)
+				.privateDnsEnabled(true)
+				.subnets(privateSubnetSelection)
+				.securityGroups(List.of(endpointSg))
+				.build());
+
+		// Add SES Interface Endpoint
+		vpc.addInterfaceEndpoint("SesEndpoint", InterfaceVpcEndpointOptions.builder()
+				.service(InterfaceVpcEndpointAwsService.EMAIL_SMTP)
 				.privateDnsEnabled(true)
 				.subnets(privateSubnetSelection)
 				.securityGroups(List.of(endpointSg))

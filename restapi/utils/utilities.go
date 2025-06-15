@@ -12,7 +12,7 @@ func AwsString(s string) *string {
 }
 
 func GetTableName(baseName string) string {
-	if prefix := os.Getenv("TABLE_PREFIX"); prefix != "" {
+	if prefix := os.Getenv("DYNAMODB_TABLE_PREFIX"); prefix != "" {
 		return prefix + "_" + baseName
 	}
 	return baseName

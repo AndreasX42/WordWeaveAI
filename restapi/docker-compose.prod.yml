@@ -8,11 +8,10 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - GIN_MODE=release
       - AWS_REGION=us-east-1
       - AWS_ACCESS_KEY_ID=dummy
       - AWS_SECRET_ACCESS_KEY=dummy
-      - TABLE_PREFIX=prod
+      - DYNAMODB_TABLE_PREFIX=prod
       - JWT_SECRET=your-super-secret-jwt-key-here
       - APP_VERSION=1.0.0
     restart: unless-stopped
