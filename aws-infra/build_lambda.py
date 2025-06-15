@@ -8,9 +8,9 @@ from pathlib import Path
 ROOT = Path(__file__).parent.resolve()
 LAYER_DIR = ROOT / "resources" / "layers"
 FUNCTION_DIR = ROOT / "resources" / "lambda"
-VOCAB_PROCESSOR_SRC = ROOT.parent / "vocab_processor"
+VOCAB_PROCESSOR_SRC = ROOT.parent / "agent"
 
-LAYER_ZIP = LAYER_DIR / "vocab_processor_requirements_layer.zip"
+LAYER_ZIP = LAYER_DIR / "lambda_requirements_layer.zip"
 FUNCTION_ZIP = FUNCTION_DIR / "vocab_processor_zip.zip"
 
 
@@ -27,7 +27,7 @@ def build_layer():
     python_target.mkdir(parents=True, exist_ok=True)
 
     # Determine absolute paths for Docker volume mounting
-    abs_req_path = (VOCAB_PROCESSOR_SRC / "requirements.txt").resolve()
+    abs_req_path = (VOCAB_PROCESSOR_SRC / "requirements_lambda.txt").resolve()
     abs_layer_path = python_target.resolve()
 
     # Install dependencies using Docker to match Lambda environment
@@ -38,17 +38,17 @@ def build_layer():
         "--entrypoint",
         "",
         "-v",
-        f"{abs_req_path}:/var/task/requirements_lambda.txt:ro",
+        f"{abs_req_path}:/var/task/requirements.txt:ro",
         "-v",
         f"{abs_layer_path}:/opt/python:rw",
         "public.ecr.aws/lambda/python:3.11",
         "sh",
         "-c",
-        "pip install -r /var/task/requirements_lambda.txt -t /opt/python && chmod -R 755 /opt/python",
+        "pip install -r /var/task/requirements.txt -t /opt/python && chmod -R 755 /opt/python",
     ]
     run(docker_cmd)
 
-    # Run prune_layer.sh if it exists
+    # Prune the layer by removing unnecessary files
     prune_layer(python_target)
 
     # Zip the layer
@@ -66,19 +66,19 @@ def build_function():
         shutil.rmtree(zip_root)
     zip_root.mkdir(parents=True, exist_ok=True)
 
-    # This is the directory where quiz_generator will be copied *as a folder*
+    # This is the directory where vocab_processor will be copied *as a folder*
     vocab_processor_pkg = zip_root / "vocab_processor"
     vocab_processor_pkg.mkdir()
 
     # Copy necessary subfolders
-    for name in ["api", "commons", "quiz_generation", "tests"]:
+    for name in ["vocab_processor"]:
         shutil.copytree(VOCAB_PROCESSOR_SRC / name, vocab_processor_pkg / name)
 
     # Copy root-level files
-    for filename in ["__init__.py", "lambda_function.py"]:
+    for filename in ["lambda_handler.py", "langgraph.json"]:
         shutil.copy(VOCAB_PROCESSOR_SRC / filename, vocab_processor_pkg / filename)
 
-    # Zip the package with quiz_generator/ as the root
+    # Zip the package with vocab_processor/ as the root
     if FUNCTION_ZIP.exists():
         FUNCTION_ZIP.unlink()
     zip_directory_with_folder(zip_root, FUNCTION_ZIP, root_folder_name=None)
@@ -109,7 +109,7 @@ def prune_layer(target_dir: Path):
         # Remove directories
         for dir in dirs:
             full_path = Path(root) / dir
-            if dir in {"__pycache__", "test", "tests", ".pytest_cache"}:
+            if dir in {"__pycache__", "test", "tests", ".pytest_cache", "downloads"}:
                 try:
                     shutil.rmtree(full_path)
                     print(f"Removed dir: {full_path}")

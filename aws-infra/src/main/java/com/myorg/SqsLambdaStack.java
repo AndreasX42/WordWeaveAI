@@ -22,72 +22,75 @@ import software.constructs.Construct;
 
 public class SqsLambdaStack extends Stack {
 
-        private final Queue queue;
-        private final SecurityGroup lambdaSecurityGroup;
+	private final Queue queue;
+	private final SecurityGroup lambdaSecurityGroup;
+	private final Function vocabProcessorLambda;
 
-        public Queue getQueue() {
-                return queue;
-        }
+	public Queue getQueue() {
+		return queue;
+	}
 
-        public SecurityGroup getLambdaSecurityGroup() {
-                return lambdaSecurityGroup;
-        }
+	public SecurityGroup getLambdaSecurityGroup() {
+		return lambdaSecurityGroup;
+	}
 
-        public SqsLambdaStack(final Construct scope, final String id, final StackProps props,
-                        final IVpc vpc) {
-                super(scope, id, props);
+	public Function getVocabProcessorLambda() {
+		return vocabProcessorLambda;
+	}
 
-                // define the queue
-                this.queue = Queue.Builder.create(this, "QuizJobsQueue")
-                                .queueName("quiz-jobs-queue.fifo")
-                                .visibilityTimeout(Duration.seconds(150))
-                                .fifo(true)
-                                .build();
+	public SqsLambdaStack(final Construct scope, final String id, final StackProps props,
+			final IVpc vpc) {
+		super(scope, id, props);
 
-                // define the Lambda Layer
-                LayerVersion layer = LayerVersion.Builder.create(this, "QuizLayer")
-                                .layerVersionName("quiz-requirements-layer")
-                                .compatibleRuntimes(List.of(Runtime.PYTHON_3_11))
-                                .code(Code.fromAsset("resources/layers/quiz_requirements_layer.zip"))
-                                .build();
+		// define the queue
+		this.queue = Queue.Builder.create(this, "VocabJobsQueue")
+				.queueName("vocab-jobs-queue.fifo")
+				.visibilityTimeout(Duration.seconds(150))
+				.fifo(true)
+				.build();
 
-                // Create a Security Group for the Lambda function
-                this.lambdaSecurityGroup = SecurityGroup.Builder.create(this, "LambdaSg")
-                                .vpc(vpc)
-                                .description("Security group for Generator Lambda")
-                                .allowAllOutbound(true)
-                                .build();
+		// define the Lambda Layer
+		LayerVersion layer = LayerVersion.Builder.create(this, "LambdaLayer")
+				.layerVersionName("lambda-requirements-layer")
+				.compatibleRuntimes(List.of(Runtime.PYTHON_3_11))
+				.code(Code.fromAsset("resources/layers/lambda_requirements_layer.zip"))
+				.build();
 
-                // Retrieve SSM parameter values at deployment time
-                String proxyUrl = StringParameter.valueForStringParameter(this, "/qg/PROXY_URL");
-                String openaiApiKey = StringParameter.valueForStringParameter(this, "/qg/DEFAULT_OPENAI_API_KEY");
+		// Create a Security Group for the Lambda function
+		this.lambdaSecurityGroup = SecurityGroup.Builder.create(this, "LambdaSg")
+				.vpc(vpc)
+				.description("Security group for Vocab Lambda")
+				.allowAllOutbound(true)
+				.build();
 
-                // define the Lambda Function
-                Function fn = Function.Builder.create(this, "QuizSqsLambda")
-                                .runtime(Runtime.PYTHON_3_11)
-                                .handler("quiz_generator.lambda_function.lambda_handler")
-                                .code(Code.fromAsset("resources/lambda/quiz_generator_zip.zip"))
-                                .memorySize(256)
-                                .timeout(Duration.seconds(120))
-                                .layers(List.of(layer))
-                                .environment(Map.of(
-                                                "PROXY_URL", proxyUrl,
-                                                "DEFAULT_OPENAI_API_KEY", openaiApiKey))
-                                .vpc(vpc)
-                                .vpcSubnets(SubnetSelection.builder()
-                                                .subnetType(SubnetType.PRIVATE_WITH_EGRESS)
-                                                .build())
-                                .securityGroups(List.of(this.lambdaSecurityGroup))
-                                .build();
+		// Retrieve SSM parameter values at deployment time
+		String openaiApiKey = StringParameter.valueForStringParameter(this, "/apikeys/DEFAULT_OPENAI_API_KEY");
 
-                // Grant sqs permissions
-                queue.grantConsumeMessages(fn);
+		// define the Lambda Function
+		this.vocabProcessorLambda = Function.Builder.create(this, "VocabProcessorLambda")
+				.runtime(Runtime.PYTHON_3_11)
+				.handler("vocab_processor.lambda_handler.lambda_handler")
+				.code(Code.fromAsset("resources/lambda/vocab_processor_zip.zip"))
+				.memorySize(256)
+				.timeout(Duration.seconds(120))
+				.layers(List.of(layer))
+				.environment(Map.of(
+						"DEFAULT_OPENAI_API_KEY", openaiApiKey))
+				.vpc(vpc)
+				.vpcSubnets(SubnetSelection.builder()
+						.subnetType(SubnetType.PRIVATE_ISOLATED)
+						.build())
+				.securityGroups(List.of(this.lambdaSecurityGroup))
+				.build();
 
-                // Attach the AmazonSSMReadOnlyAccess managed policy
-                fn.getRole().addManagedPolicy(
-                                ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMReadOnlyAccess"));
+		// Grant sqs permissions
+		queue.grantConsumeMessages(this.vocabProcessorLambda);
 
-                // Add SQS trigger
-                fn.addEventSource(new SqsEventSource(queue));
-        }
+		// Attach the AmazonSSMReadOnlyAccess managed policy
+		this.vocabProcessorLambda.getRole().addManagedPolicy(
+				ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMReadOnlyAccess"));
+
+		// Add SQS trigger
+		this.vocabProcessorLambda.addEventSource(new SqsEventSource(queue));
+	}
 }

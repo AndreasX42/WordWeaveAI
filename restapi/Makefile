@@ -84,4 +84,57 @@ help:
 	@echo "  make deps            - Install dependencies"
 	@echo "  make fmt             - Format code"
 	@echo "  make lint            - Run linter"
-	@echo "  make help            - Show this help" 
+	@echo "  make help            - Show this help"
+
+# CI/CD specific targets
+.PHONY: ci-test ci-test-unit ci-test-integration ci-test-all ci-prepare
+
+# CI preparation - install deps, format, lint
+ci-prepare:
+	@echo "Preparing CI environment..."
+	go mod tidy
+	go mod download
+	go fmt ./...
+	@echo "CI environment ready"
+
+# CI unit tests with detailed output and coverage
+ci-test-unit:
+	@echo "Running unit tests for CI..."
+	go test ./tests/unit -v -race -coverprofile=unit-coverage.out
+	go tool cover -func=unit-coverage.out
+
+# CI integration tests with timeout and detailed logging
+ci-test-integration:
+	@echo "Starting DynamoDB Local for CI..."
+	docker-compose -f docker-compose.test.yml up -d
+	@echo "Waiting for DynamoDB Local to be ready..."
+	sleep 5
+	@echo "Running integration tests for CI..."
+	go test ./tests/integration -v -race -timeout=2m -coverprofile=integration-coverage.out || (docker-compose -f docker-compose.test.yml down && exit 1)
+	@echo "Stopping DynamoDB Local..."
+	docker-compose -f docker-compose.test.yml down
+	@echo "Integration tests completed"
+
+# CI combined coverage report
+ci-test-coverage:
+	@echo "Generating combined coverage report..."
+	@echo "Using existing coverage files from previous test runs..."
+	# Check if coverage files exist
+	@if [ ! -f unit-coverage.out ]; then echo "Warning: unit-coverage.out not found"; fi
+	@if [ ! -f integration-coverage.out ]; then echo "Warning: integration-coverage.out not found"; fi
+	# Generate HTML reports from existing coverage files
+	@if [ -f unit-coverage.out ]; then go tool cover -html=unit-coverage.out -o unit-coverage.html; fi
+	@if [ -f integration-coverage.out ]; then go tool cover -html=integration-coverage.out -o integration-coverage.html; fi
+	# Merge coverage files if you have gocovmerge installed
+	# gocovmerge unit-coverage.out integration-coverage.out > combined-coverage.out
+	# go tool cover -html=combined-coverage.out -o combined-coverage.html
+	@echo "Coverage reports generated"
+
+# Run all CI tests in sequence
+ci-test-all: ci-prepare ci-test-unit ci-test-integration # ci-test-coverage
+	@echo "All CI tests completed successfully"
+
+# Cleanup CI artifacts
+ci-clean: clean
+	rm -f unit-coverage.out integration-coverage.out combined-coverage.out
+	rm -f unit-coverage.html integration-coverage.html combined-coverage.html 

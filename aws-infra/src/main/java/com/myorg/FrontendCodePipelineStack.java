@@ -1,30 +1,33 @@
 package com.myorg;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+import software.amazon.awscdk.Duration;
+import software.amazon.awscdk.RemovalPolicy;
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
-import software.amazon.awscdk.services.codebuild.*;
+import software.amazon.awscdk.services.codebuild.BuildEnvironment;
+import software.amazon.awscdk.services.codebuild.BuildEnvironmentVariable;
+import software.amazon.awscdk.services.codebuild.BuildSpec;
+import software.amazon.awscdk.services.codebuild.CloudWatchLoggingOptions;
+import software.amazon.awscdk.services.codebuild.LinuxBuildImage;
+import software.amazon.awscdk.services.codebuild.LoggingOptions;
+import software.amazon.awscdk.services.codebuild.PipelineProject;
 import software.amazon.awscdk.services.codepipeline.Artifact;
 import software.amazon.awscdk.services.codepipeline.Pipeline;
 import software.amazon.awscdk.services.codepipeline.StageProps;
 import software.amazon.awscdk.services.codepipeline.actions.CodeBuildAction;
+import software.amazon.awscdk.services.codepipeline.actions.CodeStarConnectionsSourceAction;
 import software.amazon.awscdk.services.codepipeline.actions.EcsDeployAction;
 import software.amazon.awscdk.services.codepipeline.actions.ManualApprovalAction;
 import software.amazon.awscdk.services.ecr.IRepository;
 import software.amazon.awscdk.services.ecr.Repository;
 import software.amazon.awscdk.services.ecs.IBaseService;
-import software.constructs.Construct;
-import software.amazon.awscdk.services.codepipeline.actions.CodeStarConnectionsSourceAction;
-import software.amazon.awscdk.services.iam.ManagedPolicy;
 import software.amazon.awscdk.services.logs.LogGroup;
 import software.amazon.awscdk.services.logs.RetentionDays;
-import software.amazon.awscdk.services.codebuild.LoggingOptions;
-import software.amazon.awscdk.services.codebuild.CloudWatchLoggingOptions;
-
-import java.util.Arrays;
-import java.util.Map;
-import java.util.List;
-import software.amazon.awscdk.Duration;
-import software.amazon.awscdk.RemovalPolicy;
+import software.constructs.Construct;
 
 public class FrontendCodePipelineStack extends Stack {
 
@@ -95,8 +98,8 @@ public class FrontendCodePipelineStack extends Stack {
 
 		// Grant CodeBuild project permission to read SSM parameters using managed
 		// policy
-		buildProject.getRole().addManagedPolicy(
-				ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMReadOnlyAccess"));
+		// buildProject.getRole().addManagedPolicy(
+		// ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMReadOnlyAccess"));
 
 		// Define the build artifact (imagedefinitions.json)
 		Artifact buildOutput = new Artifact("BuildOutput");

@@ -58,7 +58,7 @@ public class ECSFargateStack extends Stack {
 		super(scope, id, props);
 
 		// get the db secrets of rds postgres
-		Map<String, Secret> ssmSecretsMap = getSSMParams();
+		// Map<String, Secret> ssmSecretsMap = getSSMParams();
 
 		// create ECS cluster
 		Cluster cluster = Cluster.Builder.create(this, "vCluster")
@@ -83,8 +83,8 @@ public class ECSFargateStack extends Stack {
 
 		// Frontend Task Definition
 		this.frontendTaskDef = FargateTaskDefinition.Builder.create(this, "FrontendTaskDef")
-				.memoryLimitMiB(512)
-				.cpu(256)
+				.memoryLimitMiB(128)
+				.cpu(64)
 				.build();
 
 		// Get the frontend ecr repo
@@ -121,7 +121,7 @@ public class ECSFargateStack extends Stack {
 				.securityGroups(List.of(frontendSg))
 				.healthCheckGracePeriod(Duration.seconds(15))
 				.vpcSubnets(SubnetSelection.builder()
-						.subnetType(SubnetType.PRIVATE_WITH_EGRESS)
+						.subnetType(SubnetType.PRIVATE_ISOLATED)
 						.build())
 				.minHealthyPercent(100)
 				.build();
@@ -157,40 +157,40 @@ public class ECSFargateStack extends Stack {
 
 		backendSg.addIngressRule(
 				albSecurityGroup,
-				Port.tcp(9090),
+				Port.tcp(8080),
 				"Allow http inbound from ALB");
 
 		// Backend Task Definition
 		this.backendTaskDef = FargateTaskDefinition.Builder.create(this, "BackendTaskDef")
-				.memoryLimitMiB(1024)
-				.cpu(512)
+				.memoryLimitMiB(256)
+				.cpu(128)
 				.build();
 
 		// Get the backend ecr repos
-		String springbootEcrRepoName = CfnStackApp.getRequiredVariable("ECR_REPO_SPRINGBOOT");
+		String backendEcrRepoName = CfnStackApp.getRequiredVariable("ECR_REPO_BACKEND");
 
-		IRepository springbootRepo = Repository.fromRepositoryName(this, "springboot-repo",
-				springbootEcrRepoName);
+		IRepository backendRepo = Repository.fromRepositoryName(this, "backend-repo",
+				backendEcrRepoName);
 
 		// grant backend task permission to read from secrets manager and ssm parameter
 		// store
 		grantEcsSqsSendMessageAccess(queue);
-		grantEcsSSMReadAccess();
+		// grantEcsSSMReadAccess();
 
 		// Explicit Log Group for SpringBoot with DESTROY policy
-		LogGroup springbootLogGroup = LogGroup.Builder.create(this, "SpringbootLogGroup")
+		LogGroup backendLogGroup = LogGroup.Builder.create(this, "BackendLogGroup")
 				.removalPolicy(RemovalPolicy.DESTROY)
 				.build();
 
-		backendTaskDef.addContainer("SpringbootContainer", ContainerDefinitionOptions.builder()
-				.image(ContainerImage.fromEcrRepository(springbootRepo))
-				.portMappings(List.of(PortMapping.builder().containerPort(9090).build()))
+		backendTaskDef.addContainer("BackendContainer", ContainerDefinitionOptions.builder()
+				.image(ContainerImage.fromEcrRepository(backendRepo))
+				.portMappings(List.of(PortMapping.builder().containerPort(8080).build()))
 				.logging(LogDriver.awsLogs(
 						AwsLogDriverProps.builder()
-								.logGroup(springbootLogGroup)
-								.streamPrefix("springboot-").build()))
+								.logGroup(backendLogGroup)
+								.streamPrefix("backend-").build()))
 				.healthCheck(software.amazon.awscdk.services.ecs.HealthCheck.builder()
-						.command(List.of("CMD-SHELL", "curl -f http://localhost:9090/health || exit 1"))
+						.command(List.of("CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"))
 						.interval(Duration.seconds(11))
 						.timeout(Duration.seconds(2))
 						.retries(3)
@@ -198,18 +198,19 @@ public class ECSFargateStack extends Stack {
 						.build())
 				.environment(Map.of(
 						"AWS_SQS_QUEUE_URL", queue.getQueueUrl()))
-				.secrets(Map.of(
-						// // From fromSecrets Manager
-						// "SPRING_DATASOURCE_HOST", dbSecretsMap.get("host"),
-						// "SPRING_DATASOURCE_PORT", dbSecretsMap.get("port"),
-						// "SPRING_DATASOURCE_USERNAME", dbSecretsMap.get("username"),
-						// "SPRING_DATASOURCE_PASSWORD", dbSecretsMap.get("password"),
-						// "SPRING_DATASOURCE_DATABASE", dbSecretsMap.get("dbname"),
-						// From SSM Parameter Store - Use keys matching @Value annotations
-						"APP_HOST", ssmSecretsMap.get("appHost"),
-						"SPRING_JPA_HIBERNATE_DDL_AUTO", ssmSecretsMap.get("ddlAuto"),
-						"SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI", ssmSecretsMap.get("oauth2IssuerUrl"),
-						"SPRING_PROFILES_ACTIVE", ssmSecretsMap.get("profilesActive")))
+				// .secrets(Map.of(
+				// // // From fromSecrets Manager
+				// // "SPRING_DATASOURCE_HOST", dbSecretsMap.get("host"),
+				// // "SPRING_DATASOURCE_PORT", dbSecretsMap.get("port"),
+				// // "SPRING_DATASOURCE_USERNAME", dbSecretsMap.get("username"),
+				// // "SPRING_DATASOURCE_PASSWORD", dbSecretsMap.get("password"),
+				// // "SPRING_DATASOURCE_DATABASE", dbSecretsMap.get("dbname"),
+				// // From SSM Parameter Store - Use keys matching @Value annotations
+				// "APP_HOST", ssmSecretsMap.get("appHost"),
+				// "SPRING_JPA_HIBERNATE_DDL_AUTO", ssmSecretsMap.get("ddlAuto"),
+				// "SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI",
+				// ssmSecretsMap.get("oauth2IssuerUrl"),
+				// "SPRING_PROFILES_ACTIVE", ssmSecretsMap.get("profilesActive")))
 				.build());
 
 		// Backend Fargate Service
@@ -219,16 +220,16 @@ public class ECSFargateStack extends Stack {
 				.desiredCount(1)
 				.assignPublicIp(false)
 				.securityGroups(List.of(backendSg))
-				.healthCheckGracePeriod(Duration.seconds(60))
+				.healthCheckGracePeriod(Duration.seconds(20))
 				.vpcSubnets(SubnetSelection.builder()
-						.subnetType(SubnetType.PRIVATE_WITH_EGRESS)
+						.subnetType(SubnetType.PRIVATE_ISOLATED)
 						.build())
 				.minHealthyPercent(100)
 				.build();
 
 		// Add Backend Target Group to ALB Listener
 		albHttpsListener.addTargets("BackendTG", AddApplicationTargetsProps.builder()
-				.port(9090)
+				.port(8080)
 				.targets(List.of(backendService))
 				.conditions(List.of(ListenerCondition
 						.hostHeaders(List.of(albBackendDomainName))))
@@ -237,7 +238,7 @@ public class ECSFargateStack extends Stack {
 				.healthCheck(HealthCheck
 						.builder()
 						.path("/health")
-						.port("9090")
+						.port("8080")
 						.protocol(Protocol.HTTP)
 						.interval(Duration.seconds(7))
 						.timeout(Duration.seconds(2))
@@ -276,6 +277,10 @@ public class ECSFargateStack extends Stack {
 
 	public IRole getBackendExecutionRole() {
 		return backendTaskDef.getExecutionRole();
+	}
+
+	public IRole getBackendTaskRole() {
+		return backendTaskDef.getTaskRole();
 	}
 
 	public SecurityGroup getBackendSecurityGroup() {

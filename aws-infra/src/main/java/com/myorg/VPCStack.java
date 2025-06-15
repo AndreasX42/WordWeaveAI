@@ -34,19 +34,19 @@ public class VPCStack extends Stack {
 		super(scope, id, props);
 
 		this.vpc = new Vpc(this, "vVpc", VpcProps.builder()
-				.maxAzs(2)
-				.natGateways(1)
+				.maxAzs(1)
+				.natGateways(0)
 				.subnetConfiguration(Arrays.asList(
 						SubnetConfiguration.builder()
 								.name("vPublicSubnet")
 								.subnetType(SubnetType.PUBLIC)
 								.cidrMask(24)
 								.build(),
-						SubnetConfiguration.builder()
-								.name("vPrivateEgressSubnet")
-								.subnetType(SubnetType.PRIVATE_WITH_EGRESS)
-								.cidrMask(24)
-								.build(),
+						// SubnetConfiguration.builder()
+						// .name("vPrivateEgressSubnet")
+						// .subnetType(SubnetType.PRIVATE_WITH_EGRESS)
+						// .cidrMask(24)
+						// .build(),
 						SubnetConfiguration.builder()
 								.name("vPrivateIsolatedSubnet")
 								.subnetType(SubnetType.PRIVATE_ISOLATED)
@@ -69,7 +69,7 @@ public class VPCStack extends Stack {
 
 		// Create a SubnetSelection for the private subnets
 		SubnetSelection privateSubnetSelection = SubnetSelection.builder()
-				.subnetType(SubnetType.PRIVATE_WITH_EGRESS)
+				.subnetType(SubnetType.PRIVATE_ISOLATED)
 				.build();
 
 		// Add S3 Gateway Endpoint (no SG applicable)
