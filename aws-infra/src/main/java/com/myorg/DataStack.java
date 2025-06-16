@@ -31,7 +31,7 @@ public class DataStack extends Stack {
 		// Create S3 bucket for vocab data storage
 		this.vocabBucket = software.amazon.awscdk.services.s3.Bucket.Builder.create(this, "VocabBucket")
 				.bucketName(
-						CfnStackApp.getRequiredVariable("S3_VOCAB_BUCKET_NAME"))
+						CfnStackApp.getRequiredVariable("S3_MEDIA_BUCKET_NAME"))
 				.versioned(true)
 				.publicReadAccess(false)
 				.blockPublicAccess(software.amazon.awscdk.services.s3.BlockPublicAccess.BLOCK_ALL)
@@ -112,6 +112,6 @@ public class DataStack extends Stack {
 		// Add environment variables to Lambda function for table names and bucket name
 		lambdaFunction.addEnvironment("USER_DATA_TABLE_NAME", this.userDataTable.getTableName());
 		lambdaFunction.addEnvironment("VOCAB_DATA_TABLE_NAME", this.vocabDataTable.getTableName());
-		lambdaFunction.addEnvironment("VOCAB_BUCKET_NAME", this.vocabBucket.getBucketName());
+		lambdaFunction.addEnvironment("S3_MEDIA_BUCKET", this.vocabBucket.getBucketName());
 	}
 }

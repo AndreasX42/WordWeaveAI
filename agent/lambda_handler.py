@@ -6,20 +6,19 @@ from typing import Any, Dict
 from aws_lambda_powertools import Logger, Metrics
 from aws_lambda_powertools.metrics import MetricUnit
 from aws_lambda_powertools.utilities.batch import (
-    BatchProcessor,
+    AsyncBatchProcessor,
     EventType,
     async_process_partial_response,
 )
 from aws_lambda_powertools.utilities.parser import parse
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from pydantic import BaseModel, Field
-
 from vocab_processor.agent import graph
 
 logger = Logger(service="vocab-processor")
 metrics = Metrics(namespace="VocabProcessor")
 
-processor = BatchProcessor(event_type=EventType.SQS)
+processor = AsyncBatchProcessor(event_type=EventType.SQS)
 
 
 class VocabProcessRequestDto(BaseModel):
@@ -32,17 +31,18 @@ class VocabProcessRequestDto(BaseModel):
 
 
 @logger.inject_lambda_context()
-async def lambda_handler(
-    event: Dict[str, Any], context: LambdaContext
-) -> Dict[str, Any]:
+def lambda_handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, Any]:
     """
-    Async Lambda handler for processing vocabulary requests from SQS.
+    Lambda handler for processing vocabulary requests from SQS.
 
     This function processes SQS messages containing vocabulary processing requests
-    and runs them through the LangGraph agent.
+    and runs them through the LangGraph agent using async processing.
     """
-    return await async_process_partial_response(
-        event=event, record_handler=process_record, processor=processor, context=context
+    return async_process_partial_response(
+        event=event,
+        record_handler=process_record,
+        processor=processor,
+        context=context,
     )
 
 
@@ -80,6 +80,8 @@ async def process_record(record: Dict[str, Any]):
                 process_vocab_request_and_handle_result(vocab_request),
                 timeout=timeout_seconds,
             )
+
+            print(result)
 
             metrics.add_metric(name="VocabProcessed", unit=MetricUnit.Count, value=1)
             logger.info("Vocabulary processing completed successfully")

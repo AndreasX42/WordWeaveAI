@@ -1,12 +1,9 @@
 import os
 from enum import Enum
 
-from dotenv import load_dotenv
 from instructor import Mode, from_openai
 from langchain_openai import ChatOpenAI
 from openai import AsyncOpenAI
-
-load_dotenv()
 
 
 class Language(str, Enum):

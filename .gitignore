@@ -10,7 +10,12 @@ wheels/
 .venv
 
 # Project files
+aws-infra/.cdk.staging
+aws-infra/cdk.context.json
+aws-infra/cdk.out
+aws-infra/cdk.json
 aws-infra/resources/
+aws-infra/target
 tmp
 .env
 .langgraph_api

@@ -35,6 +35,7 @@ def build_layer():
         "docker",
         "run",
         "--rm",
+        "--platform=linux/amd64",
         "--entrypoint",
         "",
         "-v",
@@ -66,17 +67,24 @@ def build_function():
         shutil.rmtree(zip_root)
     zip_root.mkdir(parents=True, exist_ok=True)
 
-    # This is the directory where vocab_processor will be copied *as a folder*
+    # Copy root-level files
+    for filename in ["__init__.py", "lambda_handler.py"]:
+        source_file = VOCAB_PROCESSOR_SRC / filename
+        if source_file.exists():
+            shutil.copy2(source_file, zip_root / filename)
+
+    # This is the directory where vocab_processor will be copied
     vocab_processor_pkg = zip_root / "vocab_processor"
     vocab_processor_pkg.mkdir()
 
     # Copy necessary subfolders
-    for name in ["vocab_processor"]:
-        shutil.copytree(VOCAB_PROCESSOR_SRC / name, vocab_processor_pkg / name)
-
-    # Copy root-level files
-    for filename in ["lambda_handler.py", "langgraph.json"]:
-        shutil.copy(VOCAB_PROCESSOR_SRC / filename, vocab_processor_pkg / filename)
+    vocab_processor_src_dir = VOCAB_PROCESSOR_SRC / "vocab_processor"
+    if vocab_processor_src_dir.exists():
+        for item in vocab_processor_src_dir.iterdir():
+            if item.is_dir():
+                shutil.copytree(item, vocab_processor_pkg / item.name)
+            else:
+                shutil.copy2(item, vocab_processor_pkg / item.name)
 
     # Zip the package with vocab_processor/ as the root
     if FUNCTION_ZIP.exists():

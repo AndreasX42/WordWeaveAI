@@ -8,9 +8,8 @@ import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
 import software.amazon.awscdk.services.ec2.IVpc;
 import software.amazon.awscdk.services.ec2.SecurityGroup;
-import software.amazon.awscdk.services.ec2.SubnetSelection;
-import software.amazon.awscdk.services.ec2.SubnetType;
 import software.amazon.awscdk.services.iam.ManagedPolicy;
+import software.amazon.awscdk.services.lambda.Architecture;
 import software.amazon.awscdk.services.lambda.Code;
 import software.amazon.awscdk.services.lambda.Function;
 import software.amazon.awscdk.services.lambda.LayerVersion;
@@ -71,20 +70,21 @@ public class SqsLambdaStack extends Stack {
 		// define the Lambda Function
 		this.vocabProcessorLambda = Function.Builder.create(this, "VocabProcessorLambda")
 				.runtime(Runtime.PYTHON_3_11)
-				.handler("vocab_processor.lambda_handler.lambda_handler")
+				.handler("lambda_handler.lambda_handler")
 				.code(Code.fromAsset("resources/lambda/vocab_processor_zip.zip"))
 				.memorySize(256)
 				.timeout(Duration.seconds(120))
 				.layers(List.of(layer))
+				.architecture(Architecture.X86_64)
 				.environment(Map.of(
-						"DEFAULT_OPENAI_API_KEY", openaiApiKey,
+						"OPENAI_API_KEY", openaiApiKey,
 						"pexels_API_KEY", pexelsApiKey,
 						"ELEVENLABS_API_KEY", elevenLabsApiKey))
-				.vpc(vpc)
-				.vpcSubnets(SubnetSelection.builder()
-						.subnetType(SubnetType.PRIVATE_ISOLATED)
-						.build())
-				.securityGroups(List.of(this.lambdaSecurityGroup))
+				// .vpc(vpc)
+				// .vpcSubnets(SubnetSelection.builder()
+				// .subnetType(SubnetType.PUBLIC)
+				// .build())
+				// .securityGroups(List.of(this.lambdaSecurityGroup))
 				.build();
 
 		// Grant sqs permissions

@@ -1,36 +1,20 @@
 import asyncio
-import os
-from pathlib import Path
 
-import aiofiles
-from dotenv import load_dotenv
-from elevenlabs import VoiceSettings, save
+from elevenlabs import VoiceSettings
 from elevenlabs.client import AsyncElevenLabs
 from langchain.tools import tool
-
 from vocab_processor.constants import Language
-
-load_dotenv()
-
-# Base download directory
-DOWNLOAD_FOLDER = os.getenv("DOWNLOAD_FOLDER", "downloads")
-
-
-async def get_word_directory(target_language: Language, target_word: str) -> Path:
-    """Create a directory specific to the target language and word (async)."""
-    safe_word = "".join(c for c in target_word if c.isalnum())[:20]
-    word_dir = Path(DOWNLOAD_FOLDER) / f"{target_language.name.lower()}_{safe_word}"
-
-    # Use asyncio.to_thread to make mkdir non-blocking
-    await asyncio.to_thread(word_dir.mkdir, parents=True, exist_ok=True)
-    return word_dir
+from vocab_processor.utils.s3_utils import generate_vocab_s3_paths, upload_stream_to_s3
 
 
 @tool
 async def get_pronunciation(
-    target_word: str, target_syllables: list[str], target_language: Language
+    target_word: str,
+    target_syllables: list[str],
+    target_language: Language,
+    source_word: str = None,
 ) -> str:
-    """Generate pronunciation audio using ElevenLabs for a word and its syllables."""
+    """Generate pronunciation audio using ElevenLabs and upload directly to S3."""
 
     try:
         client = AsyncElevenLabs()
@@ -38,11 +22,12 @@ async def get_pronunciation(
         model_id = "eleven_flash_v2_5"
         language_code = target_language.code
 
-        # Create word-specific directory (async)
-        word_dir = await get_word_directory(target_language, target_word)
+        # Generate S3 paths using centralized utility
+        s3_paths = generate_vocab_s3_paths(target_language, target_word)
+        audio_prefix = s3_paths["audio_prefix"]
 
-        async def generate_audio_for_text(text: str, filename: str) -> str:
-            """Helper function to generate audio for given text."""
+        async def generate_and_upload_audio(text: str, filename: str) -> str:
+            """Generate audio and upload directly to S3."""
 
             voice_settings = VoiceSettings(
                 speed=0.7 if "syllables" in filename else 0.85,
@@ -52,6 +37,7 @@ async def get_pronunciation(
                 use_speaker_boost=True,
             )
 
+            # Generate audio stream
             audio_generator = client.text_to_speech.convert(
                 text=text,
                 voice_id=voice_id,
@@ -61,40 +47,26 @@ async def get_pronunciation(
                 voice_settings=voice_settings,
             )
 
-            # Collect all audio chunks
-            audio_chunks = []
-            async for chunk in audio_generator:
-                audio_chunks.append(chunk)
+            # Upload stream directly to S3
+            s3_key = f"{audio_prefix}/{filename}"
+            return await upload_stream_to_s3(audio_generator, s3_key, "audio/mpeg")
 
-            # Combine chunks into bytes
-            audio_bytes = b"".join(audio_chunks)
+        # Generate pronunciation audio
+        audio_url = await generate_and_upload_audio(target_word, "pronunciation.mp3")
 
-            # Save file to word-specific directory
-            file_path = word_dir / filename
-            async with aiofiles.open(file_path, "wb") as f:
-                await f.write(audio_bytes)
-
-            return str(file_path)
-
-        # Generate normal pronunciation
-        audio_file = await generate_audio_for_text(target_word, "pronunciation.mp3")
-
-        # Make abspath calls async to avoid blocking os.getcwd()
-        audio_abspath = await asyncio.to_thread(os.path.abspath, audio_file)
-
-        # Return file paths as JSON-like string
         result = {
-            "audio": f"file://{audio_abspath}",
+            "audio": audio_url,
         }
 
+        # Generate syllable audio if provided
         if len(target_syllables) > 0:
-            syllables_file = await generate_audio_for_text(
-                "\n\n".join(target_syllables), "syllables.mp3"
+            syllables_text = "\n\n".join(target_syllables)
+            syllables_url = await generate_and_upload_audio(
+                syllables_text, "syllables.mp3"
             )
-            syllables_abspath = await asyncio.to_thread(os.path.abspath, syllables_file)
-            result["syllables"] = f"file://{syllables_abspath}"
+            result["syllables"] = syllables_url
 
-        print(f"Audio files downloaded to: {word_dir}/")
+        print(f"Audio files uploaded to S3: {audio_prefix}/")
         return str(result)
 
     except Exception as e:

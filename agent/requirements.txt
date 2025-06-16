@@ -7,6 +7,10 @@ langchain-openai==0.3.17
 # openai
 openai==1.79.0
 
+# aws
+aws-lambda-powertools==3.14.0
+boto3==1.38.36
+
 # other
 instructor==1.8.2
 aiohttp==3.11.18
@@ -14,6 +18,3 @@ aiofiles==24.1.0
 python-dotenv==1.1.0
 pydantic==2.11.4
 elevenlabs==2.1.0
-
-# aws
-aws-lambda-powertools==3.14.0
