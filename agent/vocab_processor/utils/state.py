@@ -1,7 +1,6 @@
 from typing import Any, List, Optional
 
 from pydantic import BaseModel, Field
-
 from vocab_processor.constants import Language, PartOfSpeech
 from vocab_processor.schemas.media_model import Media
 from vocab_processor.tools.examples_tool import ExampleSentence
@@ -42,6 +41,10 @@ class VocabState(BaseModel):
     source_part_of_speech: Optional[PartOfSpeech] = Field(
         None, description="Part of speech of the source word."
     )
+    source_article: Optional[str] = Field(
+        None,
+        description="Article of the source word in the source language, if it is a noun.",
+    )
 
     # Fields from translation step
     target_word: Optional[str] = Field(
@@ -60,6 +63,18 @@ class VocabState(BaseModel):
 
     # Fields from enrichment steps
     # If Synonym, ExampleSentence, Media, etc. are Pydantic models, use them here for better type safety.
+    english_word: Optional[str] = Field(
+        None, description="The English word for the target word."
+    )
+    search_query: Optional[list[str]] = Field(
+        None,
+        description="The list of English search words used for Pexels lookup.",
+    )
+    media_reused: Optional[bool] = Field(
+        None,
+        description="True if media was reused from cache instead of fetched from Pexels.",
+    )
+
     synonyms: Optional[List[Synonym]] = Field(
         None, description="List of synonyms for the target word."
     )

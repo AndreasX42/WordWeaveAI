@@ -1,10 +1,12 @@
 from langchain.tools import tool
 from pydantic import BaseModel, Field
-
-from vocab_processor.constants import Language, PartOfSpeech, instructor_llm
+from vocab_processor.constants import Language, PartOfSpeech
+from vocab_processor.tools.base_tool import create_llm_response
 
 
 class Synonym(BaseModel):
+    """Synonyms of the word in the specified language."""
+
     synonym: str = Field(..., description="Synonym of the word")
     explanation: str = Field(..., description="Explanation of the synonym")
 
@@ -21,15 +23,9 @@ async def get_synonyms(
 ) -> Synonyms:
     """Return synonyms of the word in the specified language."""
 
-    system_prompt = f"""You are an expert linguist and teacher specialized in providing synonyms for words in all languages.
-    """
+    prompt = f"Provide 3 common {target_part_of_speech} synonyms for '{target_word}' in {target_language}. Include explanations in {target_language}."
 
-    user_prompt = f"Give 3 commonly used {target_part_of_speech} synonyms for the {target_language} word '{target_word}' in the lanuage {target_language}. The synonyms and the explanations should be {target_language}s."
-
-    return await instructor_llm.create(
+    return await create_llm_response(
         response_model=Synonyms,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
+        user_prompt=prompt,
     )

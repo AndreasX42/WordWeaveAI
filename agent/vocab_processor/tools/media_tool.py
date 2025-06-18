@@ -1,28 +1,59 @@
 import os
+from typing import Any
 
 import aiohttp
+from aws_lambda_powertools import Logger
 from langchain.tools import tool
 from pydantic import BaseModel, Field
-from vocab_processor.constants import Language, instructor_llm
+from vocab_processor.constants import Language
 from vocab_processor.schemas.media_model import Media, PhotoOption
-from vocab_processor.utils.s3_utils import generate_vocab_s3_paths, upload_bytes_to_s3
+from vocab_processor.tools.base_tool import (
+    SystemMessages,
+    create_llm_response,
+    create_tool_error_response,
+)
+from vocab_processor.utils.ddb_utils import get_existing_media_for_search_words
+from vocab_processor.utils.s3_utils import (
+    generate_english_image_s3_paths,
+    upload_bytes_to_s3,
+)
+
+logger = Logger(service="vocab-processor")
 
 PEXELS_API_KEY = os.getenv("PEXELS_API_KEY")
 PEXELS_PHOTO_SEARCH_URL = "https://api.pexels.com/v1/search"
 
+# Reusable session configuration for better performance
+_session_config = aiohttp.ClientTimeout(total=30, connect=5)
 
-async def fetch_photos(query: str, per_page: int = 3) -> list[PhotoOption]:
-    async with aiohttp.ClientSession() as session:
+
+class TranslationResult(BaseModel):
+    english_word: str = Field(description="The English translation of the target word")
+    search_query: list[str] = Field(
+        description="English search query plus descriptive synonyms to find the most relevant photos in Pexels",
+        max_length=3,
+        min_length=2,
+    )
+
+
+async def fetch_photos(query: str | list[str], per_page: int = 3) -> list[PhotoOption]:
+    """Fetch photos from Pexels API."""
+    # Convert list to space-separated string for Pexels API
+    if isinstance(query, list):
+        search_query = " ".join(query)
+    else:
+        search_query = query
+
+    async with aiohttp.ClientSession(timeout=_session_config) as session:
         async with session.get(
             PEXELS_PHOTO_SEARCH_URL,
             headers={"Authorization": PEXELS_API_KEY},
             params={
-                "query": query,
+                "query": search_query,
                 "orientation": "landscape",
                 "per_page": per_page,
                 "size": "large",
             },
-            timeout=aiohttp.ClientTimeout(total=10),
         ) as response:
             if response.status != 200:
                 response_text = await response.text()
@@ -42,13 +73,11 @@ async def fetch_photos(query: str, per_page: int = 3) -> list[PhotoOption]:
             return [PhotoOption(**photo) for photo in photos_data]
 
 
-async def download_and_upload_image(url: str, s3_key: str) -> str:
+async def upload_to_s3(url: str, s3_key: str) -> str:
     """Download image from URL and upload directly to S3."""
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                url, timeout=aiohttp.ClientTimeout(total=30)
-            ) as response:
+        async with aiohttp.ClientSession(timeout=_session_config) as session:
+            async with session.get(url) as response:
                 if response.status == 200:
                     # Read image data
                     image_data = await response.read()
@@ -60,7 +89,7 @@ async def download_and_upload_image(url: str, s3_key: str) -> str:
                         f"Failed to download image: HTTP {response.status}"
                     )
     except Exception as e:
-        print(f"Error downloading/uploading image from {url}: {e}")
+        logger.error("image_download_failed", url=url, s3_key=s3_key, error=str(e))
         return f"Error: {str(e)}"
 
 
@@ -70,106 +99,140 @@ async def get_media(
     target_word: str,
     source_language: Language,
     target_language: Language,
-) -> Media:
+) -> dict[str, Any]:
     """
     Get the most memorable photo for a vocabulary word and upload to S3.
     Steps:
-    1. Translate word to English with descriptors
-    2. Fetch Pexels photos
-    3. Ask LLM to choose the best one
-    4. Download and upload images directly to S3
+    1. Translate target word to English (ground truth for image storage)
+    2. Check if images already exist in S3 under vocabs/en/{english_word}/images/*
+    3. If not found, fetch Pexels photos using English translation
+    4. Ask LLM to choose the best one
+    5. Download and upload images directly to S3
     """
 
-    class PhotoSearchQuery(BaseModel):
-        query: str = Field(
-            description="English search query plus two descriptive synonyms to find the most relevant photos in Pexels"
-        )
-
     try:
-        # translate to english and get criteria
-        query_prompt = f"""
-        Given the {source_language} word '{source_word}', respond with:
-        `query` – an English search query plus a few descriptive synonyms to find the most relevant photos in Pexels.
+        # First, translate target word to English and get search criteria
+        translation_prompt = f"For '{target_word}' ({target_language}): provide english_word + search_query (2-4 descriptive English terms for Pexels)."
 
-        Respond in the JSON format provided.
-        """
-        result_query = await instructor_llm.create(
-            response_model=PhotoSearchQuery,
-            messages=[{"role": "user", "content": query_prompt}],
+        translation_result = await create_llm_response(
+            response_model=TranslationResult,
+            user_prompt=translation_prompt,
         )
 
-        photos = await fetch_photos(result_query.query, per_page=10)
-
-        if not photos:
-            return Media(
-                url="",
-                alt="No photos found matching the query.",
-                src={"large2x": "", "small": ""},
-                explanation="No suitable images were found for this word.",
-                memory_tip="Try visualizing the word concept in your mind.",
+        # STEP 1: Check if we already have Media object for any similar search words
+        existing_media = await get_existing_media_for_search_words(
+            translation_result.search_query
+        )
+        if existing_media:
+            matched_word = existing_media.get("matched_word", "unknown")
+            logger.info(
+                f"Found existing Media object for search word '{matched_word}' (from query {translation_result.search_query}), reusing it"
             )
 
-        rank_prompt = f"""Find the most adequate photo for the following criteria that best depicts the {source_language} word '{source_word}' that makes it easy to remember the {target_language} word '{target_word}'.
+            # Pass raw DDB media data to LLM for translation and formatting
+            adaptation_prompt = f"""Convert this existing media data to a Media object with texts translated to {source_language} for '{source_word}' ({source_language}) → '{target_word}' ({target_language}).
 
-        Photos:
-        {[p.model_dump() for p in photos]}
+Existing media data: {existing_media}
 
-        Respond only in the JSON format provided.
-        """
+Translate alt, explanation, and memory_tip to {source_language}. Keep url and src unchanged."""
 
-        system_prompt = f"""You are an expert linguist and teacher specialized in finding the most memorable photo for a vocabulary word such that the learner can easily remember it.
-        """
+            media = await create_llm_response(
+                response_model=Media,
+                user_prompt=adaptation_prompt,
+                system_message=SystemMessages.MEDIA_SPECIALIST,
+            )
 
-        result_media = await instructor_llm.create(
+            return {
+                "media": media,
+                "english_word": translation_result.english_word,
+                "search_query": translation_result.search_query,
+                "media_reused": True,
+            }
+
+        # STEP 2: If no database entry, fetch from Pexels API
+        image_paths = generate_english_image_s3_paths(translation_result.english_word)
+        large_key = image_paths["large_key"]
+        small_key = image_paths["small_key"]
+
+        logger.info(
+            f"No existing Media found for search words {translation_result.search_query}, fetching from Pexels"
+        )
+
+        photos = await fetch_photos(translation_result.search_query, per_page=10)
+
+        if not photos:
+            return {
+                "media": Media(
+                    url="",
+                    alt="No photos found matching the query.",
+                    src={"large2x": "", "small": ""},
+                    explanation="No suitable images were found for this word.",
+                    memory_tip="Try visualizing the word concept in your mind.",
+                )
+            }
+
+        rank_prompt = f"Choose best photo for '{source_word}' ({source_language}) → '{target_word}' ({target_language}). Translate the texts like in alt, explanation, memory_tip to the source language {source_language}. Photos: {[p.model_dump() for p in photos]}"
+
+        result_media = await create_llm_response(
             response_model=Media,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": rank_prompt},
-            ],
+            user_prompt=rank_prompt,
+            system_message=SystemMessages.MEDIA_SPECIALIST,
         )
 
         # Download and upload images directly to S3
-        if (
-            result_media.src
-            and result_media.src.get("large2x")
-            and result_media.src.get("small")
-        ):
-            # Generate S3 paths using centralized utility
-            s3_paths = generate_vocab_s3_paths(target_language, target_word)
-            image_prefix = s3_paths["image_prefix"]
+        if result_media.src and isinstance(result_media.src, dict):
+            # Clean up any None keys or values in src dict
+            cleaned_src = {
+                k: v
+                for k, v in result_media.src.items()
+                if k is not None and v is not None
+            }
 
-            # Generate S3 keys for both sizes
-            large_s3_key = f"{image_prefix}/large.jpg"
-            small_s3_key = f"{image_prefix}/small.jpg"
+            if cleaned_src.get("large2x") and cleaned_src.get("small"):
+                try:
+                    # Download and upload both versions directly to S3 using English-based paths
+                    large_s3_url = await upload_to_s3(cleaned_src["large2x"], large_key)
+                    small_s3_url = await upload_to_s3(cleaned_src["small"], small_key)
 
-            # Download and upload both versions directly to S3
-            large_s3_url = await download_and_upload_image(
-                result_media.src["large2x"], large_s3_key
-            )
-            small_s3_url = await download_and_upload_image(
-                result_media.src["small"], small_s3_key
-            )
+                    # Update URLs if uploads were successful
+                    if not large_s3_url.startswith(
+                        "Error"
+                    ) and not small_s3_url.startswith("Error"):
+                        result_media.src = {
+                            "large2x": large_s3_url,
+                            "small": small_s3_url,
+                        }
+                        logger.info(
+                            f"Images uploaded to S3: {image_paths['image_prefix']}/"
+                        )
+                    else:
+                        logger.info("Failed to upload images, keeping original URLs")
 
-            # Update URLs if uploads were successful
-            if not large_s3_url.startswith("Error") and not small_s3_url.startswith(
-                "Error"
-            ):
-                result_media.src = {
-                    "large2x": large_s3_url,
-                    "small": small_s3_url,
-                }
-                print(f"Images uploaded to S3: {image_prefix}/")
+                except Exception as e:
+                    logger.error(
+                        "S3_upload_failed",
+                        url=cleaned_src["large2x"],
+                        s3_key=large_key,
+                        error=str(e),
+                    )
+                    # Keep original URLs if S3 upload fails
             else:
-                print("Failed to upload images, keeping original URLs")
+                logger.info("Invalid src URLs for S3 upload")
+        else:
+            logger.info("No valid src data for S3 upload")
 
-        return result_media
+        return {
+            "media": result_media,
+            "english_word": translation_result.english_word,
+            "search_query": translation_result.search_query,
+            "media_reused": False,
+        }
 
     except Exception as e:
-        print(f"Error in get_media: {e}")
-        return Media(
-            url="",
-            alt=f"Error generating visual media: {str(e)}",
-            src={"large2x": "", "small": ""},
-            explanation="An error occurred while fetching the image.",
-            memory_tip="Try creating a mental image of the word.",
-        )
+        context = {
+            "source_word": source_word,
+            "target_word": target_word,
+            "source_language": source_language,
+            "target_language": target_language,
+        }
+        return create_tool_error_response(e, context)

@@ -1,10 +1,12 @@
-import asyncio
-
+from aws_lambda_powertools import Logger
 from elevenlabs import VoiceSettings
 from elevenlabs.client import AsyncElevenLabs
 from langchain.tools import tool
 from vocab_processor.constants import Language
+from vocab_processor.tools.base_tool import create_tool_error_response
 from vocab_processor.utils.s3_utils import generate_vocab_s3_paths, upload_stream_to_s3
+
+logger = Logger(service="vocab-processor")
 
 
 @tool
@@ -12,7 +14,6 @@ async def get_pronunciation(
     target_word: str,
     target_syllables: list[str],
     target_language: Language,
-    source_word: str = None,
 ) -> str:
     """Generate pronunciation audio using ElevenLabs and upload directly to S3."""
 
@@ -66,9 +67,14 @@ async def get_pronunciation(
             )
             result["syllables"] = syllables_url
 
-        print(f"Audio files uploaded to S3: {audio_prefix}/")
+        logger.info(f"Audio files uploaded to S3: {audio_prefix}/")
         return str(result)
 
     except Exception as e:
-        print(f"Error generating audio: {e}")
-        return f"Error generating audio: {e}"
+        context = {
+            "target_word": target_word,
+            "target_syllables": target_syllables,
+            "target_language": target_language,
+        }
+        error_response = create_tool_error_response(e, context)
+        return str(error_response)

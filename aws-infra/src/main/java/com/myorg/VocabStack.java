@@ -19,6 +19,9 @@ public class VocabStack extends Stack {
 		// create KMS customer managed key
 		// KMSStack kmsStack = new KMSStack(this, "kms", nestedStackProps);
 
+		// create shared resources (Lambda layer)
+		SharedResourcesStack sharedResourcesStack = new SharedResourcesStack(this, "SharedResources", nestedStackProps);
+
 		// create VPC
 		VPCStack vpcStack = new VPCStack(this, "Vpc", nestedStackProps);
 
@@ -26,9 +29,19 @@ public class VocabStack extends Stack {
 		ALBStack albStack = new ALBStack(this, "Alb", nestedStackProps,
 				vpcStack.getVpc());
 
-		// create SQS queue and lambda function
+		// Create DataStack first for basic resources
+		DataStack dataStack = new DataStack(this, "DataStack", nestedStackProps);
+
+		// create WebSocket API (needs DataStack but not SqsLambdaStack)
+		WebSocketApiStack webSocketApiStack = new WebSocketApiStack(this, "WebSocketApi", nestedStackProps,
+				vpcStack.getVpc(),
+				dataStack.getVocabDataTable(),
+				dataStack.getConnectionsTable(),
+				sharedResourcesStack.getLambdaLayer());
+
+		// create SQS queue and lambda function with WebSocket endpoint
 		SqsLambdaStack sqsLambdaStack = new SqsLambdaStack(this, "SqsLambdaStack", nestedStackProps,
-				vpcStack.getVpc());
+				vpcStack.getVpc(), sharedResourcesStack.getLambdaLayer(), webSocketApiStack.getWebSocketEndpoint());
 
 		// // create ECS Fargate cluster and services
 		ECSFargateStack ecsFargateStack = new ECSFargateStack(this, "EcsFargate",
@@ -40,11 +53,8 @@ public class VocabStack extends Stack {
 				albStack.getBackendDomainName(),
 				albStack.getAlbSecurityGroup().getSecurityGroupId());
 
-		// create S3 bucket and DynamoDB tables - pass ECS task role for specific
-		// permissions
-		DataStack dataStack = new DataStack(this, "DataStack", nestedStackProps,
-				sqsLambdaStack.getVocabProcessorLambda(),
-				ecsFargateStack.getBackendTaskRole());
+		// Grant permissions to DataStack resources after all components are created
+		dataStack.grantPermissions(sqsLambdaStack.getVocabProcessorLambda(), ecsFargateStack.getBackendTaskRole());
 
 		// create Angular CodePipeline
 		// FrontendCodePipelineStack frontendCodePipelineStack = new

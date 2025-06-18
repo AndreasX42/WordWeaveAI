@@ -9,9 +9,11 @@ ROOT = Path(__file__).parent.resolve()
 LAYER_DIR = ROOT / "resources" / "layers"
 FUNCTION_DIR = ROOT / "resources" / "lambda"
 VOCAB_PROCESSOR_SRC = ROOT.parent / "agent"
+HANDLER_SRC = VOCAB_PROCESSOR_SRC / "handlers"
 
 LAYER_ZIP = LAYER_DIR / "lambda_requirements_layer.zip"
 FUNCTION_ZIP = FUNCTION_DIR / "vocab_processor_zip.zip"
+WEBSOCKET_ZIP = FUNCTION_DIR / "websocket_handler_zip.zip"
 
 
 def run(cmd, cwd=None):
@@ -67,11 +69,17 @@ def build_function():
         shutil.rmtree(zip_root)
     zip_root.mkdir(parents=True, exist_ok=True)
 
-    # Copy root-level files
-    for filename in ["__init__.py", "lambda_handler.py"]:
-        source_file = VOCAB_PROCESSOR_SRC / filename
-        if source_file.exists():
-            shutil.copy2(source_file, zip_root / filename)
+    # Copy root-level files from handlers directory
+    init_file = VOCAB_PROCESSOR_SRC / "__init__.py"
+    if init_file.exists():
+        shutil.copy2(init_file, zip_root / "__init__.py")
+
+    # Copy vocab_handler.py from handlers
+    handler_file = HANDLER_SRC / "vocab_handler.py"
+    if handler_file.exists():
+        shutil.copy2(handler_file, zip_root / "lambda_handler.py")
+    else:
+        raise FileNotFoundError(f"vocab_handler.py not found in {HANDLER_SRC}")
 
     # This is the directory where vocab_processor will be copied
     vocab_processor_pkg = zip_root / "vocab_processor"
@@ -92,12 +100,52 @@ def build_function():
     zip_directory_with_folder(zip_root, FUNCTION_ZIP, root_folder_name=None)
 
 
+def build_websocket_function():
+    print("Building WebSocket Lambda function...")
+
+    zip_root = FUNCTION_DIR / "websocket_handler"  # This will be zipped as root/
+    if zip_root.exists():
+        shutil.rmtree(zip_root)
+    zip_root.mkdir(parents=True, exist_ok=True)
+
+    # Copy __init__.py from /agent root
+    init_file = VOCAB_PROCESSOR_SRC / "__init__.py"
+    if init_file.exists():
+        shutil.copy2(init_file, zip_root / "__init__.py")
+
+    # Copy websocket_handler.py from handlers
+    handler_file = HANDLER_SRC / "websocket_handler.py"
+    if handler_file.exists():
+        shutil.copy2(handler_file, zip_root / "websocket_handler.py")
+    else:
+        raise FileNotFoundError(f"websocket_handler.py not found in {HANDLER_SRC}")
+
+    # Copy vocab_processor package (needed for websocket_utils)
+    vocab_processor_pkg = zip_root / "vocab_processor"
+    vocab_processor_pkg.mkdir()
+
+    vocab_processor_src_dir = VOCAB_PROCESSOR_SRC / "vocab_processor"
+    if vocab_processor_src_dir.exists():
+        for item in vocab_processor_src_dir.iterdir():
+            if item.is_dir():
+                shutil.copytree(item, vocab_processor_pkg / item.name)
+            else:
+                shutil.copy2(item, vocab_processor_pkg / item.name)
+
+    # Zip the package
+    if WEBSOCKET_ZIP.exists():
+        WEBSOCKET_ZIP.unlink()
+    zip_directory_with_folder(zip_root, WEBSOCKET_ZIP, root_folder_name=None)
+
+
 def clean():
     print("Cleaning up...")
     shutil.rmtree(LAYER_DIR / "python", ignore_errors=True)
     shutil.rmtree(FUNCTION_DIR / "vocab_processor", ignore_errors=True)
+    shutil.rmtree(FUNCTION_DIR / "websocket_handler", ignore_errors=True)
     LAYER_ZIP.unlink(missing_ok=True)
     FUNCTION_ZIP.unlink(missing_ok=True)
+    WEBSOCKET_ZIP.unlink(missing_ok=True)
 
 
 def prune_layer(target_dir: Path):
@@ -148,14 +196,16 @@ def main():
     if len(sys.argv) == 1:
         build_layer()
         build_function()
+        build_websocket_function()
     elif sys.argv[1] == "layer":
         build_layer()
     elif sys.argv[1] == "function":
         build_function()
+        build_websocket_function()
     elif sys.argv[1] == "clean":
         clean()
     else:
-        print("Usage: python build.py [layer|function|clean]")
+        print("Usage: python build.py [layer|function|websocket|clean]")
 
 
 if __name__ == "__main__":

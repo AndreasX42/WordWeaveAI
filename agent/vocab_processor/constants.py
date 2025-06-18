@@ -104,13 +104,38 @@ class PartOfSpeech(str, Enum):
 
 
 client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-instructor_llm = from_openai(
-    client=client, model="gpt-4.1-2025-04-14", temperature=0.2, mode=Mode.JSON
-)
 
-chat_model = ChatOpenAI(
-    model="gpt-3.5-turbo", temperature=0, openai_api_key=os.getenv("OPENAI_API_KEY")
-)
+# Cache instructor client to avoid recreation
+_instructor_client_mini = None
+_instructor_client_large = None
 
-instructor_llm = instructor_llm
-agent_llm: ChatOpenAI = chat_model
+
+def get_instructor_llm_mini():
+    """Get cached instructor client for gpt-4.1-mini."""
+    global _instructor_client_mini
+    if _instructor_client_mini is None:
+        _instructor_client_mini = from_openai(
+            client=client,
+            model="gpt-4.1-mini-2025-04-14",
+            temperature=0.2,
+            mode=Mode.JSON,
+        )
+    return _instructor_client_mini
+
+
+def get_instructor_llm_large():
+    """Get cached instructor client for gpt-4.1 for validation tasks requiring highest accuracy."""
+    global _instructor_client_large
+    if _instructor_client_large is None:
+        _instructor_client_large = from_openai(
+            client=client,
+            model="gpt-4.1-2025-04-14",
+            temperature=0.2,
+            mode=Mode.JSON,
+        )
+    return _instructor_client_large
+
+
+# Convenience variables for easy imports
+instructor_llm = get_instructor_llm_mini()  # Default to mini for cost optimization
+instructor_llm_large = get_instructor_llm_large()  # Full model for validation tasks

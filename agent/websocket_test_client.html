@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Multi-User Collaborative Vocab Processing</title>
+    <style>
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 2rem;
+        margin: 0;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+
+      .header h1 {
+        color: white;
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+      }
+
+      .header p {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 1.1rem;
+      }
+
+      .dashboard {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+      }
+
+      .panel {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      }
+
+      .panel-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: #1f2937;
+      }
+
+      .input-group {
+        margin-bottom: 1rem;
+      }
+
+      .input-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #374151;
+      }
+
+      .input-group input,
+      .input-group select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 1rem;
+      }
+
+      .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-primary {
+        background: #3b82f6;
+        color: white;
+      }
+
+      .btn-success {
+        background: #10b981;
+        color: white;
+      }
+
+      .btn-danger {
+        background: #ef4444;
+        color: white;
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .status-bar {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-bottom: 0.5rem;
+      }
+
+      .status-indicator.connected {
+        background: #10b981;
+      }
+
+      .status-indicator.disconnected {
+        background: #ef4444;
+      }
+
+      .activity-feed {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        height: 600px;
+        overflow-y: auto;
+      }
+
+      .activity-item {
+        padding: 1rem;
+        border-left: 4px solid #e5e7eb;
+        margin-bottom: 1rem;
+        background: #f9fafb;
+        border-radius: 0 8px 8px 0;
+      }
+
+      .activity-item.processing_started {
+        border-left-color: #3b82f6;
+        background: #eff6ff;
+      }
+
+      .activity-item.chunk_update {
+        border-left-color: #f59e0b;
+        background: #fffbeb;
+      }
+
+      .activity-item.processing_completed {
+        border-left-color: #10b981;
+        background: #ecfdf5;
+      }
+
+      .activity-item.processing_failed {
+        border-left-color: #ef4444;
+        background: #fef2f2;
+      }
+
+      .activity-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+      }
+
+      .activity-type {
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.875rem;
+      }
+
+      .activity-time {
+        font-size: 0.75rem;
+        color: #6b7280;
+      }
+
+      .activity-details {
+        font-size: 0.875rem;
+        color: #4b5563;
+      }
+
+      .collaborative-section {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+      }
+
+      .user-simulation {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+
+      .user-card {
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.5rem;
+        background: #f9fafb;
+      }
+
+      .user-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+
+      .user-badge {
+        background: #3b82f6;
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <h1>🌍 Multi-User Collaborative Vocab Processing</h1>
+        <p>
+          Real-time vocabulary processing with collaborative updates across
+          multiple users
+        </p>
+      </div>
+
+      <!-- Main Dashboard -->
+      <div class="dashboard">
+        <!-- Connection Panel -->
+        <div class="panel">
+          <h2 class="panel-title">🔗 WebSocket Connection</h2>
+          <div class="input-group">
+            <label for="userId">Your User ID:</label>
+            <input
+              type="text"
+              id="userId"
+              placeholder="Enter your user ID"
+              value="user123"
+            />
+          </div>
+          <div class="input-group">
+            <label for="websocketUrl">WebSocket URL:</label>
+            <input
+              type="text"
+              id="websocketUrl"
+              placeholder="wss://your-websocket-api-url"
+              value="wss://your-websocket-endpoint.execute-api.region.amazonaws.com/prod"
+            />
+          </div>
+          <button
+            id="connectBtn"
+            class="btn btn-primary"
+            onclick="toggleConnection()"
+          >
+            Connect
+          </button>
+        </div>
+
+        <!-- Word Pair Subscription Panel -->
+        <div class="panel">
+          <h2 class="panel-title">📝 Word Pair Subscription</h2>
+          <div class="input-group">
+            <label for="sourceWord">Source Word:</label>
+            <input
+              type="text"
+              id="sourceWord"
+              placeholder="e.g., house"
+              value="house"
+            />
+          </div>
+          <div class="input-group">
+            <label for="targetLanguage">Target Language:</label>
+            <select id="targetLanguage">
+              <option value="es">Spanish (es)</option>
+              <option value="de">German (de)</option>
+              <option value="fr">French (fr)</option>
+            </select>
+          </div>
+          <button
+            id="subscribeBtn"
+            class="btn btn-success"
+            onclick="subscribeToWordPair()"
+            disabled
+          >
+            Subscribe to Updates
+          </button>
+        </div>
+      </div>
+
+      <!-- Status Bar -->
+      <div class="status-bar">
+        <div>
+          <div
+            class="status-indicator disconnected"
+            id="connectionStatus"
+          ></div>
+          <span id="connectionText">Disconnected</span>
+        </div>
+        <div>
+          <div
+            class="status-indicator disconnected"
+            id="subscriptionStatus"
+          ></div>
+          <span id="subscriptionText">Not Subscribed</span>
+        </div>
+        <div>
+          <span id="currentWordPair">No Subscription</span>
+        </div>
+      </div>
+
+      <!-- Collaborative Testing Section -->
+      <div class="collaborative-section">
+        <h2 class="panel-title">👥 Multi-User Simulation</h2>
+        <p style="margin-bottom: 1rem; color: #6b7280">
+          Simulate multiple users working on the same vocabulary word to see
+          collaborative real-time updates.
+        </p>
+        <div class="user-simulation">
+          <div class="user-card">
+            <div class="user-card-header">
+              <span class="user-badge">User 1 (Alice)</span>
+              <button
+                class="btn btn-primary"
+                onclick="simulateUser('alice', 'house', 'es')"
+              >
+                Connect as Alice
+              </button>
+            </div>
+            <p style="font-size: 0.875rem; color: #6b7280">
+              Subscribes to: house → Spanish
+            </p>
+          </div>
+          <div class="user-card">
+            <div class="user-card-header">
+              <span class="user-badge">User 2 (Bob)</span>
+              <button
+                class="btn btn-primary"
+                onclick="simulateUser('bob', 'house', 'es')"
+              >
+                Connect as Bob
+              </button>
+            </div>
+            <p style="font-size: 0.875rem; color: #6b7280">
+              Subscribes to: house → Spanish
+            </p>
+          </div>
+          <div class="user-card">
+            <div class="user-card-header">
+              <span class="user-badge">User 3 (Carol)</span>
+              <button
+                class="btn btn-primary"
+                onclick="simulateUser('carol', 'car', 'de')"
+              >
+                Connect as Carol
+              </button>
+            </div>
+            <p style="font-size: 0.875rem; color: #6b7280">
+              Subscribes to: car → German
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity Feed -->
+      <div class="activity-feed">
+        <h2 class="panel-title">📡 Real-time Activity Feed</h2>
+        <div id="messages">
+          <div class="activity-item">
+            <div class="activity-header">
+              <span class="activity-type">Ready</span>
+              <span class="activity-time">Now</span>
+            </div>
+            <div class="activity-details">
+              Connect to WebSocket and subscribe to word pairs to see real-time
+              collaborative updates.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let socket = null;
+      let currentSubscription = null;
+      let messageCount = 0;
+
+      // WebSocket connection management
+      function toggleConnection() {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          disconnect();
+        } else {
+          connect();
+        }
+      }
+
+      function connect() {
+        const userId = document.getElementById("userId").value;
+        const websocketUrl = document.getElementById("websocketUrl").value;
+
+        if (!userId || !websocketUrl) {
+          alert("Please enter both User ID and WebSocket URL");
+          return;
+        }
+
+        const urlWithParams =
+          websocketUrl + "?user_id=" + encodeURIComponent(userId);
+        socket = new WebSocket(urlWithParams);
+
+        socket.onopen = function (event) {
+          console.log("Connected to WebSocket");
+          updateConnectionStatus(true);
+          addMessage("connection", "Connected to WebSocket", "User: " + userId);
+        };
+
+        socket.onmessage = function (event) {
+          const message = JSON.parse(event.data);
+          console.log("Received message:", message);
+          handleMessage(message);
+        };
+
+        socket.onclose = function (event) {
+          console.log("Disconnected from WebSocket");
+          updateConnectionStatus(false);
+          updateSubscriptionStatus(false);
+          addMessage(
+            "disconnection",
+            "Disconnected from WebSocket",
+            "Connection closed"
+          );
+        };
+
+        socket.onerror = function (error) {
+          console.error("WebSocket error:", error);
+          addMessage(
+            "error",
+            "WebSocket Error",
+            error.message || "Connection failed"
+          );
+        };
+      }
+
+      function disconnect() {
+        if (socket) {
+          socket.close();
+          socket = null;
+        }
+      }
+
+      // Word pair subscription management
+      function subscribeToWordPair() {
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+          alert("Please connect to WebSocket first");
+          return;
+        }
+
+        const sourceWord = document.getElementById("sourceWord").value;
+        const targetLanguage = document.getElementById("targetLanguage").value;
+
+        if (!sourceWord) {
+          alert("Please enter a source word");
+          return;
+        }
+
+        const subscriptionMessage = {
+          action: "subscribe",
+          source_word: sourceWord,
+          target_language: targetLanguage,
+        };
+
+        socket.send(JSON.stringify(subscriptionMessage));
+
+        currentSubscription = sourceWord + " → " + targetLanguage;
+        updateSubscriptionStatus(true);
+
+        addMessage(
+          "subscription",
+          "Subscribed to Word Pair",
+          "Now receiving updates for: " +
+            sourceWord +
+            " → " +
+            targetLanguage.toUpperCase()
+        );
+      }
+
+      // Multi-user simulation
+      function simulateUser(username, sourceWord, targetLanguage) {
+        addMessage(
+          "simulation",
+          username + " connected",
+          "Simulated user " +
+            username +
+            " subscribed to " +
+            sourceWord +
+            " → " +
+            targetLanguage.toUpperCase()
+        );
+
+        // Simulate collaborative updates
+        setTimeout(function () {
+          simulateCollaborativeUpdate(username, sourceWord, targetLanguage);
+        }, 2000);
+      }
+
+      function simulateCollaborativeUpdate(
+        initiatedBy,
+        sourceWord,
+        targetLanguage
+      ) {
+        const simulatedMessages = [
+          {
+            type: "processing_started",
+            data: {
+              source_word: sourceWord,
+              target_language: targetLanguage,
+              status: "started",
+            },
+            user_id: initiatedBy,
+            timestamp: new Date().toISOString(),
+          },
+          {
+            type: "chunk_update",
+            data: {
+              source_word: sourceWord,
+              target_language: targetLanguage,
+              chunk: { step: "translation", progress: 50 },
+            },
+            user_id: initiatedBy,
+            timestamp: new Date().toISOString(),
+          },
+          {
+            type: "processing_completed",
+            data: {
+              source_word: sourceWord,
+              target_language: targetLanguage,
+              status: "completed",
+              result: { translation: sourceWord === "house" ? "casa" : "auto" },
+            },
+            user_id: initiatedBy,
+            timestamp: new Date().toISOString(),
+          },
+        ];
+
+        simulatedMessages.forEach(function (msg, index) {
+          setTimeout(function () {
+            handleMessage(msg);
+          }, index * 1500);
+        });
+      }
+
+      // Message handling
+      function handleMessage(message) {
+        const messageType = message.type;
+        const data = message.data || {};
+        const timestamp = new Date(message.timestamp).toLocaleTimeString();
+
+        switch (messageType) {
+          case "processing_started":
+            addMessage(
+              "processing_started",
+              "Processing Started",
+              data.source_word +
+                " → " +
+                (data.target_language || "").toUpperCase() +
+                " | Initiated by: " +
+                message.user_id,
+              timestamp
+            );
+            break;
+
+          case "chunk_update":
+            addMessage(
+              "chunk_update",
+              "Processing Update",
+              "Step: " +
+                (data.step || "Unknown") +
+                " | " +
+                data.source_word +
+                " → " +
+                (data.target_language || "").toUpperCase(),
+              timestamp
+            );
+            break;
+
+          case "processing_completed":
+            addMessage(
+              "processing_completed",
+              "Processing Completed",
+              "✅ " +
+                data.source_word +
+                " → " +
+                (data.target_language || "").toUpperCase() +
+                " completed successfully!",
+              timestamp
+            );
+            break;
+
+          case "processing_failed":
+            addMessage(
+              "processing_failed",
+              "Processing Failed",
+              "❌ " +
+                data.source_word +
+                " → " +
+                (data.target_language || "").toUpperCase() +
+                ": " +
+                data.error,
+              timestamp
+            );
+            break;
+
+          case "cache_hit":
+            addMessage(
+              "cache_hit",
+              "Cache Hit",
+              "⚡ " +
+                data.source_word +
+                " → " +
+                (data.target_language || "").toUpperCase() +
+                " loaded from cache",
+              timestamp
+            );
+            break;
+
+          case "subscription_confirmed":
+            addMessage(
+              "subscription",
+              "Subscription Confirmed",
+              "Successfully subscribed to: " + (message.vocab_word || ""),
+              timestamp
+            );
+            break;
+
+          default:
+            addMessage(
+              "info",
+              "Unknown Message",
+              JSON.stringify(message),
+              timestamp
+            );
+        }
+      }
+
+      function addMessage(type, title, details, timestamp) {
+        const messagesContainer = document.getElementById("messages");
+        const messageElement = document.createElement("div");
+        messageElement.className = "activity-item " + type;
+
+        const timeStr = timestamp || new Date().toLocaleTimeString();
+
+        messageElement.innerHTML =
+          '<div class="activity-header">' +
+          '<span class="activity-type">' +
+          title +
+          "</span>" +
+          '<span class="activity-time">' +
+          timeStr +
+          "</span>" +
+          "</div>" +
+          '<div class="activity-details">' +
+          details +
+          "</div>";
+
+        messagesContainer.insertBefore(
+          messageElement,
+          messagesContainer.firstChild.nextSibling
+        );
+
+        // Keep only the last 50 messages
+        const messages = messagesContainer.querySelectorAll(".activity-item");
+        if (messages.length > 51) {
+          messagesContainer.removeChild(messages[messages.length - 1]);
+        }
+      }
+
+      // UI updates
+      function updateConnectionStatus(connected) {
+        const statusIndicator = document.getElementById("connectionStatus");
+        const statusText = document.getElementById("connectionText");
+        const connectBtn = document.getElementById("connectBtn");
+        const subscribeBtn = document.getElementById("subscribeBtn");
+
+        if (connected) {
+          statusIndicator.className = "status-indicator connected";
+          statusText.textContent = "Connected";
+          connectBtn.textContent = "Disconnect";
+          connectBtn.className = "btn btn-danger";
+          subscribeBtn.disabled = false;
+        } else {
+          statusIndicator.className = "status-indicator disconnected";
+          statusText.textContent = "Disconnected";
+          connectBtn.textContent = "Connect";
+          connectBtn.className = "btn btn-primary";
+          subscribeBtn.disabled = true;
+        }
+      }
+
+      function updateSubscriptionStatus(subscribed) {
+        const statusIndicator = document.getElementById("subscriptionStatus");
+        const statusText = document.getElementById("subscriptionText");
+        const wordPairElement = document.getElementById("currentWordPair");
+
+        if (subscribed) {
+          statusIndicator.className = "status-indicator connected";
+          statusText.textContent = "Subscribed";
+          wordPairElement.textContent = currentSubscription || "Subscribed";
+        } else {
+          statusIndicator.className = "status-indicator disconnected";
+          statusText.textContent = "Not Subscribed";
+          wordPairElement.textContent = "No Subscription";
+          currentSubscription = null;
+        }
+      }
+    </script>
+  </body>
+</html>

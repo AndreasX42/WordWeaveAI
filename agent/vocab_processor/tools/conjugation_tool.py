@@ -1,9 +1,12 @@
 from langchain.tools import tool
-
-from vocab_processor.constants import Language, PartOfSpeech, instructor_llm
+from vocab_processor.constants import Language, PartOfSpeech
 from vocab_processor.schemas.english_conj_model import EnglishVerbConjugation
 from vocab_processor.schemas.german_conj_model import GermanVerbConjugation
 from vocab_processor.schemas.spanish_conj_model import SpanishVerbConjugation
+from vocab_processor.tools.base_tool import (
+    create_llm_response,
+    create_tool_error_response,
+)
 
 
 @tool
@@ -15,23 +18,29 @@ async def get_conjugation(
     if not target_part_of_speech.is_conjugatable:
         return f"The word '{target_word}' is not a verb, so there is no conjugation table for it."
 
-    if target_language == Language.ENGLISH:
-        schema = EnglishVerbConjugation
-    elif target_language == Language.GERMAN:
-        schema = GermanVerbConjugation
-    else:
-        schema = SpanishVerbConjugation
+    try:
+        # Select appropriate schema based on language
+        schema_map = {
+            Language.ENGLISH: EnglishVerbConjugation,
+            Language.GERMAN: GermanVerbConjugation,
+            Language.SPANISH: SpanishVerbConjugation,
+        }
+        schema = schema_map[target_language]
 
-    system_msg = f"You are an expert linguist specialized in {target_language} conjugations. **Output only JSON that strictly conforms to the expected schema. Do not explain or think anything.**"
+        prompt = f"Create conjugation table for {target_language} verb '{target_word}'. Output JSON only."
 
-    user_prompt = f"Please provide the conjugation for the {target_language} verb '{target_word}' in the {target_language} language."
+        result = await create_llm_response(
+            response_model=schema,
+            user_prompt=prompt,
+        )
 
-    result = await instructor_llm.create(
-        response_model=schema,
-        messages=[
-            {"role": "system", "content": system_msg},
-            {"role": "user", "content": user_prompt},
-        ],
-    )
+        return result.model_dump_json(indent=2)
 
-    return result.model_dump_json(indent=2)
+    except Exception as e:
+        context = {
+            "target_word": target_word,
+            "target_language": target_language,
+            "target_part_of_speech": target_part_of_speech,
+        }
+        error_response = create_tool_error_response(e, context)
+        return f"Error creating conjugation: {error_response}"

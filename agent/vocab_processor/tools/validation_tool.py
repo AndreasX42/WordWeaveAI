@@ -1,24 +1,32 @@
 from typing import List, Optional
 
-from langchain_core.tools import tool
+from langchain.tools import tool
 from pydantic import BaseModel, Field
-
-from vocab_processor.constants import Language, instructor_llm
+from vocab_processor.constants import Language
+from vocab_processor.tools.base_tool import (
+    SystemMessages,
+    create_llm_response,
+    create_tool_error_response,
+)
 
 
 class SuggestedWordInfo(BaseModel):
+    """Suggested word information."""
+
     word: str = Field(..., description="The suggested word string.")
     language: Language = Field(..., description="The language of the suggested word.")
 
 
 class WordValidationResult(BaseModel):
+    """Validation result of the word."""
+
     is_valid: bool = Field(
         ...,
         description="True if the word is considered valid (correctly spelled, unambiguous language), False otherwise.",
     )
     source_language: Optional[Language] = Field(
         None,
-        description="The detected language of the source word if clear and unambiguous, otherwise null.",
+        description="The detected language of the source word, if clear and unambiguous, otherwise null.",
     )
     message: Optional[str] = Field(
         None,
@@ -45,49 +53,31 @@ async def validate_word(word: str, target_language: Language) -> WordValidationR
         language for language in Language if language != target_language
     ]
 
-    system_prompt = f"""
-You are a strict, expert linguistic validation assistant.
+    prompt = f"""You are an expert linguistic validator. For word '{word}' targeting {target_language}:
 
 Instructions:
 - Only suggest as correction a **real word** from the list of supported languages ({", ".join(possible_source_languages)}).
-- If the input word is not valid, suggest up to 3 real, high-frequency words with the smallest possible spelling difference (edit distance of 1 or 2). Only suggest corrections if they are common and actually exist in the language.
+- If the input word is not valid, suggest up to 3 real, high-frequency words with the smallest possible spelling difference (edit distance up to 3). Only suggest corrections if they are common and actually exist in the language.
 - **Never invent words.**
 - **Never suggest rare words, names, or words in the target language.**
 - **Never suggest the input word itself as a suggestion.**
 - If the word is valid in any supported language (except the target language), mark as valid and return the detected language.
 - Otherwise, return is_valid: false and suggestions as above.
 
-Examples:
-- Word: "Haus" (German), Target: Spanish → is_valid: true, source_language: "German"
-- Word: "naughty" (English), Target: German → is_valid: true, source_language: "English"
-- Word: "quisquilloso" (Spanish), Target: German → is_valid: true, source_language: "Spanish"
-- Word: "maus" (misspelled), Target: English → is_valid: false, source_language: null, message: "Misspelled", suggestions: [{{"word": "Haus", "language": "German"}}, {{"word": "Maus", "language": "German"}}]
-- Word: "mekern" (misspelled), Target: Spanish → is_valid: false, source_language: null, message: "Misspelled", suggestions: [{{"word": "meckern", "language": "German"}}, {{"word": "merken", "language": "German"}}]
-- Word: "conducer" (misspelled), Target: English → is_valid: false, source_language: null, message: "Misspelled", suggestions: [{{"word": "conducir", "language": "Spanish"}}]
+Rules: No invented words, no rare words, no target language suggestions.
+Supported: {", ".join(Language.all_values())}
 
-Supported languages: {", ".join(Language.all_values())}.
-Strictly return a JSON object with these keys only:
-- is_valid (bool)
-- source_language (Language|null)
-- message (str|null)
-- suggestions (list|null, each item: {{'word': str, 'language': Language}})
+Output JSON only."""
 
-Output only the JSON, no commentary or explanations.
-"""
-
-    user_prompt = (
-        f"Validate the word: '{word}' for target language '{target_language}'."
-    )
     try:
-        response = await instructor_llm.create(
+        return await create_llm_response(
             response_model=WordValidationResult,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
+            user_prompt=prompt,
+            system_message=SystemMessages.VALIDATION_SPECIALIST,
+            use_large_model=True,  # Use large model for validation accuracy
         )
-        return response
     except Exception as e:
+        # Create fallback error response
         return WordValidationResult(
             is_valid=False,
             source_language=None,

@@ -1,18 +1,24 @@
-from langchain_core.tools import tool
+from langchain.tools import tool
 from pydantic import BaseModel, Field
-
-from vocab_processor.constants import Language, PartOfSpeech, instructor_llm
+from vocab_processor.constants import Language, PartOfSpeech
+from vocab_processor.tools.base_tool import create_llm_response
 
 
 class WordCategorization(BaseModel):
+    """Categorization of the word in the specified language."""
+
     source_definition: list[str] = Field(
         ...,
         min_items=1,
         max_items=3,
-        description="Definitions of the word its native language",
+        description="Definitions of the word in its native language",
     )
     source_part_of_speech: PartOfSpeech = Field(
-        ..., description="Part of speech of the word"
+        ..., description="Part of speech of the source word"
+    )
+    source_article: str | None = Field(
+        None,
+        description="Article of the source word in the source language, if it is a noun",
     )
 
 
@@ -22,18 +28,9 @@ async def get_classification(
 ) -> WordCategorization:
     """Categorize part of speech and language."""
 
-    system_prompt = f"""You are an expert linguist and teacher specialized in categorizing words into all languages and parts of speech. 
-    """
+    prompt = f"Classify '{source_word}' ({source_language}): provide part of speech from {', '.join(PartOfSpeech.all_values())} and up to 3 definitions in {source_language}. If the word is a noun, provide the article."
 
-    user_prompt = f"""Classify the {source_language} word '{source_word}' into a part of speech and provide up to 3 definitions in its native language.
-    Part of speech should be one of: {", ".join(PartOfSpeech.all_values())}.
-    If the part of speech is not one of these, return 'Unknown'.
-    """
-
-    return await instructor_llm.create(
+    return await create_llm_response(
         response_model=WordCategorization,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
+        user_prompt=prompt,
     )

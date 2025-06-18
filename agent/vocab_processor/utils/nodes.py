@@ -1,17 +1,30 @@
+from aws_lambda_powertools import Logger
 from vocab_processor.tools import *
 from vocab_processor.utils.state import VocabState
+
+logger = Logger(service="vocab-processor")
 
 
 async def node_validate_source_word(state: VocabState) -> VocabState:
     """Validate the source word for spelling, ambiguity, and clarity."""
 
-    print(f"Validating word: {state.source_word} in language: {state.target_language}")
-
     validation_result = await validate_word.ainvoke(
-        input={"word": state.source_word, "target_language": state.target_language}
+        input={
+            "word": state.source_word,
+            "target_language": state.target_language,
+        }
     )
 
-    print(f"Validation Result: {validation_result}")
+    logger.debug(
+        "validation_result",
+        word=state.source_word,
+        is_valid=validation_result.is_valid,
+        source_language=(
+            str(validation_result.source_language)
+            if validation_result.source_language
+            else None
+        ),
+    )
 
     if validation_result.is_valid:
         return {
@@ -40,6 +53,7 @@ async def node_get_classification(state: VocabState) -> VocabState:
     return {
         "source_definition": response.source_definition,
         "source_part_of_speech": response.source_part_of_speech,
+        "source_article": response.source_article,
     }
 
 
@@ -121,7 +135,12 @@ async def node_get_media(state: VocabState) -> VocabState:
 
     # print(f"Memory aid: {response}")
 
-    return {"media": response}
+    return {
+        "media": response.get("media", None),
+        "english_word": response.get("english_word", None),
+        "search_query": response.get("search_query", []),
+        "media_reused": response.get("media_reused", False),
+    }
 
 
 async def node_get_examples(state: VocabState) -> VocabState:

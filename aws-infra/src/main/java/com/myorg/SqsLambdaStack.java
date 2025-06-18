@@ -22,11 +22,16 @@ import software.constructs.Construct;
 public class SqsLambdaStack extends Stack {
 
 	private final Queue queue;
+	private final Queue deadLetterQueue;
 	private final SecurityGroup lambdaSecurityGroup;
 	private final Function vocabProcessorLambda;
 
 	public Queue getQueue() {
 		return queue;
+	}
+
+	public Queue getDeadLetterQueue() {
+		return deadLetterQueue;
 	}
 
 	public SecurityGroup getLambdaSecurityGroup() {
@@ -38,21 +43,22 @@ public class SqsLambdaStack extends Stack {
 	}
 
 	public SqsLambdaStack(final Construct scope, final String id, final StackProps props,
-			final IVpc vpc) {
+			final IVpc vpc, final LayerVersion lambdaLayer, final String websocketEndpoint) {
 		super(scope, id, props);
 
-		// define the queue
-		this.queue = Queue.Builder.create(this, "VocabJobsQueue")
-				.queueName("vocab-jobs-queue.fifo")
-				.visibilityTimeout(Duration.seconds(150))
-				.fifo(true)
+		// Create Dead Letter Queue first
+		this.deadLetterQueue = Queue.Builder.create(this, "VocabJobsDeadLetterQueue")
+				.queueName("vocab-jobs-dlq")
 				.build();
 
-		// define the Lambda Layer
-		LayerVersion layer = LayerVersion.Builder.create(this, "LambdaLayer")
-				.layerVersionName("lambda-requirements-layer")
-				.compatibleRuntimes(List.of(Runtime.PYTHON_3_11))
-				.code(Code.fromAsset("resources/layers/lambda_requirements_layer.zip"))
+		// Define the main queue with DLQ configuration
+		this.queue = Queue.Builder.create(this, "VocabJobsQueue")
+				.queueName("vocab-jobs-queue")
+				.visibilityTimeout(Duration.seconds(150))
+				.deadLetterQueue(software.amazon.awscdk.services.sqs.DeadLetterQueue.builder()
+						.queue(this.deadLetterQueue)
+						.maxReceiveCount(1)
+						.build())
 				.build();
 
 		// Create a Security Group for the Lambda function
@@ -74,12 +80,20 @@ public class SqsLambdaStack extends Stack {
 				.code(Code.fromAsset("resources/lambda/vocab_processor_zip.zip"))
 				.memorySize(256)
 				.timeout(Duration.seconds(120))
-				.layers(List.of(layer))
+				.layers(List.of(lambdaLayer))
 				.architecture(Architecture.X86_64)
 				.environment(Map.of(
 						"OPENAI_API_KEY", openaiApiKey,
-						"pexels_API_KEY", pexelsApiKey,
-						"ELEVENLABS_API_KEY", elevenLabsApiKey))
+						"PEXELS_API_KEY", pexelsApiKey,
+						"ELEVENLABS_API_KEY", elevenLabsApiKey,
+						"WEBSOCKET_API_ENDPOINT", websocketEndpoint != null ? websocketEndpoint : "",
+						"DYNAMODB_USER_TABLE_NAME",
+						CfnStackApp.getRequiredVariable("DYNAMODB_USER_TABLE_NAME"),
+						"DYNAMODB_VOCAB_TABLE_NAME",
+						CfnStackApp.getRequiredVariable("DYNAMODB_VOCAB_TABLE_NAME"),
+						"DYNAMODB_CONNECTIONS_TABLE_NAME",
+						CfnStackApp.getRequiredVariable("DYNAMODB_CONNECTIONS_TABLE_NAME"),
+						"S3_MEDIA_BUCKET_NAME", CfnStackApp.getRequiredVariable("S3_MEDIA_BUCKET_NAME")))
 				// .vpc(vpc)
 				// .vpcSubnets(SubnetSelection.builder()
 				// .subnetType(SubnetType.PUBLIC)
@@ -96,5 +110,6 @@ public class SqsLambdaStack extends Stack {
 
 		// Add SQS trigger
 		this.vocabProcessorLambda.addEventSource(new SqsEventSource(queue));
+
 	}
 }

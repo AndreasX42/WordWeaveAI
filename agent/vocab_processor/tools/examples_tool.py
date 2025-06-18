@@ -2,21 +2,24 @@ from typing import Optional
 
 from langchain.tools import tool
 from pydantic import BaseModel, Field
-
-from vocab_processor.constants import Language, instructor_llm
+from vocab_processor.constants import Language
+from vocab_processor.tools.base_tool import create_llm_response
 
 
 class ExampleSentence(BaseModel):
     """A bilingual example sentence with translation."""
 
     original: str = Field(
-        ..., description="The example sentence in the original language", min_length=20
+        ..., description="The example sentence in the source language", min_length=20
     )
     translation: str = Field(
-        ..., description="The translation of the example sentence", min_length=20
+        ...,
+        description="The translation of the example sentence into the target language",
+        min_length=20,
     )
     context: Optional[str] = Field(
-        None, description="Optional context or usage note for the example"
+        None,
+        description="Optional context or usage note for the example in the source language",
     )
 
 
@@ -35,19 +38,12 @@ async def get_examples(
     target_word: str,
     source_language: Language,
     target_language: Language,
-) -> str:
-    """Generate 3 bilingual example phrases using the word and its translation."""
+) -> Examples:
+    """Generate bilingual example phrases using the word and its translation."""
 
-    system_prompt = f"""You are an expert linguist and teacher specialized in providing examples of how to use words in everyday conversations.
-    """
+    prompt = f"Create 2 to 3 bilingual example sentences using '{source_word}' ({source_language}) and '{target_word}' ({target_language}). Real-life contexts, medium length, everyday conversations. The context should be in the source language {source_language}."
 
-    user_prompt = f"""Give 2 example sentences using the {source_language} word '{source_word}' and its {target_language} translation '{target_word}', with both {source_language} and {target_language} versions. The sentences should be of medium length and commonly used in everyday conversations in {target_language} and appropriate for a {target_language} learner. The context should be a real-life situation and also in the {source_language}.
-    """
-
-    return await instructor_llm.create(
+    return await create_llm_response(
         response_model=Examples,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
+        user_prompt=prompt,
     )
