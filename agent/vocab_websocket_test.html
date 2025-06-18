@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vocab WebSocket Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+
+      .container {
+        background: white;
+        border-radius: 10px;
+        padding: 30px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        color: #333;
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #555;
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 10px;
+        border: 2px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+        box-sizing: border-box;
+      }
+
+      button {
+        background: #007bff;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-right: 10px;
+        margin-bottom: 10px;
+      }
+
+      button:hover {
+        background: #0056b3;
+      }
+
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+
+      .disconnect {
+        background: #dc3545;
+      }
+
+      .disconnect:hover {
+        background: #c82333;
+      }
+
+      .status {
+        padding: 15px;
+        border-radius: 5px;
+        margin: 20px 0;
+        font-weight: bold;
+      }
+
+      .status.connected {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+
+      .status.disconnected {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+
+      .messages {
+        border: 2px solid #ddd;
+        border-radius: 5px;
+        height: 400px;
+        overflow-y: auto;
+        padding: 15px;
+        background: #f8f9fa;
+        font-family: monospace;
+        font-size: 14px;
+      }
+
+      .message {
+        margin-bottom: 10px;
+        padding: 8px;
+        border-radius: 3px;
+        border-left: 4px solid #007bff;
+        background: white;
+      }
+
+      .message.processing_started {
+        border-left-color: #28a745;
+      }
+
+      .message.chunk_update {
+        border-left-color: #ffc107;
+      }
+
+      .message.processing_completed {
+        border-left-color: #28a745;
+      }
+
+      .message.processing_failed {
+        border-left-color: #dc3545;
+      }
+
+      .message.subscription_confirmed {
+        border-left-color: #17a2b8;
+      }
+
+      .message.connection_close {
+        border-left-color: #6c757d;
+      }
+
+      .timestamp {
+        color: #666;
+        font-size: 12px;
+      }
+
+      .message-type {
+        font-weight: bold;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+      }
+
+      .clear-btn {
+        background: #6c757d;
+        font-size: 14px;
+        padding: 8px 16px;
+      }
+
+      .clear-btn:hover {
+        background: #545b62;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🔗 Vocab WebSocket Test Client</h1>
+
+      <div class="form-group">
+        <label for="websocketUrl">WebSocket URL:</label>
+        <input
+          type="text"
+          id="websocketUrl"
+          value="wss://59q3guq0p7.execute-api.us-east-1.amazonaws.com/prod"
+          placeholder="wss://your-websocket-endpoint.execute-api.region.amazonaws.com/prod"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="userId">User ID:</label>
+        <input
+          type="text"
+          id="userId"
+          value="test_user"
+          placeholder="Enter your user ID"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="sourceWord">Source Word:</label>
+        <input
+          type="text"
+          id="sourceWord"
+          value="house"
+          placeholder="Enter word to translate"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="targetLanguage">Target Language:</label>
+        <select id="targetLanguage">
+          <option value="es">Spanish (es)</option>
+          <option value="de">German (de)</option>
+          <option value="fr">French (fr)</option>
+          <option value="it">Italian (it)</option>
+          <option value="pt">Portuguese (pt)</option>
+        </select>
+      </div>
+
+      <div>
+        <button id="connectBtn" onclick="connect()">Connect & Subscribe</button>
+        <button
+          id="disconnectBtn"
+          onclick="disconnect()"
+          disabled
+          class="disconnect"
+        >
+          Disconnect
+        </button>
+        <button class="clear-btn" onclick="clearMessages()">
+          Clear Messages
+        </button>
+      </div>
+
+      <div id="status" class="status disconnected">
+        ❌ Disconnected - Ready to connect
+      </div>
+
+      <h3>📨 Real-time Messages</h3>
+      <div id="messages" class="messages">
+        <div class="message">
+          <div class="timestamp">Ready to connect...</div>
+          <div>
+            Fill in the form above and click "Connect & Subscribe" to start
+            receiving vocab processing updates.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let socket = null;
+      let connectionParams = {};
+
+      function connect() {
+        const websocketUrl = document
+          .getElementById("websocketUrl")
+          .value.trim();
+        const userId = document.getElementById("userId").value.trim();
+        const sourceWord = document.getElementById("sourceWord").value.trim();
+        const targetLanguage = document.getElementById("targetLanguage").value;
+
+        // Validate inputs
+        if (!websocketUrl) {
+          alert("Please enter WebSocket URL");
+          return;
+        }
+        if (!userId) {
+          alert("Please enter User ID");
+          return;
+        }
+        if (!sourceWord) {
+          alert("Please enter Source Word");
+          return;
+        }
+
+        // Store connection params
+        connectionParams = { userId, sourceWord, targetLanguage };
+
+        // Build WebSocket URL with all parameters (remove trailing slash if present)
+        let cleanUrl = websocketUrl.trim();
+        if (cleanUrl.endsWith("/")) {
+          cleanUrl = cleanUrl.slice(0, -1);
+        }
+        const urlWithParams = `${cleanUrl}?user_id=${encodeURIComponent(
+          userId
+        )}&source_word=${encodeURIComponent(
+          sourceWord
+        )}&target_language=${encodeURIComponent(targetLanguage)}`;
+
+        addMessage("system", `Connecting to: ${urlWithParams}`);
+
+        // Create WebSocket connection
+        socket = new WebSocket(urlWithParams);
+
+        socket.onopen = function (event) {
+          updateStatus(
+            "connected",
+            `✅ Connected as ${userId} | Subscribed to: ${sourceWord} → ${targetLanguage.toUpperCase()}`
+          );
+          addMessage(
+            "connection",
+            `Successfully connected and subscribed to vocabulary updates for "${sourceWord}" → ${targetLanguage.toUpperCase()}`
+          );
+
+          document.getElementById("connectBtn").disabled = true;
+          document.getElementById("disconnectBtn").disabled = false;
+        };
+
+        socket.onmessage = function (event) {
+          try {
+            const message = JSON.parse(event.data);
+            handleMessage(message);
+          } catch (error) {
+            addMessage("error", `Failed to parse message: ${event.data}`);
+          }
+        };
+
+        socket.onclose = function (event) {
+          updateStatus("disconnected", "❌ Disconnected");
+          addMessage("connection", "WebSocket connection closed");
+
+          document.getElementById("connectBtn").disabled = false;
+          document.getElementById("disconnectBtn").disabled = true;
+          socket = null;
+        };
+
+        socket.onerror = function (error) {
+          addMessage(
+            "error",
+            `WebSocket error: ${error.message || "Connection failed"}`
+          );
+          console.error("WebSocket error:", error);
+        };
+      }
+
+      function disconnect() {
+        if (socket) {
+          socket.close();
+        }
+      }
+
+      function handleMessage(message) {
+        const messageType = message.type || "unknown";
+        const data = message.data || {};
+        const timestamp = message.timestamp
+          ? new Date(message.timestamp).toLocaleTimeString()
+          : new Date().toLocaleTimeString();
+
+        let content = "";
+
+        switch (messageType) {
+          case "subscription_confirmed":
+            content = `✅ Subscription confirmed for: ${
+              message.source_word || data.source_word
+            } → ${(
+              message.target_language ||
+              data.target_language ||
+              ""
+            ).toUpperCase()}`;
+            if (message.vocab_word) {
+              content += ` (Key: ${message.vocab_word})`;
+            }
+            break;
+
+          case "processing_started":
+            content = `🚀 Processing started for: ${data.source_word} → ${(
+              data.target_language || ""
+            ).toUpperCase()}`;
+            if (message.user_id) {
+              content += ` | Initiated by: ${message.user_id}`;
+            }
+            break;
+
+          case "chunk_update":
+            content = `⚡ Processing update: ${data.source_word} → ${(
+              data.target_language || ""
+            ).toUpperCase()}`;
+            if (data.chunk) {
+              content += ` | ${JSON.stringify(data.chunk)}`;
+            }
+            break;
+
+          case "step_update":
+            content = `📊 Step update: ${message.step || "Unknown step"} for ${
+              data.source_word
+            } → ${(data.target_language || "").toUpperCase()}`;
+            if (data.result) {
+              content += ` | Result: ${JSON.stringify(data.result)}`;
+            }
+            break;
+
+          case "processing_completed":
+            content = `✅ Processing completed for: ${data.source_word} → ${(
+              data.target_language || ""
+            ).toUpperCase()}`;
+            if (data.result) {
+              content += ` | Result: ${JSON.stringify(data.result)}`;
+            }
+            break;
+
+          case "processing_failed":
+            content = `❌ Processing failed for: ${data.source_word} → ${(
+              data.target_language || ""
+            ).toUpperCase()}`;
+            if (data.error) {
+              content += ` | Error: ${data.error}`;
+            }
+            break;
+
+          case "cache_hit":
+            content = `⚡ Cache hit for: ${data.source_word} → ${(
+              data.target_language || ""
+            ).toUpperCase()}`;
+            if (data.result) {
+              content += ` | Cached result: ${JSON.stringify(data.result)}`;
+            }
+            break;
+
+          case "connection_close":
+            content = `🔐 Connection closing: ${
+              data.message || "Processing complete"
+            }`;
+            // Close the connection gracefully after receiving close message
+            setTimeout(() => {
+              if (socket && socket.readyState === WebSocket.OPEN) {
+                addMessage(
+                  "system",
+                  "Closing connection as requested by server..."
+                );
+                socket.close();
+              }
+            }, 1000); // Give a moment for the message to be displayed
+            break;
+
+          default:
+            content = `📨 ${messageType.toUpperCase()}: ${JSON.stringify(
+              data
+            )}`;
+            break;
+        }
+
+        addMessage(messageType, content, timestamp);
+      }
+
+      function addMessage(type, content, timestamp = null) {
+        const messagesDiv = document.getElementById("messages");
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `message ${type}`;
+
+        const timeStr = timestamp || new Date().toLocaleTimeString();
+
+        messageDiv.innerHTML = `
+                <div class="timestamp">${timeStr}</div>
+                <div class="message-type">${type}</div>
+                <div>${content}</div>
+            `;
+
+        messagesDiv.appendChild(messageDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      }
+
+      function updateStatus(status, message) {
+        const statusDiv = document.getElementById("status");
+        statusDiv.className = `status ${status}`;
+        statusDiv.textContent = message;
+      }
+
+      function clearMessages() {
+        const messagesDiv = document.getElementById("messages");
+        messagesDiv.innerHTML =
+          '<div class="message"><div class="timestamp">Messages cleared</div><div>Ready to receive new messages...</div></div>';
+      }
+
+      // Auto-focus on the first input when page loads
+      window.onload = function () {
+        document.getElementById("websocketUrl").focus();
+      };
+    </script>
+  </body>
+</html>

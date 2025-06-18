@@ -41,7 +41,7 @@ public class VocabStack extends Stack {
 
 		// create SQS queue and lambda function with WebSocket endpoint
 		SqsLambdaStack sqsLambdaStack = new SqsLambdaStack(this, "SqsLambdaStack", nestedStackProps,
-				vpcStack.getVpc(), sharedResourcesStack.getLambdaLayer(), webSocketApiStack.getWebSocketEndpoint());
+				vpcStack.getVpc(), sharedResourcesStack.getLambdaLayer());
 
 		// // create ECS Fargate cluster and services
 		ECSFargateStack ecsFargateStack = new ECSFargateStack(this, "EcsFargate",
@@ -55,6 +55,9 @@ public class VocabStack extends Stack {
 
 		// Grant permissions to DataStack resources after all components are created
 		dataStack.grantPermissions(sqsLambdaStack.getVocabProcessorLambda(), ecsFargateStack.getBackendTaskRole());
+
+		// Grant WebSocket API permissions to VocabProcessorLambda
+		webSocketApiStack.grantWebSocketPermissions(sqsLambdaStack.getVocabProcessorLambda());
 
 		// create Angular CodePipeline
 		// FrontendCodePipelineStack frontendCodePipelineStack = new

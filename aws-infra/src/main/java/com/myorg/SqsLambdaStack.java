@@ -43,7 +43,7 @@ public class SqsLambdaStack extends Stack {
 	}
 
 	public SqsLambdaStack(final Construct scope, final String id, final StackProps props,
-			final IVpc vpc, final LayerVersion lambdaLayer, final String websocketEndpoint) {
+			final IVpc vpc, final LayerVersion lambdaLayer) {
 		super(scope, id, props);
 
 		// Create Dead Letter Queue first
@@ -86,7 +86,6 @@ public class SqsLambdaStack extends Stack {
 						"OPENAI_API_KEY", openaiApiKey,
 						"PEXELS_API_KEY", pexelsApiKey,
 						"ELEVENLABS_API_KEY", elevenLabsApiKey,
-						"WEBSOCKET_API_ENDPOINT", websocketEndpoint != null ? websocketEndpoint : "",
 						"DYNAMODB_USER_TABLE_NAME",
 						CfnStackApp.getRequiredVariable("DYNAMODB_USER_TABLE_NAME"),
 						"DYNAMODB_VOCAB_TABLE_NAME",

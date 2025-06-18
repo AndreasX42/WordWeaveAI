@@ -8,6 +8,26 @@ from aws_lambda_powertools import Logger
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from botocore.exceptions import ClientError
 
+
+# Simple inline function to avoid heavy imports and circular dependencies
+def create_vocab_word_key(source_word: str, target_language: str) -> str:
+    """Create a consistent key for vocab_word subscriptions."""
+    import re
+    import unicodedata
+
+    def normalize_word(word: str) -> str:
+        """Return lower‑case, accent‑stripped, alnum‑only version of word."""
+        word = unicodedata.normalize("NFKC", word.lower())
+        word = "".join(
+            ch
+            for ch in unicodedata.normalize("NFD", word)
+            if unicodedata.category(ch) != "Mn"
+        )
+        return re.sub(r"[^a-z0-9]", "", word)
+
+    return f"{target_language.lower()}#{normalize_word(source_word)}"
+
+
 logger = Logger(service="vocab-processor-websocket")
 
 # DynamoDB and WebSocket API setup
@@ -54,6 +74,7 @@ def connect_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         user_id=user_id,
         source_word=source_word,
         target_language=target_language,
+        query_params=query_params,
     )
 
     try:
@@ -70,8 +91,6 @@ def connect_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
         # If word pair is provided, subscribe to it immediately
         if source_word and target_language:
-            from vocab_processor.utils.websocket_utils import create_vocab_word_key
-
             vocab_word_key = create_vocab_word_key(source_word, target_language)
             connection_item["vocab_word"] = vocab_word_key
             connection_item["last_subscription"] = datetime.now(
@@ -82,7 +101,18 @@ def connect_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 "immediate_vocab_word_subscription",
                 connection_id=connection_id,
                 vocab_word=vocab_word_key,
+                source_word=source_word,
+                target_language=target_language,
             )
+        else:
+            logger.info(
+                "no_immediate_subscription",
+                connection_id=connection_id,
+                reason="Missing source_word or target_language in query params",
+            )
+
+        # Log the item being stored
+        logger.info("storing_connection_item", item=connection_item)
 
         connections_table.put_item(Item=connection_item)
 
@@ -130,7 +160,10 @@ def default_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         action = body.get("action")
 
         logger.info(
-            "websocket_message_received", connection_id=connection_id, action=action
+            "websocket_message_received",
+            connection_id=connection_id,
+            action=action,
+            message_body=body,
         )
 
         if action == "subscribe":
@@ -157,45 +190,112 @@ def handle_subscribe(connection_id: str, body: Dict[str, Any]) -> Dict[str, Any]
     source_word = body.get("source_word")
     target_language = body.get("target_language")
 
+    logger.info(
+        "subscription_request",
+        connection_id=connection_id,
+        source_word=source_word,
+        target_language=target_language,
+        body=body,  # Added for debugging
+    )
+
     if not source_word or not target_language:
+        logger.error(
+            "invalid_subscription_request",
+            connection_id=connection_id,
+            missing_fields={
+                "source_word": source_word is None,
+                "target_language": target_language is None,
+            },
+        )
         return {"statusCode": 400, "body": "Missing source_word or target_language"}
 
     try:
-        from vocab_processor.utils.websocket_utils import create_vocab_word_key
-
         vocab_word_key = create_vocab_word_key(source_word, target_language)
 
+        logger.info(
+            "updating_connection_subscription",
+            connection_id=connection_id,
+            vocab_word_key=vocab_word_key,
+            source_word=source_word,
+            target_language=target_language,
+        )
+
         # Update the connection to subscribe to this word pair
-        connections_table.update_item(
+        update_response = connections_table.update_item(
             Key={"connection_id": connection_id},
             UpdateExpression="SET vocab_word = :vocab_word, last_subscription = :timestamp",
             ExpressionAttributeValues={
                 ":vocab_word": vocab_word_key,
                 ":timestamp": datetime.now(timezone.utc).isoformat(),
             },
+            ReturnValues="ALL_NEW",  # Added to see the updated item
         )
 
         logger.info(
             "vocab_word_subscription_successful",
             connection_id=connection_id,
             vocab_word=vocab_word_key,
+            updated_item=update_response.get("Attributes"),  # Added for debugging
         )
 
         # Send confirmation message back to client
-        api_gateway = boto3.client(
-            "apigatewaymanagementapi",
-            endpoint_url=f"https://{connections_table.get_item(Key={'connection_id': connection_id})['Item'].get('websocket_endpoint', '')}",
-        )
+        try:
+            connection_info = connections_table.get_item(
+                Key={"connection_id": connection_id}
+            )
 
-        confirmation = {
-            "type": "subscription_confirmed",
-            "vocab_word": vocab_word_key,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        }
+            logger.info(
+                "connection_info_retrieved",
+                connection_id=connection_id,
+                connection_item=connection_info.get("Item", {}),
+            )
 
-        api_gateway.post_to_connection(
-            ConnectionId=connection_id, Data=json.dumps(confirmation)
-        )
+            websocket_endpoint = connection_info.get("Item", {}).get(
+                "websocket_endpoint", ""
+            )
+
+            if websocket_endpoint:
+                api_gateway = boto3.client(
+                    "apigatewaymanagementapi", endpoint_url=websocket_endpoint
+                )
+
+                confirmation = {
+                    "type": "subscription_confirmed",
+                    "vocab_word": vocab_word_key,
+                    "source_word": source_word,
+                    "target_language": target_language,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+
+                logger.info(
+                    "sending_subscription_confirmation",
+                    connection_id=connection_id,
+                    vocab_word=vocab_word_key,
+                    confirmation_message=confirmation,
+                )
+
+                api_gateway.post_to_connection(
+                    ConnectionId=connection_id, Data=json.dumps(confirmation)
+                )
+
+                logger.info(
+                    "subscription_confirmation_sent",
+                    connection_id=connection_id,
+                    vocab_word=vocab_word_key,
+                )
+            else:
+                logger.warning(
+                    "no_websocket_endpoint_found",
+                    connection_id=connection_id,
+                    connection_item=connection_info.get("Item", {}),
+                )
+        except Exception as confirm_error:
+            logger.error(
+                "subscription_confirmation_failed",
+                connection_id=connection_id,
+                error=str(confirm_error),
+                error_type=type(confirm_error).__name__,
+            )
 
         return {"statusCode": 200}
 

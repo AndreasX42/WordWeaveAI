@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 import boto3
@@ -8,6 +9,34 @@ from aws_lambda_powertools import Logger
 from botocore.exceptions import ClientError
 
 logger = Logger(service="vocab-processor-websocket")
+
+
+def _make_json_serializable(value: Any) -> Any:
+    """Recursively convert value to something JSON serializable."""
+    if value is None:
+        return None
+    if isinstance(value, (bool, str, int)):
+        return value
+    if isinstance(value, float):
+        return value
+    if isinstance(value, Decimal):
+        return float(value)
+    if isinstance(value, list):
+        return [_make_json_serializable(v) for v in value]
+    if isinstance(value, dict):
+        return {k: _make_json_serializable(v) for k, v in value.items()}
+    if hasattr(value, "model_dump"):
+        # Pydantic models
+        return _make_json_serializable(value.model_dump())
+    if hasattr(value, "__dict__"):
+        # Objects with __dict__
+        return _make_json_serializable(value.__dict__)
+    if hasattr(value, "value"):
+        # Enums
+        return value.value
+    # Convert everything else to string as fallback
+    return str(value)
+
 
 # DynamoDB and API Gateway setup
 dynamodb = boto3.resource("dynamodb")
@@ -79,8 +108,10 @@ class WebSocketNotifier:
             return False
 
         try:
+            # Make message JSON serializable before sending
+            serializable_message = _make_json_serializable(message)
             self.api_gateway.post_to_connection(
-                ConnectionId=connection_id, Data=json.dumps(message)
+                ConnectionId=connection_id, Data=json.dumps(serializable_message)
             )
             return True
 
@@ -239,6 +270,8 @@ class WebSocketNotifier:
             },
         )
         self._broadcast_to_vocab_word_subscribers(source_word, target_language, message)
+        # Close connections after successful completion
+        self._close_vocab_word_connections(source_word, target_language)
 
     def send_processing_failed(
         self, source_word: str, target_language: str, error: str
@@ -254,6 +287,8 @@ class WebSocketNotifier:
             },
         )
         self._broadcast_to_vocab_word_subscribers(source_word, target_language, message)
+        # Close connections after failure
+        self._close_vocab_word_connections(source_word, target_language)
 
     def send_cache_hit(
         self, source_word: str, target_language: str, cached_data: Dict[str, Any]
@@ -269,6 +304,8 @@ class WebSocketNotifier:
             },
         )
         self._broadcast_to_vocab_word_subscribers(source_word, target_language, message)
+        # Close connections after cache hit (processing is complete)
+        self._close_vocab_word_connections(source_word, target_language)
 
     def _broadcast_to_vocab_word_subscribers(
         self, source_word: str, target_language: str, message: Dict[str, Any]
@@ -293,6 +330,57 @@ class WebSocketNotifier:
         )
 
         return successful_sends
+
+    def _close_vocab_word_connections(
+        self, source_word: str, target_language: str
+    ) -> int:
+        """Send close message to all WebSocket connections subscribed to this word pair and clean up."""
+        if not self.api_gateway:
+            logger.debug("websocket_not_configured_for_close")
+            return 0
+
+        connections = self._get_vocab_word_subscribers(source_word, target_language)
+        close_messages_sent = 0
+
+        # Send close message to each connection
+        close_message = self._create_message(
+            "connection_close",
+            {
+                "source_word": source_word,
+                "target_language": target_language,
+                "reason": "processing_complete",
+                "message": "Vocabulary processing complete. Connection will be closed.",
+            },
+        )
+
+        for connection in connections:
+            connection_id = connection["connection_id"]
+            if self._send_to_connection(connection_id, close_message):
+                close_messages_sent += 1
+
+            # Remove from DynamoDB after sending close message
+            if self.connections_table:
+                try:
+                    self.connections_table.delete_item(
+                        Key={"connection_id": connection_id}
+                    )
+                    logger.debug("connection_cleaned_up", connection_id=connection_id)
+                except Exception as db_error:
+                    logger.warning(
+                        "connection_cleanup_failed",
+                        connection_id=connection_id,
+                        error=str(db_error),
+                    )
+
+        vocab_word_key = create_vocab_word_key(source_word, target_language)
+        logger.info(
+            "vocab_word_close_messages_sent",
+            vocab_word=vocab_word_key,
+            total_connections=len(connections),
+            close_messages_sent=close_messages_sent,
+        )
+
+        return close_messages_sent
 
     def _broadcast_to_user(self, message: Dict[str, Any]) -> int:
         """Broadcast a message to all user connections (legacy method for user-specific messages)."""

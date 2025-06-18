@@ -49,6 +49,20 @@ public class WebSocketApiStack extends Stack {
 		return defaultHandler;
 	}
 
+	public void grantWebSocketPermissions(Function externalFunction) {
+		PolicyStatement apiGatewayPolicy = PolicyStatement.Builder.create()
+				.effect(Effect.ALLOW)
+				.actions(List.of("execute-api:ManageConnections"))
+				.resources(List.of(
+						String.format("arn:aws:execute-api:%s:%s:%s/*",
+								this.getRegion(), this.getAccount(),
+								webSocketApi.getApiId())))
+				.build();
+
+		externalFunction.addToRolePolicy(apiGatewayPolicy);
+		externalFunction.addEnvironment("WEBSOCKET_API_ENDPOINT", this.websocketEndpoint);
+	}
+
 	public WebSocketApiStack(final Construct scope, final String id, final StackProps props,
 			final IVpc vpc, final ITable vocabTable, final ITable connectionsTable,
 			final LayerVersion layer) {
