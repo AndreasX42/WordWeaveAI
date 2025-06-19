@@ -169,7 +169,7 @@
         <input
           type="text"
           id="websocketUrl"
-          value="wss://59q3guq0p7.execute-api.us-east-1.amazonaws.com/prod"
+          value="websocket-name"
           placeholder="wss://your-websocket-endpoint.execute-api.region.amazonaws.com/prod"
         />
       </div>
@@ -396,12 +396,12 @@
             }
             break;
 
-          case "cache_hit":
-            content = `⚡ Cache hit for: ${data.source_word} → ${(
+          case "ddb_hit":
+            content = `⚡ Already exists for: ${data.source_word} → ${(
               data.target_language || ""
             ).toUpperCase()}`;
             if (data.result) {
-              content += ` | Cached result: ${JSON.stringify(data.result)}`;
+              content += ` | Result: ${JSON.stringify(data.result)}`;
             }
             break;
 

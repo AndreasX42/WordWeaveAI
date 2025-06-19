@@ -1,15 +1,27 @@
 import json
 import os
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Tuple
 
 import boto3
 from aws_lambda_powertools import Logger
-from aws_lambda_powertools.utilities.typing import LambdaContext
 from botocore.exceptions import ClientError
 
+logger = Logger(service="vocab-processor-websocket")
 
-# Simple inline function to avoid heavy imports and circular dependencies
+# DynamoDB setup
+dynamodb = boto3.resource("dynamodb")
+connections_table_name = os.environ.get("DYNAMODB_CONNECTIONS_TABLE_NAME")
+connections_table = (
+    dynamodb.Table(connections_table_name) if connections_table_name else None
+)
+
+
+# =============================================================================
+# UTILITY FUNCTIONS
+# =============================================================================
+
+
 def create_vocab_word_key(source_word: str, target_language: str) -> str:
     """Create a consistent key for vocab_word subscriptions."""
     import re
@@ -28,161 +40,173 @@ def create_vocab_word_key(source_word: str, target_language: str) -> str:
     return f"{target_language.lower()}#{normalize_word(source_word)}"
 
 
-logger = Logger(service="vocab-processor-websocket")
-
-# DynamoDB and WebSocket API setup
-dynamodb = boto3.resource("dynamodb")
-connections_table_name = os.environ.get("DYNAMODB_CONNECTIONS_TABLE_NAME")
-vocab_table_name = os.environ.get("DYNAMODB_VOCAB_TABLE_NAME")
-
-connections_table = (
-    dynamodb.Table(connections_table_name) if connections_table_name else None
-)
-vocab_table = dynamodb.Table(vocab_table_name) if vocab_table_name else None
-
-
-# API Gateway Management API setup
-def get_api_gateway_management_api(event):
-    """Create API Gateway Management API client from event context."""
-    domain_name = event["requestContext"]["domainName"]
-    stage = event["requestContext"]["stage"]
-    endpoint_url = f"https://{domain_name}/{stage}"
-
-    return boto3.client("apigatewaymanagementapi", endpoint_url=endpoint_url)
-
-
-def lambda_response(status_code: int, body: str = "") -> Dict[str, Any]:
-    """Create a properly formatted Lambda response for API Gateway."""
-    return {"statusCode": status_code, "body": body}
-
-
-def connect_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    """Handle WebSocket connection requests."""
+def get_connection_params(
+    event: Dict[str, Any],
+) -> Tuple[str, str, Optional[str], Optional[str]]:
+    """Extract connection parameters from WebSocket event."""
     connection_id = event["requestContext"]["connectionId"]
-    domain_name = event["requestContext"]["domainName"]
-    stage = event["requestContext"]["stage"]
-
-    # Extract user_id and optional vocab_word from query parameters
     query_params = event.get("queryStringParameters") or {}
     user_id = query_params.get("user_id", "anonymous")
     source_word = query_params.get("source_word")
     target_language = query_params.get("target_language")
+    return connection_id, user_id, source_word, target_language
 
-    logger.info(
-        "websocket_connection_request",
-        connection_id=connection_id,
-        user_id=user_id,
-        source_word=source_word,
-        target_language=target_language,
-        query_params=query_params,
-    )
+
+def parse_websocket_message(event: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
+    """Parse WebSocket message and return connection_id and body."""
+    connection_id = event["requestContext"]["connectionId"]
+    body = json.loads(event.get("body", "{}"))
+    return connection_id, body
+
+
+def create_connection_item(
+    connection_id: str,
+    user_id: str,
+    websocket_endpoint: str,
+    source_word: Optional[str] = None,
+    target_language: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Create a connection item for DynamoDB storage."""
+    ttl = int((datetime.now(timezone.utc) + timedelta(minutes=30)).timestamp())
+
+    item = {
+        "connection_id": connection_id,
+        "user_id": user_id,
+        "connected_at": datetime.now(timezone.utc).isoformat(),
+        "ttl": ttl,
+        "websocket_endpoint": websocket_endpoint,
+    }
+
+    if source_word and target_language:
+        vocab_word_key = create_vocab_word_key(source_word, target_language)
+        item["vocab_word"] = vocab_word_key
+        item["last_subscription"] = datetime.now(timezone.utc).isoformat()
+
+    return item
+
+
+# =============================================================================
+# CORE DATABASE FUNCTIONS
+# =============================================================================
+
+
+def store_connection(connection_item: Dict[str, Any]) -> bool:
+    """Store connection in DynamoDB."""
+    try:
+        connections_table.put_item(Item=connection_item)
+        return True
+    except Exception as e:
+        logger.error("store_connection_failed", error=str(e))
+        return False
+
+
+def remove_connection(connection_id: str) -> bool:
+    """Remove connection from DynamoDB."""
+    try:
+        connections_table.delete_item(Key={"connection_id": connection_id})
+        return True
+    except Exception as e:
+        logger.error(
+            "remove_connection_failed", connection_id=connection_id, error=str(e)
+        )
+        return False
+
+
+def update_connection_subscription(connection_id: str, vocab_word_key: str) -> bool:
+    """Update connection subscription in DynamoDB."""
+    try:
+        connections_table.update_item(
+            Key={"connection_id": connection_id},
+            UpdateExpression="SET vocab_word = :vocab_word, last_subscription = :timestamp",
+            ExpressionAttributeValues={
+                ":vocab_word": vocab_word_key,
+                ":timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+        return True
+    except Exception as e:
+        logger.error(
+            "update_subscription_failed", connection_id=connection_id, error=str(e)
+        )
+        return False
+
+
+def cleanup_stale_connections():
+    """Clean up stale WebSocket connections (called periodically)."""
+    if not connections_table:
+        return
 
     try:
-        # Store connection in DynamoDB with TTL (30 minutes)
-        ttl = int((datetime.now(timezone.utc) + timedelta(minutes=30)).timestamp())
+        current_time = int(datetime.now(timezone.utc).timestamp())
+        response = connections_table.scan(
+            FilterExpression="attribute_exists(ttl) AND ttl < :current_time",
+            ExpressionAttributeValues={":current_time": current_time},
+        )
 
-        connection_item = {
-            "connection_id": connection_id,
-            "user_id": user_id,
-            "connected_at": datetime.now(timezone.utc).isoformat(),
-            "ttl": ttl,
-            "websocket_endpoint": f"https://{domain_name}/{stage}",
+        stale_connections = response.get("Items", [])
+        cleaned_count = 0
+
+        for connection in stale_connections:
+            connection_id = connection["connection_id"]
+            if remove_connection(connection_id):
+                cleaned_count += 1
+
+        logger.info("stale_connections_cleanup_completed", cleaned_count=cleaned_count)
+
+    except Exception as e:
+        logger.error("stale_connections_cleanup_error", error=str(e))
+
+
+# =============================================================================
+# WEBSOCKET FUNCTIONS
+# =============================================================================
+
+
+def send_subscription_confirmation(
+    connection_id: str, vocab_word_key: str, source_word: str, target_language: str
+) -> None:
+    """Send subscription confirmation to client."""
+    try:
+        connection_info = connections_table.get_item(
+            Key={"connection_id": connection_id}
+        )
+        websocket_endpoint = connection_info.get("Item", {}).get(
+            "websocket_endpoint", ""
+        )
+
+        if not websocket_endpoint:
+            logger.warning("no_websocket_endpoint_found", connection_id=connection_id)
+            return
+
+        api_gateway = boto3.client(
+            "apigatewaymanagementapi", endpoint_url=websocket_endpoint
+        )
+
+        confirmation = {
+            "type": "subscription_confirmed",
+            "vocab_word": vocab_word_key,
+            "source_word": source_word,
+            "target_language": target_language,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
-        # If word pair is provided, subscribe to it immediately
-        if source_word and target_language:
-            vocab_word_key = create_vocab_word_key(source_word, target_language)
-            connection_item["vocab_word"] = vocab_word_key
-            connection_item["last_subscription"] = datetime.now(
-                timezone.utc
-            ).isoformat()
-
-            logger.info(
-                "immediate_vocab_word_subscription",
-                connection_id=connection_id,
-                vocab_word=vocab_word_key,
-                source_word=source_word,
-                target_language=target_language,
-            )
-        else:
-            logger.info(
-                "no_immediate_subscription",
-                connection_id=connection_id,
-                reason="Missing source_word or target_language in query params",
-            )
-
-        # Log the item being stored
-        logger.info("storing_connection_item", item=connection_item)
-
-        connections_table.put_item(Item=connection_item)
-
-        logger.info(
-            "websocket_connection_stored", connection_id=connection_id, user_id=user_id
+        api_gateway.post_to_connection(
+            ConnectionId=connection_id, Data=json.dumps(confirmation)
         )
 
-        return {"statusCode": 200}
+        logger.info("subscription_confirmation_sent", connection_id=connection_id)
 
     except Exception as e:
         logger.error(
-            "websocket_connection_failed", connection_id=connection_id, error=str(e)
-        )
-        return {"statusCode": 500}
-
-
-def disconnect_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    """Handle WebSocket disconnection requests."""
-    connection_id = event["requestContext"]["connectionId"]
-
-    logger.info("websocket_disconnection_request", connection_id=connection_id)
-
-    try:
-        # Remove connection from DynamoDB
-        connections_table.delete_item(Key={"connection_id": connection_id})
-
-        logger.info("websocket_connection_removed", connection_id=connection_id)
-
-        return {"statusCode": 200}
-
-    except Exception as e:
-        logger.error(
-            "websocket_disconnection_failed", connection_id=connection_id, error=str(e)
-        )
-        return {"statusCode": 500}
-
-
-def default_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    """Handle default WebSocket messages (subscriptions, unsubscriptions, etc.)."""
-    connection_id = event["requestContext"]["connectionId"]
-
-    try:
-        # Parse the message body
-        body = json.loads(event.get("body", "{}"))
-        action = body.get("action")
-
-        logger.info(
-            "websocket_message_received",
+            "subscription_confirmation_failed",
             connection_id=connection_id,
-            action=action,
-            message_body=body,
+            error=str(e),
         )
 
-        if action == "subscribe":
-            return handle_subscribe(connection_id, body)
-        elif action == "unsubscribe":
-            return handle_unsubscribe(connection_id, body)
-        elif action == "ping":
-            return handle_ping(connection_id)
-        else:
-            logger.warning(
-                "unknown_websocket_action", connection_id=connection_id, action=action
-            )
-            return {"statusCode": 400}
 
-    except Exception as e:
-        logger.error(
-            "websocket_message_failed", connection_id=connection_id, error=str(e)
-        )
-        return {"statusCode": 500}
+# =============================================================================
+# MESSAGE HANDLERS
+# =============================================================================
 
 
 def handle_subscribe(connection_id: str, body: Dict[str, Any]) -> Dict[str, Any]:
@@ -195,129 +219,33 @@ def handle_subscribe(connection_id: str, body: Dict[str, Any]) -> Dict[str, Any]
         connection_id=connection_id,
         source_word=source_word,
         target_language=target_language,
-        body=body,  # Added for debugging
     )
 
     if not source_word or not target_language:
-        logger.error(
-            "invalid_subscription_request",
-            connection_id=connection_id,
-            missing_fields={
-                "source_word": source_word is None,
-                "target_language": target_language is None,
-            },
-        )
+        logger.error("invalid_subscription_request", connection_id=connection_id)
         return {"statusCode": 400, "body": "Missing source_word or target_language"}
 
-    try:
-        vocab_word_key = create_vocab_word_key(source_word, target_language)
+    vocab_word_key = create_vocab_word_key(source_word, target_language)
 
-        logger.info(
-            "updating_connection_subscription",
-            connection_id=connection_id,
-            vocab_word_key=vocab_word_key,
-            source_word=source_word,
-            target_language=target_language,
+    if update_connection_subscription(connection_id, vocab_word_key):
+        logger.info("vocab_word_subscription_successful", connection_id=connection_id)
+        send_subscription_confirmation(
+            connection_id, vocab_word_key, source_word, target_language
         )
-
-        # Update the connection to subscribe to this word pair
-        update_response = connections_table.update_item(
-            Key={"connection_id": connection_id},
-            UpdateExpression="SET vocab_word = :vocab_word, last_subscription = :timestamp",
-            ExpressionAttributeValues={
-                ":vocab_word": vocab_word_key,
-                ":timestamp": datetime.now(timezone.utc).isoformat(),
-            },
-            ReturnValues="ALL_NEW",  # Added to see the updated item
-        )
-
-        logger.info(
-            "vocab_word_subscription_successful",
-            connection_id=connection_id,
-            vocab_word=vocab_word_key,
-            updated_item=update_response.get("Attributes"),  # Added for debugging
-        )
-
-        # Send confirmation message back to client
-        try:
-            connection_info = connections_table.get_item(
-                Key={"connection_id": connection_id}
-            )
-
-            logger.info(
-                "connection_info_retrieved",
-                connection_id=connection_id,
-                connection_item=connection_info.get("Item", {}),
-            )
-
-            websocket_endpoint = connection_info.get("Item", {}).get(
-                "websocket_endpoint", ""
-            )
-
-            if websocket_endpoint:
-                api_gateway = boto3.client(
-                    "apigatewaymanagementapi", endpoint_url=websocket_endpoint
-                )
-
-                confirmation = {
-                    "type": "subscription_confirmed",
-                    "vocab_word": vocab_word_key,
-                    "source_word": source_word,
-                    "target_language": target_language,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                }
-
-                logger.info(
-                    "sending_subscription_confirmation",
-                    connection_id=connection_id,
-                    vocab_word=vocab_word_key,
-                    confirmation_message=confirmation,
-                )
-
-                api_gateway.post_to_connection(
-                    ConnectionId=connection_id, Data=json.dumps(confirmation)
-                )
-
-                logger.info(
-                    "subscription_confirmation_sent",
-                    connection_id=connection_id,
-                    vocab_word=vocab_word_key,
-                )
-            else:
-                logger.warning(
-                    "no_websocket_endpoint_found",
-                    connection_id=connection_id,
-                    connection_item=connection_info.get("Item", {}),
-                )
-        except Exception as confirm_error:
-            logger.error(
-                "subscription_confirmation_failed",
-                connection_id=connection_id,
-                error=str(confirm_error),
-                error_type=type(confirm_error).__name__,
-            )
-
         return {"statusCode": 200}
-
-    except Exception as e:
-        logger.error(
-            "vocab_word_subscription_failed", connection_id=connection_id, error=str(e)
-        )
+    else:
         return {"statusCode": 500}
 
 
 def handle_unsubscribe(connection_id: str, body: Dict[str, Any]) -> Dict[str, Any]:
     """Handle unsubscription from word pair updates."""
     try:
-        # Remove word pair subscription
         connections_table.update_item(
             Key={"connection_id": connection_id},
             UpdateExpression="REMOVE vocab_word, last_subscription",
         )
-
         logger.info("vocab_word_unsubscription_successful", connection_id=connection_id)
         return {"statusCode": 200}
-
     except Exception as e:
         logger.error(
             "vocab_word_unsubscription_failed",
@@ -330,7 +258,6 @@ def handle_unsubscribe(connection_id: str, body: Dict[str, Any]) -> Dict[str, An
 def handle_ping(connection_id: str) -> Dict[str, Any]:
     """Handle ping messages to keep connection alive."""
     try:
-        # Update the connection's last activity
         connections_table.update_item(
             Key={"connection_id": connection_id},
             UpdateExpression="SET last_ping = :timestamp",
@@ -338,51 +265,98 @@ def handle_ping(connection_id: str) -> Dict[str, Any]:
                 ":timestamp": datetime.now(timezone.utc).isoformat()
             },
         )
-
         return {"statusCode": 200}
-
     except Exception as e:
         logger.error("ping_failed", connection_id=connection_id, error=str(e))
         return {"statusCode": 500}
 
 
-def cleanup_stale_connections():
-    """Clean up stale WebSocket connections (called periodically)."""
-    if not connections_table:
-        return
+# =============================================================================
+# WEBSOCKET EVENT HANDLERS
+# =============================================================================
+
+
+def connect_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    """Handle WebSocket connection requests."""
+    connection_id, user_id, source_word, target_language = get_connection_params(event)
+
+    domain_name = event["requestContext"]["domainName"]
+    stage = event["requestContext"]["stage"]
+    websocket_endpoint = f"https://{domain_name}/{stage}"
+
+    logger.info(
+        "websocket_connection_request",
+        connection_id=connection_id,
+        user_id=user_id,
+        source_word=source_word,
+        target_language=target_language,
+    )
+
+    connection_item = create_connection_item(
+        connection_id, user_id, websocket_endpoint, source_word, target_language
+    )
+
+    if source_word and target_language:
+        logger.info(
+            "immediate_vocab_word_subscription",
+            connection_id=connection_id,
+            vocab_word=connection_item["vocab_word"],
+        )
+
+    if store_connection(connection_item):
+        logger.info("websocket_connection_stored", connection_id=connection_id)
+        return {"statusCode": 200}
+    else:
+        return {"statusCode": 500}
+
+
+def disconnect_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    """Handle WebSocket disconnection requests."""
+    connection_id = event["requestContext"]["connectionId"]
+    logger.info("websocket_disconnection_request", connection_id=connection_id)
+
+    if remove_connection(connection_id):
+        logger.info("websocket_connection_removed", connection_id=connection_id)
+        return {"statusCode": 200}
+    else:
+        return {"statusCode": 500}
+
+
+def default_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    """Handle default WebSocket messages (subscriptions, unsubscriptions, etc.)."""
+    connection_id, body = parse_websocket_message(event)
+    action = body.get("action")
+
+    logger.info(
+        "websocket_message_received",
+        connection_id=connection_id,
+        action=action,
+    )
 
     try:
-        # Scan for connections that are past their TTL
-        current_time = int(datetime.now(timezone.utc).timestamp())
-
-        response = connections_table.scan(
-            FilterExpression="attribute_exists(ttl) AND ttl < :current_time",
-            ExpressionAttributeValues={":current_time": current_time},
-        )
-
-        stale_connections = response.get("Items", [])
-
-        for connection in stale_connections:
-            connection_id = connection["connection_id"]
-            try:
-                connections_table.delete_item(Key={"connection_id": connection_id})
-                logger.info("stale_connection_cleaned", connection_id=connection_id)
-            except Exception as e:
-                logger.error(
-                    "stale_connection_cleanup_failed",
-                    connection_id=connection_id,
-                    error=str(e),
-                )
-
-        logger.info(
-            "stale_connections_cleanup_completed", cleaned_count=len(stale_connections)
-        )
-
+        if action == "subscribe":
+            return handle_subscribe(connection_id, body)
+        elif action == "unsubscribe":
+            return handle_unsubscribe(connection_id, body)
+        elif action == "ping":
+            return handle_ping(connection_id)
+        else:
+            logger.warning(
+                "unknown_websocket_action", connection_id=connection_id, action=action
+            )
+            return {"statusCode": 400}
     except Exception as e:
-        logger.error("stale_connections_cleanup_error", error=str(e))
+        logger.error(
+            "websocket_message_failed", connection_id=connection_id, error=str(e)
+        )
+        return {"statusCode": 500}
 
 
-# AWS Lambda handler functions
+# =============================================================================
+# MAIN LAMBDA HANDLER
+# =============================================================================
+
+
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """Main Lambda handler for WebSocket API Gateway events."""
     route_key = event["requestContext"]["routeKey"]
@@ -396,114 +370,3 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     else:
         logger.warning("unknown_route_key", route_key=route_key)
         return {"statusCode": 400}
-
-
-def send_to_connection(
-    connection_id: str, message: Dict[str, Any], api_gateway_client=None
-) -> bool:
-    """Send a message to a specific WebSocket connection."""
-    try:
-        if not api_gateway_client:
-            # This requires the API Gateway endpoint, which we'll need to pass in
-            # For now, we'll return False if no client is provided
-            logger.warning("no_api_gateway_client", connection_id=connection_id)
-            return False
-
-        api_gateway_client.post_to_connection(
-            ConnectionId=connection_id, Data=json.dumps(message)
-        )
-
-        logger.debug(
-            "message_sent",
-            connection_id=connection_id,
-            message_type=message.get("type"),
-        )
-        return True
-
-    except ClientError as e:
-        if e.response["Error"]["Code"] == "GoneException":
-            # Connection is stale, remove it from DynamoDB
-            logger.info("stale_connection_cleanup", connection_id=connection_id)
-            try:
-                connections_table.delete_item(Key={"connection_id": connection_id})
-            except Exception:
-                pass
-        else:
-            logger.error(
-                "send_message_failed", connection_id=connection_id, error=str(e)
-            )
-
-        return False
-
-
-def broadcast_to_user_connections(
-    user_id: str, message: Dict[str, Any], api_gateway_endpoint: str
-) -> int:
-    """Broadcast a message to all connections for a specific user."""
-    try:
-        # Create API Gateway client with the provided endpoint
-        api_gateway = boto3.client(
-            "apigatewaymanagementapi", endpoint_url=api_gateway_endpoint
-        )
-
-        # Query user connections
-        response = connections_table.query(
-            IndexName="UserConnectionsIndex",
-            KeyConditionExpression="user_id = :user_id",
-            ExpressionAttributeValues={":user_id": user_id},
-        )
-
-        connections = response.get("Items", [])
-        successful_sends = 0
-
-        for connection in connections:
-            connection_id = connection["connection_id"]
-            if send_to_connection(connection_id, message, api_gateway):
-                successful_sends += 1
-
-        logger.info(
-            "user_broadcast_complete",
-            user_id=user_id,
-            total_connections=len(connections),
-            successful_sends=successful_sends,
-        )
-
-        return successful_sends
-
-    except Exception as e:
-        logger.error("broadcast_failed", user_id=user_id, error=str(e))
-        return 0
-
-
-def broadcast_to_all_connections(
-    message: Dict[str, Any], api_gateway_endpoint: str
-) -> int:
-    """Broadcast a message to all active connections."""
-    try:
-        # Create API Gateway client
-        api_gateway = boto3.client(
-            "apigatewaymanagementapi", endpoint_url=api_gateway_endpoint
-        )
-
-        # Scan all connections
-        response = connections_table.scan()
-        connections = response.get("Items", [])
-
-        successful_sends = 0
-
-        for connection in connections:
-            connection_id = connection["connection_id"]
-            if send_to_connection(connection_id, message, api_gateway):
-                successful_sends += 1
-
-        logger.info(
-            "global_broadcast_complete",
-            total_connections=len(connections),
-            successful_sends=successful_sends,
-        )
-
-        return successful_sends
-
-    except Exception as e:
-        logger.error("global_broadcast_failed", error=str(e))
-        return 0

@@ -13,11 +13,7 @@ logger = Logger(service="vocab-processor-websocket")
 
 def _make_json_serializable(value: Any) -> Any:
     """Recursively convert value to something JSON serializable."""
-    if value is None:
-        return None
-    if isinstance(value, (bool, str, int)):
-        return value
-    if isinstance(value, float):
+    if value is None or isinstance(value, (bool, str, int, float)):
         return value
     if isinstance(value, Decimal):
         return float(value)
@@ -25,14 +21,11 @@ def _make_json_serializable(value: Any) -> Any:
         return [_make_json_serializable(v) for v in value]
     if isinstance(value, dict):
         return {k: _make_json_serializable(v) for k, v in value.items()}
-    if hasattr(value, "model_dump"):
-        # Pydantic models
+    if hasattr(value, "model_dump"):  # Pydantic models
         return _make_json_serializable(value.model_dump())
-    if hasattr(value, "__dict__"):
-        # Objects with __dict__
+    if hasattr(value, "__dict__"):  # Objects with __dict__
         return _make_json_serializable(value.__dict__)
-    if hasattr(value, "value"):
-        # Enums
+    if hasattr(value, "value"):  # Enums
         return value.value
     # Convert everything else to string as fallback
     return str(value)
@@ -209,15 +202,27 @@ class WebSocketNotifier:
             )
             return False
 
+    def _create_vocab_message(
+        self,
+        message_type: str,
+        source_word: str,
+        target_language: str,
+        status: str,
+        **extra_data,
+    ) -> Dict[str, Any]:
+        """Create a standardized vocab word message with common fields."""
+        data = {
+            "source_word": source_word,
+            "target_language": target_language,
+            "status": status,
+            **extra_data,
+        }
+        return self._create_message(message_type, data)
+
     def send_processing_started(self, source_word: str, target_language: str):
         """Notify ALL subscribers that vocab processing has started for this word pair."""
-        message = self._create_message(
-            "processing_started",
-            {
-                "source_word": source_word,
-                "target_language": target_language,
-                "status": "started",
-            },
+        message = self._create_vocab_message(
+            "processing_started", source_word, target_language, "started"
         )
         self._broadcast_to_vocab_word_subscribers(source_word, target_language, message)
 
@@ -230,29 +235,18 @@ class WebSocketNotifier:
         status: str = "running",
     ):
         """Send an update for a specific processing step to ALL subscribers."""
-        message = self._create_message(
-            "step_update",
-            {
-                "source_word": source_word,
-                "target_language": target_language,
-                "status": status,
-                "result": step_data,
-            },
-            step=step_name,
+        message = self._create_vocab_message(
+            "step_update", source_word, target_language, status, result=step_data
         )
+        message["step"] = step_name
         self._broadcast_to_vocab_word_subscribers(source_word, target_language, message)
 
     def send_chunk_update(
         self, source_word: str, target_language: str, chunk_data: Any
     ):
         """Send a real-time chunk update from LangGraph streaming to ALL subscribers."""
-        message = self._create_message(
-            "chunk_update",
-            {
-                "source_word": source_word,
-                "target_language": target_language,
-                "chunk": chunk_data,
-            },
+        message = self._create_vocab_message(
+            "chunk_update", source_word, target_language, "processing", chunk=chunk_data
         )
         self._broadcast_to_vocab_word_subscribers(source_word, target_language, message)
 
@@ -260,14 +254,12 @@ class WebSocketNotifier:
         self, source_word: str, target_language: str, result: Dict[str, Any]
     ):
         """Notify ALL subscribers that vocab processing has completed for this word pair."""
-        message = self._create_message(
+        message = self._create_vocab_message(
             "processing_completed",
-            {
-                "source_word": source_word,
-                "target_language": target_language,
-                "status": "completed",
-                "result": result,
-            },
+            source_word,
+            target_language,
+            "completed",
+            result=result,
         )
         self._broadcast_to_vocab_word_subscribers(source_word, target_language, message)
         # Close connections after successful completion
@@ -277,34 +269,42 @@ class WebSocketNotifier:
         self, source_word: str, target_language: str, error: str
     ):
         """Notify ALL subscribers that vocab processing has failed for this word pair."""
-        message = self._create_message(
-            "processing_failed",
-            {
-                "source_word": source_word,
-                "target_language": target_language,
-                "status": "failed",
-                "error": error,
-            },
+        message = self._create_vocab_message(
+            "processing_failed", source_word, target_language, "failed", error=error
         )
         self._broadcast_to_vocab_word_subscribers(source_word, target_language, message)
         # Close connections after failure
         self._close_vocab_word_connections(source_word, target_language)
 
-    def send_cache_hit(
-        self, source_word: str, target_language: str, cached_data: Dict[str, Any]
+    def send_ddb_hit(
+        self, source_word: str, target_language: str, ddb_data: Dict[str, Any]
     ):
-        """Notify ALL subscribers that a cache hit occurred for this word pair."""
-        message = self._create_message(
-            "cache_hit",
-            {
-                "source_word": source_word,
-                "target_language": target_language,
-                "status": "cached",
-                "result": cached_data,
-            },
+        """Notify ALL subscribers that a ddb hit occurred for this word pair."""
+        message = self._create_vocab_message(
+            "ddb_hit", source_word, target_language, "exists", result=ddb_data
         )
         self._broadcast_to_vocab_word_subscribers(source_word, target_language, message)
         # Close connections after cache hit (processing is complete)
+        self._close_vocab_word_connections(source_word, target_language)
+
+    def send_validation_failed(
+        self, source_word: str, target_language: str, validation_result: Any
+    ):
+        """Notify ALL subscribers that word validation failed."""
+        message = self._create_vocab_message(
+            "validation_failed",
+            source_word,
+            target_language,
+            "invalid",
+            validation_result={
+                "is_valid": validation_result.is_valid,
+                "reason": getattr(validation_result, "message", None),
+                "source_language": getattr(validation_result, "source_language", None),
+                "suggestions": getattr(validation_result, "suggestions", None),
+            },
+        )
+        self._broadcast_to_vocab_word_subscribers(source_word, target_language, message)
+        # Close connections after validation failure
         self._close_vocab_word_connections(source_word, target_language)
 
     def _broadcast_to_vocab_word_subscribers(

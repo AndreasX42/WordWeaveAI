@@ -109,9 +109,7 @@ async def get_existing_media_for_search_words(
 
 def to_ddb(value: Any):
     """Recursively convert *value* to something DynamoDB can store."""
-    if value is None:
-        return None
-    if isinstance(value, (bool, str)):
+    if value is None or isinstance(value, (bool, str)):
         return value
     if isinstance(value, (int, Decimal)):
         return Decimal(value)
@@ -121,34 +119,65 @@ def to_ddb(value: Any):
         return [to_ddb(v) for v in value]
     if isinstance(value, dict):
         return {k: to_ddb(v) for k, v in value.items() if v is not None}
-    if hasattr(value, "model_dump"):
-        return to_ddb(value.model_dump())
-    if hasattr(value, "__dict__"):
-        return to_ddb(value.__dict__)
-    if hasattr(value, "value"):
-        return value.value
+
+    # Handle objects with model_dump (Pydantic), __dict__, or value (Enum)
+    for attr in ("model_dump", "__dict__", "value"):
+        if hasattr(value, attr):
+            obj_value = getattr(value, attr)
+            return to_ddb(obj_value() if callable(obj_value) else obj_value)
+
     return str(value)
 
 
-async def exists(word: str, tgt_lang: str) -> bool:
+async def validate_and_check_exists(word: str, tgt_lang: str) -> Dict[str, Any]:
+    """
+    Validate word and check if it exists in DDB.
+
+    Returns:
+        Dict with keys:
+        - 'status': 'invalid' | 'exists' | 'not_exists'
+        - 'validation_result': ValidationResult object
+        - 'existing_item': DDB item if exists, else None
+    """
     from vocab_processor.constants import Language
     from vocab_processor.tools.validation_tool import validate_word
 
-    validation = await validate_word.ainvoke(
+    validation_result = await validate_word.ainvoke(
         input={"word": word, "target_language": Language.from_code(tgt_lang)}
     )
-    if not (validation.is_valid and validation.source_language):
-        logger.warning("invalid_word", word=word, tgt_lang=tgt_lang)
-        return False
 
-    pk = f"SRC#{lang_code(validation.source_language)}#{normalize_word(word)}"
+    if not validation_result.is_valid:
+        logger.warning(
+            "invalid_word",
+            word=word,
+            tgt_lang=tgt_lang,
+            reason=getattr(validation_result, "message", "unknown"),
+        )
+        return {
+            "status": "invalid",
+            "validation_result": validation_result,
+            "existing_item": None,
+        }
+
+    pk = f"SRC#{lang_code(validation_result.source_language)}#{normalize_word(word)}"
     sk = f"TGT#{tgt_lang}"
 
     response = await asyncio.to_thread(VOCAB_TABLE.get_item, Key={"PK": pk, "SK": sk})
-    hit = "Item" in response
-    if hit:
-        logger.info("cache_hit", pk=pk, sk=sk)
-    return hit
+    existing_item = response.get("Item")
+
+    if existing_item:
+        logger.info("ddb_hit", pk=pk, sk=sk)
+        return {
+            "status": "exists",
+            "validation_result": validation_result,
+            "existing_item": existing_item,
+        }
+
+    return {
+        "status": "not_exists",
+        "validation_result": validation_result,
+        "existing_item": None,
+    }
 
 
 async def store_result(result: Dict[str, Any], req: VocabProcessRequestDto):
