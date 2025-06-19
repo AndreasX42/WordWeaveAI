@@ -14,7 +14,7 @@ and multimedia content to accelerate your vocabulary learning.
 `CI/CD` [AWS CodePipeline](https://aws.amazon.com/codepipeline/) [AWS CodeBuild](https://aws.amazon.com/codebuild/) [AWS CDK](https://aws.amazon.com/cdk/)
 
 
-### 📊 Agent Workflow
+## 📊 Agent Workflow
 
 The LangGraph agent processes vocabulary through an optimized workflow:
 
@@ -32,15 +32,30 @@ The LangGraph agent processes vocabulary through an optimized workflow:
 <img width="723" alt="image" src="https://github.com/user-attachments/assets/e2e5cfb1-0f46-4eed-b9cf-c0b5a979ff96" />
 
 
-# WordWeaveAI Architecture
+## 🗺️ Architecture
 
-<img width="1103" alt="image" src="https://github.com/user-attachments/assets/737dbd19-d993-4069-bceb-3bce7ffe5ecc" />
+<img width="914" alt="image" src="https://github.com/user-attachments/assets/ec4b3a76-7c36-4724-a31a-528b599152e6" />
 
+### 🔄 Flow Overview
+
+1. **New vocabulary request**
+- User submits request via Angular frontend → Go REST API → SQS Queue
+- **Vocab Lambda** function polls the SQS Queue and runs a LangGraph agent
+
+2. **Real-time updates** 
+- **WebSocket Handler** manages connections and subscriptions
+- **WebSocket Notifier** streams live updates during processing:
+  - `processing_started`, `chunk_update`, `processing_completed`, `ddb_hit`, `processing_failed`
+- Multiple users can subscribe to the same vocabulary word to get near real time updates of the execution flow
+
+3. **Data management** 
+- We use DynamoDB for storing User, Vocabulary and WebSocket connections data
+- API calls to OpenAI, Elevenlabs, and Pexels are made to get text, audio and image data respectively
 
 
 ## 🛠️ Development
 
-### Directory Structure
+### 📁 Directory Structure
 
 ```
 /
@@ -50,3 +65,7 @@ The LangGraph agent processes vocabulary through an optimized workflow:
 ├── aws-infra/             # AWS CDK Infrastructure
 └── README.md
 ```
+
+
+
+
