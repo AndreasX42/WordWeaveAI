@@ -221,7 +221,7 @@ async def store_result(result: Dict[str, Any], req: VocabProcessRequestDto):
         "media": to_ddb(result.get("media")),
         # GSI-1: Reverse lookup
         "LKP": f"LKP#{lang_code(tgt_lang)}#{normalize_word(tgt_word)}",
-        "SRC_LANG": lang_code(src_lang),
+        "SRC_LANG": f"SRC#{lang_code(src_lang)}",
         # GSI-2: English word lookup for Media reuse
         "english_word": normalize_word(result.get("english_word", "")),
         "search_query": search_query,

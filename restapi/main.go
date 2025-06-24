@@ -46,16 +46,40 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 	server.POST("/users/confirm-email", container.UserHandler.ConfirmEmail)
 	server.POST("/users/reset-password", container.UserHandler.ResetPassword)
 
+	// Search routes
+	server.POST("/search", container.SearchHandler.SearchVocabulary)
+
 	// JWT routes
 	server.POST("/auth/login", authMiddleware.LoginHandler)
 	server.POST("/auth/logout", authMiddleware.LogoutHandler)
 	server.POST("/auth/refresh", authMiddleware.RefreshHandler)
 
 	// Authenticated routes
-	authenticated := server.Group("/users")
+	authenticated := server.Group("/")
 	authenticated.Use(authMiddleware.MiddlewareFunc())
-	authenticated.DELETE("/delete", container.UserHandler.Delete)
-	authenticated.PUT("/update", container.UserHandler.Update)
+	{
+		// User routes
+		userRoutes := authenticated.Group("/users")
+		userRoutes.DELETE("/delete", container.UserHandler.Delete)
+		userRoutes.PUT("/update", container.UserHandler.Update)
+
+		// Vocabulary list routes
+		vocabListRoutes := authenticated.Group("/vocabs")
+		{
+			// List management
+			vocabListRoutes.POST("/", container.VocabListHandler.CreateList)
+			vocabListRoutes.GET("/", container.VocabListHandler.GetLists)
+			vocabListRoutes.GET("/:listId", container.VocabListHandler.GetList)
+			vocabListRoutes.PUT("/:listId", container.VocabListHandler.UpdateList)
+			vocabListRoutes.DELETE("/:listId", container.VocabListHandler.DeleteList)
+
+			// Word management within lists
+			vocabListRoutes.POST("/:listId/words", container.VocabListHandler.AddWordToList)
+			vocabListRoutes.GET("/:listId/words", container.VocabListHandler.GetWordsInList)
+			vocabListRoutes.DELETE("/:listId/words/:wordId", container.VocabListHandler.RemoveWordFromList)
+			vocabListRoutes.PUT("/:listId/words/:wordId/status", container.VocabListHandler.UpdateWordStatus)
+		}
+	}
 }
 
 func initEnvs() {

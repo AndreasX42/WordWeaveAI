@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/AndreasX42/restapi/utils"
@@ -81,29 +83,61 @@ func (h *HealthHandler) HealthCheck(c *gin.Context) {
 	c.JSON(statusCode, response)
 }
 
-// checkDynamoDB tests DynamoDB connectivity by describing the users table
+// checkDynamoDB tests DynamoDB connectivity by describing all application tables
 func (h *HealthHandler) checkDynamoDB(ctx context.Context) ServiceInfo {
 	startTime := time.Now()
 
-	tableName := utils.GetTableName(os.Getenv("DYNAMODB_USER_TABLE_NAME"))
-	table := h.dynamoDB.Table(tableName)
+	// Define all tables used by the application
+	tables := map[string]string{
+		"users":       utils.GetTableName(os.Getenv("DYNAMODB_USER_TABLE_NAME")),
+		"vocab":       utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_TABLE_NAME")),
+		"vocab_lists": utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_LIST_TABLE_NAME")),
+	}
 
-	// Try to describe the table to test connectivity
-	_, err := table.Describe().Run(ctx)
+	var errors []string
+	tableStatuses := make(map[string]string)
+
+	// Check each table
+	for tableName, fullTableName := range tables {
+		table := h.dynamoDB.Table(fullTableName)
+
+		// Try to describe the table to test connectivity and existence
+		desc, err := table.Describe().Run(ctx)
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("%s: %v", tableName, err))
+			tableStatuses[tableName] = "error"
+		} else {
+			tableStatuses[tableName] = string(desc.Status)
+		}
+	}
 
 	responseTime := time.Since(startTime)
 
-	if err != nil {
+	// Determine overall health
+	if len(errors) > 0 {
 		return ServiceInfo{
 			Status:       "unhealthy",
 			ResponseTime: responseTime.String(),
-			Error:        err.Error(),
+			Error: fmt.Sprintf("Table issues: %s. Statuses: %v",
+				strings.Join(errors, "; "), tableStatuses),
+		}
+	}
+
+	// Check if all tables are ACTIVE
+	for tableName, status := range tableStatuses {
+		if status != "ACTIVE" {
+			return ServiceInfo{
+				Status:       "degraded",
+				ResponseTime: responseTime.String(),
+				Error: fmt.Sprintf("Table %s is %s (not ACTIVE). All statuses: %v",
+					tableName, status, tableStatuses),
+			}
 		}
 	}
 
 	return ServiceInfo{
 		Status:       "healthy",
 		ResponseTime: responseTime.String(),
+		Error:        fmt.Sprintf("All tables ACTIVE: %v", tableStatuses),
 	}
-
 }

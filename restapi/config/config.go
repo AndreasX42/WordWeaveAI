@@ -2,7 +2,9 @@ package config
 
 import (
 	"context"
+	"crypto/tls"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -19,13 +21,19 @@ import (
 
 // Container holds all dependencies
 type Container struct {
-	UserRepository repositories.UserRepository
-	EmailService   repositories.EmailService
-	UserService    *services.UserService
-	UserHandler    *handlers.UserHandler
-	HealthHandler  *handlers.HealthHandler
-	DynamoDB       *dynamo.DB
-	SESClient      *ses.Client
+	UserRepository      repositories.UserRepository
+	VocabRepository     repositories.VocabRepository
+	VocabListRepository repositories.VocabListRepository
+	EmailService        repositories.EmailService
+	UserService         *services.UserService
+	VocabService        *services.VocabService
+	VocabListService    *services.VocabListService
+	UserHandler         *handlers.UserHandler
+	HealthHandler       *handlers.HealthHandler
+	SearchHandler       *handlers.SearchHandler
+	VocabListHandler    *handlers.VocabListHandler
+	DynamoDB            *dynamo.DB
+	SESClient           *ses.Client
 }
 
 // NewContainer creates and wires all dependencies
@@ -69,33 +77,76 @@ func (c *Container) initAWS() {
 		log.Fatal("AWS config load failed:", err)
 	}
 
+	// Optimize HTTP client for DynamoDB performance and ensure TLS for all AWS services
+	cfg.HTTPClient = &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns:        100,              // Increase from default 100
+			MaxIdleConnsPerHost: 20,               // Increase from default 2
+			IdleConnTimeout:     90 * time.Second, // Keep connections alive longer
+			DisableCompression:  true,             // DynamoDB responses are already compressed
+			WriteBufferSize:     32 * 1024,        // 32KB write buffer
+			ReadBufferSize:      32 * 1024,        // 32KB read buffer
+			// TLS Configuration - Force TLS 1.2 minimum for all AWS services including SES
+			TLSHandshakeTimeout: 3 * time.Second,
+			ForceAttemptHTTP2:   true, // Use HTTP/2 when possible
+			TLSClientConfig: &tls.Config{
+				MinVersion:         tls.VersionTLS12, // Force minimum TLS 1.2
+				InsecureSkipVerify: false,            // Always verify certificates
+				ServerName:         "",               // Let Go auto-detect server name
+			},
+		},
+	}
+
 	// Initialize DynamoDB
 	c.DynamoDB = dynamo.New(cfg)
 
-	// Initialize SES
+	// Initialize SES with explicit TLS enforcement
 	c.SESClient = ses.NewFromConfig(cfg)
+
+	log.Println("AWS services initialized with TLS enforcement")
 }
 
 func (c *Container) initRepositories() {
-	// Create DynamoDB table reference
+	// Create DynamoDB table references
 	usersTable := c.DynamoDB.Table(utils.GetTableName(os.Getenv("DYNAMODB_USER_TABLE_NAME")))
+	vocabTable := c.DynamoDB.Table(utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_TABLE_NAME")))
+	vocabListTable := c.DynamoDB.Table(utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_LIST_TABLE_NAME")))
 
 	// Initialize repositories
 	c.UserRepository = infraRepos.NewDynamoUserRepository(usersTable)
+	c.VocabRepository = infraRepos.NewDynamoVocabRepository(vocabTable)
+	c.VocabListRepository = infraRepos.NewDynamoVocabListRepository(vocabListTable)
 }
 
 func (c *Container) initServices() {
 	c.EmailService = infraServices.NewSESEmailService(c.SESClient)
 	c.UserService = services.NewUserService(c.UserRepository, c.EmailService)
+	c.VocabService = services.NewVocabService(c.VocabRepository)
+	c.VocabListService = services.NewVocabListService(c.VocabListRepository, c.VocabRepository)
 }
 
 func (c *Container) initHandlers() {
 	c.UserHandler = handlers.NewUserHandler(c.UserService)
 	c.HealthHandler = handlers.NewHealthHandler(c.DynamoDB)
+	c.SearchHandler = handlers.NewSearchHandler(c.VocabService)
+	c.VocabListHandler = handlers.NewVocabListHandler(c.VocabListService)
 }
 
 func (c *Container) createTables() {
 	ctx := context.Background()
+
+	// Create User table
+	c.createUserTable(ctx)
+
+	// Create Vocabulary table
+	c.createVocabularyTable(ctx)
+
+	// Create Vocabulary List table
+	c.createVocabularyListTable(ctx)
+}
+
+func (c *Container) createUserTable(ctx context.Context) {
 	tableName := utils.GetTableName(os.Getenv("DYNAMODB_USER_TABLE_NAME"))
 
 	// Check if table exists first
@@ -120,6 +171,58 @@ func (c *Container) createTables() {
 	// Wait for table to be active
 	c.waitForTable(ctx, tableName)
 	log.Printf("Table %s created successfully", tableName)
+}
+
+func (c *Container) createVocabularyTable(ctx context.Context) {
+	tableName := utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_TABLE_NAME"))
+
+	// Check if table exists first
+	table := c.DynamoDB.Table(tableName)
+	_, err := table.Describe().Run(ctx)
+	if err == nil {
+		log.Printf("Table %s already exists", tableName)
+		return
+	}
+
+	// Create vocabulary table with indexes matching AWS CDK structure
+	err = c.DynamoDB.CreateTable(tableName, infraRepos.VocabRecord{}).
+		Provision(5, 5).                                 // Read/Write capacity units
+		ProvisionIndex("ReverseLookupIndex", 5, 5).      // GSI-1: LKP + SRC_LANG for reverse lookup
+		ProvisionIndex("EnglishMediaLookupIndex", 5, 5). // GSI-2: english_word for media reuse
+		Run(ctx)
+
+	if err != nil {
+		log.Fatalf("Failed to create vocabulary table %s: %v", tableName, err)
+	}
+
+	// Wait for table to be active
+	c.waitForTable(ctx, tableName)
+	log.Printf("Vocabulary table %s created successfully", tableName)
+}
+
+func (c *Container) createVocabularyListTable(ctx context.Context) {
+	tableName := utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_LIST_TABLE_NAME"))
+
+	// Check if table exists first
+	table := c.DynamoDB.Table(tableName)
+	_, err := table.Describe().Run(ctx)
+	if err == nil {
+		log.Printf("Table %s already exists", tableName)
+		return
+	}
+
+	// Create vocabulary list table
+	err = c.DynamoDB.CreateTable(tableName, infraRepos.VocabListRecord{}).
+		Provision(5, 5). // Read/Write capacity units
+		Run(ctx)
+
+	if err != nil {
+		log.Fatalf("Failed to create vocabulary list table %s: %v", tableName, err)
+	}
+
+	// Wait for table to be active
+	c.waitForTable(ctx, tableName)
+	log.Printf("Vocabulary list table %s created successfully", tableName)
 }
 
 // waitForTable waits for a table to become active
