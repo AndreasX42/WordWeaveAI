@@ -15,9 +15,12 @@ require (
 	github.com/guregu/dynamo/v2 v2.2.0
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/crypto v0.39.0
+	golang.org/x/oauth2 v0.24.0
+	golang.org/x/sync v0.15.0
 )
 
 require (
+	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.19.2 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.31 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.35 // indirect
@@ -37,7 +40,6 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
-	golang.org/x/sync v0.15.0 // indirect
 )
 
 require (

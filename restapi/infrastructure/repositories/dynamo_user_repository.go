@@ -17,7 +17,7 @@ type DynamoUserRepository struct {
 
 // UserRecord represents the DynamoDB storage format
 type UserRecord struct {
-	UserID           string    `dynamo:"user_id,hash" index:"EmailIndex,range" index:"UsernameIndex,range"`
+	UserID           string    `dynamo:"user_id,hash" index:"EmailIndex,range" index:"UsernameIndex,range" index:"GoogleIDIndex,range"`
 	Email            string    `dynamo:"email" index:"EmailIndex,hash"`
 	Username         string    `dynamo:"username" index:"UsernameIndex,hash"`
 	PasswordHash     string    `dynamo:"password_hash"`
@@ -26,6 +26,10 @@ type UserRecord struct {
 	IsActive         bool      `dynamo:"is_active"`
 	IsAdmin          bool      `dynamo:"is_admin"`
 	CreatedAt        time.Time `dynamo:"created_at"`
+	// OAuth fields
+	GoogleID     string `dynamo:"google_id" index:"GoogleIDIndex,hash"`
+	IsOAuthUser  bool   `dynamo:"is_oauth_user"`
+	ProfileImage string `dynamo:"profile_image"`
 }
 
 // NewDynamoUserRepository creates a new DynamoDB user repository
@@ -47,6 +51,9 @@ func (r *DynamoUserRepository) toUserRecord(user *entities.User) UserRecord {
 		IsActive:         user.IsActive,
 		IsAdmin:          user.IsAdmin,
 		CreatedAt:        user.CreatedAt,
+		GoogleID:         user.GoogleID,
+		IsOAuthUser:      user.IsOAuthUser,
+		ProfileImage:     user.ProfileImage,
 	}
 }
 
@@ -62,6 +69,9 @@ func (r *DynamoUserRepository) toEntity(record UserRecord) *entities.User {
 		IsActive:         record.IsActive,
 		IsAdmin:          record.IsAdmin,
 		CreatedAt:        record.CreatedAt,
+		GoogleID:         record.GoogleID,
+		IsOAuthUser:      record.IsOAuthUser,
+		ProfileImage:     record.ProfileImage,
 	}
 }
 
@@ -102,6 +112,20 @@ func (r *DynamoUserRepository) GetByUsername(ctx context.Context, username strin
 	var record UserRecord
 	err := r.table.Get("username", username).
 		Index("UsernameIndex").
+		One(ctx, &record)
+	if err != nil {
+		if errors.Is(err, dynamo.ErrNotFound) {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
+	}
+	return r.toEntity(record), nil
+}
+
+func (r *DynamoUserRepository) GetByGoogleID(ctx context.Context, googleID string) (*entities.User, error) {
+	var record UserRecord
+	err := r.table.Get("google_id", googleID).
+		Index("GoogleIDIndex").
 		One(ctx, &record)
 	if err != nil {
 		if errors.Is(err, dynamo.ErrNotFound) {

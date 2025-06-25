@@ -15,6 +15,10 @@ type User struct {
 	IsActive         bool
 	IsAdmin          bool
 	CreatedAt        time.Time
+	// OAuth fields
+	GoogleID     string // Google OAuth ID
+	IsOAuthUser  bool   // Whether user registered via OAuth
+	ProfileImage string // Profile image URL from OAuth provider
 }
 
 // NewUser creates a new user with validation
@@ -42,6 +46,38 @@ func NewUser(id, username, email, passwordHash, confirmationCode string) (*User,
 		IsActive:         false,
 		IsAdmin:          false,
 		CreatedAt:        time.Now().UTC(),
+		IsOAuthUser:      false,
+	}, nil
+}
+
+// NewOAuthUser creates a new user via OAuth (Google)
+func NewOAuthUser(id, username, email, googleID, profileImage string) (*User, error) {
+	if id == "" {
+		return nil, errors.New("user ID cannot be empty")
+	}
+	if username == "" {
+		return nil, errors.New("username cannot be empty")
+	}
+	if email == "" {
+		return nil, errors.New("email cannot be empty")
+	}
+	if googleID == "" {
+		return nil, errors.New("Google ID cannot be empty")
+	}
+
+	return &User{
+		ID:               id,
+		Username:         username,
+		Email:            email,
+		PasswordHash:     "", // OAuth users don't have passwords
+		ConfirmationCode: "",
+		ConfirmedEmail:   true, // OAuth emails are pre-verified
+		IsActive:         true, // OAuth users are immediately active
+		IsAdmin:          false,
+		CreatedAt:        time.Now().UTC(),
+		GoogleID:         googleID,
+		IsOAuthUser:      true,
+		ProfileImage:     profileImage,
 	}, nil
 }
 

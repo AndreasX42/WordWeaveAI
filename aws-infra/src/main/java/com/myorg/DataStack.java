@@ -10,6 +10,7 @@ public class DataStack extends Stack {
 	private final software.amazon.awscdk.services.s3.Bucket vocabBucket;
 	private final software.amazon.awscdk.services.dynamodb.Table userDataTable;
 	private final software.amazon.awscdk.services.dynamodb.Table vocabDataTable;
+	private final software.amazon.awscdk.services.dynamodb.Table vocabListTable;
 	private final software.amazon.awscdk.services.dynamodb.Table connectionsTable;
 
 	public software.amazon.awscdk.services.s3.Bucket getVocabBucket() {
@@ -22,6 +23,10 @@ public class DataStack extends Stack {
 
 	public software.amazon.awscdk.services.dynamodb.Table getVocabDataTable() {
 		return vocabDataTable;
+	}
+
+	public software.amazon.awscdk.services.dynamodb.Table getVocabListTable() {
+		return vocabListTable;
 	}
 
 	public software.amazon.awscdk.services.dynamodb.Table getConnectionsTable() {
@@ -72,6 +77,15 @@ public class DataStack extends Stack {
 				.indexName("UsernameIndex")
 				.partitionKey(software.amazon.awscdk.services.dynamodb.Attribute.builder()
 						.name("username")
+						.type(software.amazon.awscdk.services.dynamodb.AttributeType.STRING)
+						.build())
+				.build());
+
+		userDataTable.addGlobalSecondaryIndex(software.amazon.awscdk.services.dynamodb.GlobalSecondaryIndexProps
+				.builder()
+				.indexName("GoogleIDIndex")
+				.partitionKey(software.amazon.awscdk.services.dynamodb.Attribute.builder()
+						.name("google_id")
 						.type(software.amazon.awscdk.services.dynamodb.AttributeType.STRING)
 						.build())
 				.build());
@@ -168,6 +182,23 @@ public class DataStack extends Stack {
 				.nonKeyAttributes(java.util.Arrays.asList("media", "target_word", "target_language"))
 				.build());
 
+		// Create DynamoDB table for vocab list data
+		this.vocabListTable = software.amazon.awscdk.services.dynamodb.Table.Builder
+				.create(this, "VocabListTable")
+				.tableName(CfnStackApp.getRequiredVariable("DYNAMODB_VOCAB_LIST_TABLE_NAME"))
+				.partitionKey(software.amazon.awscdk.services.dynamodb.Attribute.builder()
+						.name("PK") // Format: USER#{userId}
+						.type(software.amazon.awscdk.services.dynamodb.AttributeType.STRING)
+						.build())
+				.sortKey(software.amazon.awscdk.services.dynamodb.Attribute.builder()
+						.name("SK") // Format: LIST#{listId}#META or LIST#{listId}#WORD#{encodedKeys}
+						.type(software.amazon.awscdk.services.dynamodb.AttributeType.STRING)
+						.build())
+				.billingMode(software.amazon.awscdk.services.dynamodb.BillingMode.PAY_PER_REQUEST)
+				.encryption(software.amazon.awscdk.services.dynamodb.TableEncryption.AWS_MANAGED)
+				.removalPolicy(software.amazon.awscdk.RemovalPolicy.DESTROY)
+				.build();
+
 	}
 
 	public void grantPermissions(final software.amazon.awscdk.services.lambda.Function lambdaFunction,
@@ -177,6 +208,7 @@ public class DataStack extends Stack {
 			this.vocabBucket.grantReadWrite(lambdaFunction);
 			this.userDataTable.grantFullAccess(lambdaFunction);
 			this.vocabDataTable.grantFullAccess(lambdaFunction);
+			this.vocabListTable.grantFullAccess(lambdaFunction);
 			this.connectionsTable.grantFullAccess(lambdaFunction);
 		}
 
@@ -184,6 +216,7 @@ public class DataStack extends Stack {
 		if (ecsTaskRole != null) {
 			this.userDataTable.grantFullAccess(ecsTaskRole);
 			this.vocabDataTable.grantFullAccess(ecsTaskRole);
+			this.vocabListTable.grantFullAccess(ecsTaskRole);
 			this.connectionsTable.grantFullAccess(ecsTaskRole);
 			this.vocabBucket.grantReadWrite(ecsTaskRole);
 		}

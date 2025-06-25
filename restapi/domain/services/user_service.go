@@ -50,6 +50,14 @@ type UpdateUserRequest struct {
 	Password string
 }
 
+type OAuthUserRequest struct {
+	GoogleID     string
+	Email        string
+	Name         string
+	Username     string
+	ProfileImage string
+}
+
 func (s *UserService) RegisterUser(ctx context.Context, req RegisterUserRequest) (*entities.User, error) {
 	// Check if user already exists
 	emailExists, err := s.userRepo.EmailExists(ctx, req.Email)
@@ -187,4 +195,61 @@ func (s *UserService) UpdateUser(ctx context.Context, req UpdateUserRequest) err
 	}
 
 	return s.userRepo.Update(ctx, user)
+}
+
+// CreateOrLoginOAuthUser handles OAuth user creation or login
+func (s *UserService) CreateOrLoginOAuthUser(ctx context.Context, req OAuthUserRequest) (*entities.User, error) {
+	// 1. Check if user exists by Google ID
+	user, err := s.userRepo.GetByGoogleID(ctx, req.GoogleID)
+	if err == nil {
+		// User exists, return existing user
+		return user, nil
+	}
+
+	// 2. Check if user exists by email (might be regular user converting to OAuth)
+	existingUser, err := s.userRepo.GetByEmail(ctx, req.Email)
+	if err == nil {
+		// User exists with same email but no Google ID
+		// Link the Google account to existing user
+		existingUser.GoogleID = req.GoogleID
+		existingUser.IsOAuthUser = true
+		existingUser.ProfileImage = req.ProfileImage
+		existingUser.ConfirmedEmail = true
+		existingUser.IsActive = true
+
+		if err := s.userRepo.Update(ctx, existingUser); err != nil {
+			return nil, err
+		}
+		return existingUser, nil
+	}
+
+	// 3. Create new OAuth user
+	userID := uuid.New().String()
+	username := req.Username
+
+	// TODO: Check if username is set
+	// Ensure username is unique
+	if username == "" {
+		username = strings.Split(req.Email, "@")[0]
+	}
+
+	// Check if username exists and make it unique if needed
+	usernameExists, err := s.userRepo.UsernameExists(ctx, username)
+	if err != nil {
+		return nil, err
+	}
+	if usernameExists {
+		username = username + "_" + utils.GenerateRandomString(6)
+	}
+
+	user, err = entities.NewOAuthUser(userID, username, req.Email, req.GoogleID, req.ProfileImage)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.userRepo.Create(ctx, user); err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }

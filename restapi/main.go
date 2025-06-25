@@ -46,6 +46,10 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 	server.POST("/users/confirm-email", container.UserHandler.ConfirmEmail)
 	server.POST("/users/reset-password", container.UserHandler.ResetPassword)
 
+	// OAuth routes
+	server.GET("/auth/google/login", container.OAuthHandler.GoogleLogin)
+	server.GET("/auth/google/callback", container.OAuthHandler.GoogleCallback)
+
 	// Search routes
 	server.POST("/search", container.SearchHandler.SearchVocabulary)
 

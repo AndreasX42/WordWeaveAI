@@ -32,8 +32,10 @@ type Container struct {
 	HealthHandler       *handlers.HealthHandler
 	SearchHandler       *handlers.SearchHandler
 	VocabListHandler    *handlers.VocabListHandler
+	OAuthHandler        *handlers.OAuthHandler
 	DynamoDB            *dynamo.DB
 	SESClient           *ses.Client
+	GoogleOAuthConfig   *GoogleOAuthConfig
 }
 
 // NewContainer creates and wires all dependencies
@@ -43,6 +45,10 @@ func NewContainer() *Container {
 	// Initialize AWS services
 	log.Println("Initializing AWS services")
 	container.initAWS()
+
+	// Initialize OAuth configuration
+	log.Println("Initializing OAuth configuration")
+	container.initOAuth()
 
 	// Initialize repositories
 	log.Println("Initializing repositories")
@@ -107,6 +113,10 @@ func (c *Container) initAWS() {
 	log.Println("AWS services initialized with TLS enforcement")
 }
 
+func (c *Container) initOAuth() {
+	c.GoogleOAuthConfig = NewGoogleOAuthConfig()
+}
+
 func (c *Container) initRepositories() {
 	// Create DynamoDB table references
 	usersTable := c.DynamoDB.Table(utils.GetTableName(os.Getenv("DYNAMODB_USER_TABLE_NAME")))
@@ -131,6 +141,7 @@ func (c *Container) initHandlers() {
 	c.HealthHandler = handlers.NewHealthHandler(c.DynamoDB)
 	c.SearchHandler = handlers.NewSearchHandler(c.VocabService)
 	c.VocabListHandler = handlers.NewVocabListHandler(c.VocabListService)
+	c.OAuthHandler = handlers.NewOAuthHandler(c.UserService, c.GoogleOAuthConfig.Config)
 }
 
 func (c *Container) createTables() {
@@ -157,11 +168,12 @@ func (c *Container) createUserTable(ctx context.Context) {
 		return
 	}
 
-	// Create table with indexes
+	// Create table with indexes including OAuth support
 	err = c.DynamoDB.CreateTable(tableName, infraRepos.UserRecord{}).
 		Provision(5, 5). // Read/Write capacity units
 		ProvisionIndex("EmailIndex", 5, 5).
 		ProvisionIndex("UsernameIndex", 5, 5).
+		ProvisionIndex("GoogleIDIndex", 5, 5).
 		Run(ctx)
 
 	if err != nil {
