@@ -1,0 +1,27 @@
+# git
+.git
+.gitignore
+.cache
+**.log
+
+# Byte-compiled / optimized / DLL files
+**/__pycache__
+**/*.pyc
+**.py[cod]
+dist/
+*$py.class
+**/target
+**/node_modules
+.vscode/
+
+# Jupyter Notebook
+**/.ipynb_checkpoints
+notebooks/
+
+# dotenv
+.env
+
+# virtualenv
+.venv*
+venv*/
+ENV*/
