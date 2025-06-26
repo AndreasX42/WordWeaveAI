@@ -11,22 +11,31 @@
   .left-section {
     display: flex;
     align-items: center;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    &:active {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
 
     .app-icon {
       margin-right: 8px;
       font-size: 24px;
       width: 24px;
       height: 24px;
+      color: white;
     }
 
     .app-title {
       font-size: 20px;
       font-weight: 500;
       letter-spacing: 0.25px;
-      color: white;
-    }
-
-    .app-icon {
       color: white;
     }
   }
@@ -140,6 +149,17 @@
     &:hover {
       background-color: var(--surface-color) !important;
     }
+  }
+}
+
+// Override for dark theme to make hover more visible
+body.dark-theme .user-menu {
+  button[mat-menu-item],
+  button.mat-mdc-menu-item {
+    &:hover,
+    &.mat-mdc-menu-item:hover {
+      background-color: #4d4d4d !important;
+    }
 
     mat-icon {
       margin-right: 16px;
@@ -158,6 +178,26 @@
 
       span {
         color: var(--warn-color);
+      }
+    }
+
+    &.login-item {
+      mat-icon {
+        color: var(--primary-color);
+      }
+
+      span {
+        color: var(--primary-color);
+      }
+    }
+
+    &.register-item {
+      mat-icon {
+        color: var(--primary-color);
+      }
+
+      span {
+        color: var(--primary-color);
       }
     }
   }

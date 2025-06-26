@@ -1,0 +1,208 @@
+<div class="register-container">
+  <div class="register-wrapper">
+    <!-- Logo and branding -->
+    <div class="brand-section">
+      <div class="logo">
+        <mat-icon class="logo-icon">edit</mat-icon>
+        <h1 class="brand-name">WordWeave</h1>
+      </div>
+      <p class="brand-tagline">Create your account to get started!</p>
+    </div>
+
+    <!-- Register form card -->
+    <mat-card class="register-card">
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="register-form">
+          <!-- Username field -->
+          <div class="form-field">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Username</mat-label>
+              <input
+                matInput
+                id="username"
+                type="text"
+                name="username"
+                formControlName="username"
+                (blur)="updateUsernameErrorMessage()"
+                placeholder="Enter your username"
+                autocomplete="username"
+              />
+
+              <!-- Success icon when valid -->
+              @if(usernameErrorMessage() === '' && form.get('username')?.value
+              && form.get('username')?.valid) {
+              <mat-icon matIconSuffix class="success-icon"
+                >check_circle</mat-icon
+              >
+              }
+
+              <!-- Error message -->
+              @if(usernameErrorMessage() !== '') {
+              <mat-error>{{ usernameErrorMessage() }}</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <!-- Email field -->
+          <div class="form-field">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Email address</mat-label>
+              <input
+                matInput
+                id="email"
+                type="email"
+                name="email"
+                formControlName="email"
+                (blur)="updateEmailErrorMessage()"
+                placeholder="Enter your email"
+                autocomplete="email"
+              />
+
+              <!-- Success icon when valid -->
+              @if(emailErrorMessage() === '' && form.get('email')?.value &&
+              form.get('email')?.valid) {
+              <mat-icon matIconSuffix class="success-icon"
+                >check_circle</mat-icon
+              >
+              }
+
+              <!-- Error message -->
+              @if(emailErrorMessage() !== '') {
+              <mat-error>{{ emailErrorMessage() }}</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <!-- Password fields group -->
+          <div formGroupName="passwords">
+            <!-- Password field -->
+            <div class="form-field">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Password</mat-label>
+                <input
+                  matInput
+                  id="password"
+                  name="password"
+                  formControlName="password"
+                  (blur)="updatePwdErrorMessage()"
+                  [type]="hide() ? 'password' : 'text'"
+                  placeholder="Enter your password"
+                  autocomplete="new-password"
+                />
+
+                <!-- Success icon when both passwords are valid -->
+                @if(pwdErrorMessage() === '' && confirmPwdErrorMessage() === ''
+                && form.get('passwords.password')?.value &&
+                form.get('passwords.confirmPassword')?.value) {
+                <mat-icon matIconSuffix class="success-icon"
+                  >check_circle</mat-icon
+                >
+                }
+
+                <!-- Password visibility toggle -->
+                <button
+                  type="button"
+                  mat-icon-button
+                  matIconSuffix
+                  (click)="onHide($event)"
+                  [attr.aria-label]="hide() ? 'Show password' : 'Hide password'"
+                  [attr.aria-pressed]="!hide()"
+                  class="password-toggle"
+                >
+                  <mat-icon>{{
+                    hide() ? "visibility_off" : "visibility"
+                  }}</mat-icon>
+                </button>
+
+                <!-- Error message -->
+                @if(pwdErrorMessage() !== '') {
+                <mat-error>{{ pwdErrorMessage() }}</mat-error>
+                }
+              </mat-form-field>
+            </div>
+
+            <!-- Confirm Password field -->
+            <div class="form-field">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Confirm password</mat-label>
+                <input
+                  matInput
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  formControlName="confirmPassword"
+                  (blur)="updateConfirmPwdErrorMessage()"
+                  [type]="hide() ? 'password' : 'text'"
+                  placeholder="Confirm your password"
+                  autocomplete="new-password"
+                />
+
+                <!-- Success icon when both passwords are valid -->
+                @if(pwdErrorMessage() === '' && confirmPwdErrorMessage() === ''
+                && form.get('passwords.password')?.value &&
+                form.get('passwords.confirmPassword')?.value) {
+                <mat-icon matIconSuffix class="success-icon"
+                  >check_circle</mat-icon
+                >
+                }
+
+                <!-- Password visibility toggle -->
+                <button
+                  type="button"
+                  mat-icon-button
+                  matIconSuffix
+                  (click)="onHide($event)"
+                  [attr.aria-label]="hide() ? 'Show password' : 'Hide password'"
+                  [attr.aria-pressed]="!hide()"
+                  class="password-toggle"
+                >
+                  <mat-icon>{{
+                    hide() ? "visibility_off" : "visibility"
+                  }}</mat-icon>
+                </button>
+
+                <!-- Error message -->
+                @if(confirmPwdErrorMessage() !== '') {
+                <mat-error>{{ confirmPwdErrorMessage() }}</mat-error>
+                }
+              </mat-form-field>
+            </div>
+          </div>
+
+          <!-- General register error -->
+          @if(registerError()) {
+          <div class="register-error">
+            <mat-icon class="error-icon">error</mat-icon>
+            <span>{{ registerError() }}</span>
+          </div>
+          }
+
+          <!-- Submit button -->
+          <div class="form-actions">
+            <button
+              mat-raised-button
+              color="primary"
+              type="submit"
+              [disabled]="isRegistering()"
+              class="register-button"
+            >
+              @if(isRegistering()) {
+              <mat-spinner diameter="20" class="register-spinner"></mat-spinner>
+              <span>Creating account...</span>
+              } @else {
+              <span>Create Account</span>
+              }
+            </button>
+          </div>
+
+          <!-- Login link -->
+          <div class="login-section">
+            <p class="login-text">
+              Already have an account?
+              <a routerLink="/login" class="login-link">Sign in here</a>
+            </p>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

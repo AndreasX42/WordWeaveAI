@@ -1,0 +1,133 @@
+<div class="login-container">
+  <div class="login-wrapper">
+    <!-- Logo and branding -->
+    <div class="brand-section">
+      <div class="logo">
+        <mat-icon class="logo-icon">edit</mat-icon>
+        <h1 class="brand-name">WordWeave</h1>
+      </div>
+      <p class="brand-tagline">Welcome back! Please sign in to your account.</p>
+    </div>
+
+    <!-- Login form card -->
+    <mat-card class="login-card">
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="login-form">
+          <!-- Username field -->
+          <div class="form-field">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Username</mat-label>
+              <input
+                matInput
+                id="username"
+                type="text"
+                name="username"
+                formControlName="username"
+                (blur)="updateUsernameErrorMessage()"
+                placeholder="Enter your username"
+                autocomplete="username"
+              />
+
+              <!-- Success icon when valid -->
+              @if(usernameErrorMessage() === '' && form.get('username')?.value
+              && form.get('username')?.valid) {
+              <mat-icon matIconSuffix class="success-icon"
+                >check_circle</mat-icon
+              >
+              }
+
+              <!-- Error message -->
+              @if(usernameErrorMessage() !== '') {
+              <mat-error>{{ usernameErrorMessage() }}</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <!-- Password field -->
+          <div class="form-field">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Password</mat-label>
+              <input
+                matInput
+                id="password"
+                name="password"
+                formControlName="password"
+                (blur)="updatePasswordErrorMessage()"
+                [type]="hide() ? 'password' : 'text'"
+                placeholder="Enter your password"
+                autocomplete="current-password"
+              />
+
+              <!-- Success icon when valid -->
+              @if(passwordErrorMessage() === '' && form.get('password')?.value
+              && form.get('password')?.valid) {
+              <mat-icon matIconSuffix class="success-icon"
+                >check_circle</mat-icon
+              >
+              }
+
+              <!-- Password visibility toggle -->
+              <button
+                type="button"
+                mat-icon-button
+                matIconSuffix
+                (click)="onTogglePasswordVisibility($event)"
+                [attr.aria-label]="hide() ? 'Show password' : 'Hide password'"
+                [attr.aria-pressed]="!hide()"
+                class="password-toggle"
+              >
+                <mat-icon>{{
+                  hide() ? "visibility_off" : "visibility"
+                }}</mat-icon>
+              </button>
+
+              <!-- Error message -->
+              @if(passwordErrorMessage() !== '') {
+              <mat-error>{{ passwordErrorMessage() }}</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <!-- General login error -->
+          @if(loginError()) {
+          <div class="login-error">
+            <mat-icon class="error-icon">error</mat-icon>
+            <span>{{ loginError() }}</span>
+          </div>
+          }
+
+          <!-- Submit button -->
+          <div class="form-actions">
+            <button
+              mat-raised-button
+              color="primary"
+              type="submit"
+              [disabled]="isLoggingIn()"
+              class="login-button"
+            >
+              @if(isLoggingIn()) {
+              <mat-spinner diameter="20" class="login-spinner"></mat-spinner>
+              <span>Signing in...</span>
+              } @else {
+              <span>Sign In</span>
+              }
+            </button>
+          </div>
+
+          <!-- Register and forgot password links -->
+          <div class="register-section">
+            <p class="register-text">
+              Don't have an account?
+              <a routerLink="/register" class="register-link"
+                >Create one here</a
+              >
+            </p>
+            <p class="forgot-text">
+              <a href="#" class="forgot-password">Forgot your password?</a>
+            </p>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

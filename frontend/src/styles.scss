@@ -30,8 +30,8 @@
 
 // Dark theme colors
 body.dark-theme {
-  --primary-color: #1976d2;
-  --primary-dark: #1565c0;
+  --primary-color: #0d47a1;
+  --primary-dark: #0a3d91;
   --accent-color: #ff4081;
   --warn-color: #f44336;
 
@@ -97,6 +97,17 @@ body.dark-theme {
 
   .mat-mdc-list-item {
     color: var(--text-primary) !important;
+  }
+
+  // Fix input text colors in dark mode
+  .mat-mdc-form-field {
+    .mat-mdc-input-element {
+      color: var(--text-primary) !important;
+    }
+
+    .mat-mdc-form-field-infix input {
+      color: var(--text-primary) !important;
+    }
   }
 }
 
