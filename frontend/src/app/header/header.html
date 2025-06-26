@@ -39,10 +39,18 @@
         </div>
         <div class="user-details">
           <div class="user-name">
-            {{ authService.user()?.username || "User" }}
+            {{
+              authService.user()?.username
+                ? authService.user()?.username
+                : "User"
+            }}
           </div>
           <div class="user-email">
-            {{ authService.user()?.email || "user@example.com" }}
+            {{
+              authService.user()?.email
+                ? authService.user()?.email
+                : "user@example.com"
+            }}
           </div>
         </div>
       </div>
@@ -70,14 +78,7 @@
         <mat-icon>{{
           themeService.isDarkMode() ? "light_mode" : "dark_mode"
         }}</mat-icon>
-        <span>{{
-          themeService.isDarkMode() ? "Light mode" : "Dark mode"
-        }}</span>
-      </button>
-
-      <button mat-menu-item>
-        <mat-icon>help</mat-icon>
-        <span>Help</span>
+        <span>{{ themeService.isDarkMode() ? "Light" : "Dark" }}</span>
       </button>
 
       <mat-divider></mat-divider>

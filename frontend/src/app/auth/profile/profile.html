@@ -1,1 +1,139 @@
-<p>profile works!</p>
+<div class="profile-container">
+  <div class="profile-wrapper">
+    <!-- Logo and branding -->
+    <div class="brand-section">
+      <div class="logo">
+        <mat-icon class="logo-icon">edit</mat-icon>
+        <h1 class="brand-name">WordWeave</h1>
+      </div>
+      <p class="brand-tagline">Manage your account settings and preferences</p>
+    </div>
+
+    <!-- Profile information card -->
+    <mat-card class="profile-card">
+      <mat-card-content>
+        <div class="profile-header">
+          <div class="avatar-section">
+            <mat-icon class="avatar-icon">account_circle</mat-icon>
+            <h2 class="profile-title">User Profile</h2>
+          </div>
+        </div>
+
+        <div class="profile-info">
+          <!-- User Information -->
+          <div class="info-section">
+            <h3 class="section-title">Account Information</h3>
+            <div class="info-grid">
+              <div class="info-item">
+                <mat-icon class="info-icon">person</mat-icon>
+                <div class="info-content">
+                  <span class="info-label">Username</span>
+                  <span class="info-value">{{
+                    user()?.username ? user()?.username : "Not available"
+                  }}</span>
+                </div>
+              </div>
+
+              <div class="info-item">
+                <mat-icon class="info-icon">email</mat-icon>
+                <div class="info-content">
+                  <span class="info-label">Email</span>
+                  <span class="info-value">{{
+                    user()?.email ? user()?.email : "Not available"
+                  }}</span>
+                </div>
+              </div>
+
+              <div class="info-item">
+                <mat-icon class="info-icon">badge</mat-icon>
+                <div class="info-content">
+                  <span class="info-label">Role</span>
+                  <span class="info-value">{{
+                    user()?.role ? (user()?.role | titlecase) : "User"
+                  }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Session Information -->
+          <div class="info-section">
+            <h3 class="section-title">Session Status</h3>
+            <div class="session-info">
+              <mat-icon
+                class="session-icon"
+                [class.expired]="sessionTimeLeft() === 'Session expired'"
+              >
+                {{
+                  sessionTimeLeft() === "Session expired"
+                    ? "warning"
+                    : "schedule"
+                }}
+              </mat-icon>
+              <div class="session-content">
+                <span class="session-label">Session Expires In</span>
+                <span
+                  class="session-value"
+                  [class.expired]="sessionTimeLeft() === 'Session expired'"
+                >
+                  {{ sessionTimeLeft() ? sessionTimeLeft() : "Loading..." }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Preferences -->
+          <div class="info-section">
+            <h3 class="section-title">Preferences</h3>
+            <div class="preference-item">
+              <div class="preference-content">
+                <mat-icon class="preference-icon">dark_mode</mat-icon>
+                <div class="preference-text">
+                  <span class="preference-label">Dark Mode (Beta)</span>
+                  <span class="preference-description"
+                    >Switch between light and dark themes</span
+                  >
+                </div>
+              </div>
+              <mat-slide-toggle
+                class="theme-toggle"
+                color="accent"
+                [checked]="selectedDarkMode()"
+                (click)="toggleTheme()"
+              ></mat-slide-toggle>
+            </div>
+          </div>
+
+          <!-- Account Actions -->
+          <div class="info-section">
+            <h3 class="section-title">Account Actions</h3>
+            <div class="action-buttons">
+              <button
+                mat-raised-button
+                color="warn"
+                class="delete-button"
+                (click)="deleteAccount()"
+              >
+                <mat-icon>delete_forever</mat-icon>
+                Delete Account
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Logout Section -->
+        <div class="logout-section">
+          <button
+            mat-raised-button
+            color="primary"
+            class="logout-button"
+            (click)="logout()"
+          >
+            <mat-icon>logout</mat-icon>
+            Sign Out
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

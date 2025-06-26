@@ -28,6 +28,13 @@ export const routes: Routes = [
       import('./auth/verify/verify').then((mod) => mod.Verify),
   },
   {
+    path: 'forgot-password',
+    loadComponent: () =>
+      import('./auth/forgot-password/forgot-password').then(
+        (mod) => mod.ForgotPassword
+      ),
+  },
+  {
     path: 'profile',
     loadComponent: () =>
       import('./auth/profile/profile').then((mod) => mod.Profile),

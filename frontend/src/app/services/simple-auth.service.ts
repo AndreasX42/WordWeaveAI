@@ -40,9 +40,9 @@ export class SimpleAuthService {
     return this._user;
   }
 
-  login(username: string, password: string): Promise<boolean> {
+  login(email: string, password: string): Promise<boolean> {
     return new Promise((resolve) => {
-      // TODO: Replace with actual API call
+      // TODO: Replace with actual API call using email and password
       resolve(false);
     });
   }
@@ -68,6 +68,13 @@ export class SimpleAuthService {
   resendVerificationCode(email: string): Promise<boolean> {
     return new Promise((resolve) => {
       // TODO: Replace with actual API call to resend verification code
+      resolve(false);
+    });
+  }
+
+  sendPasswordResetEmail(email: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      // TODO: Replace with actual API call to send password reset email
       resolve(false);
     });
   }

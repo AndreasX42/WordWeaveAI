@@ -1,10 +1,10 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import {
-  AbstractControl,
   FormControl,
   FormGroup,
   ReactiveFormsModule,
   Validators,
+  AbstractControl,
 } from '@angular/forms';
 import { MatIcon } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -35,7 +35,7 @@ function strictEmailValidator(control: AbstractControl) {
 }
 
 @Component({
-  selector: 'app-login',
+  selector: 'app-forgot-password',
   standalone: true,
   imports: [
     MatButtonModule,
@@ -48,27 +48,22 @@ function strictEmailValidator(control: AbstractControl) {
     CommonModule,
     MatCardModule,
   ],
-  templateUrl: './login.html',
-  styleUrl: './login.scss',
+  templateUrl: './forgot-password.html',
+  styleUrl: './forgot-password.scss',
 })
-export class Login {
+export class ForgotPassword {
   private router = inject(Router);
-  private destroyRef = inject(DestroyRef);
   private authService = inject(SimpleAuthService);
   private snackBar = inject(MatSnackBar);
 
-  hide = signal(true);
-  isLoggingIn = signal(false);
+  isSubmitting = signal(false);
   emailErrorMessage = signal<string>('');
-  passwordErrorMessage = signal<string>('');
-  loginError = signal<string>('');
+  forgotPasswordError = signal<string>('');
+  isEmailSent = signal(false);
 
   form = new FormGroup({
     email: new FormControl('', {
       validators: [Validators.required, strictEmailValidator],
-    }),
-    password: new FormControl('', {
-      validators: [Validators.required, Validators.minLength(8)],
     }),
   });
 
@@ -80,46 +75,48 @@ export class Login {
   }
 
   onSubmit() {
-    this.loginError.set('');
+    this.forgotPasswordError.set('');
 
     if (this.form.invalid) {
       this.updateEmailErrorMessage();
-      this.updatePasswordErrorMessage();
       return;
     }
 
     const email = this.form.value.email!;
-    const password = this.form.value.password!;
-
-    this.login(email, password);
+    this.sendResetEmail(email);
   }
 
-  private async login(email: string, password: string) {
-    this.isLoggingIn.set(true);
+  private async sendResetEmail(email: string) {
+    this.isSubmitting.set(true);
 
     try {
-      const success = await this.authService.login(email, password);
+      // Simulate API call - replace with actual service call
+      const success = await this.authService.sendPasswordResetEmail(email);
 
       if (success) {
-        this.isLoggingIn.set(false);
-        this.snackBar.open('Login successful! Welcome back.', 'Close', {
-          duration: 3000,
-          panelClass: ['success-snackbar'],
-        });
-        this.router.navigate(['/home'], { replaceUrl: true });
+        this.isSubmitting.set(false);
+        this.isEmailSent.set(true);
+        this.snackBar.open(
+          'Password reset email sent! Please check your inbox.',
+          'Close',
+          {
+            duration: 5000,
+            panelClass: ['success-snackbar'],
+          }
+        );
       } else {
-        this.isLoggingIn.set(false);
-        const errorMessage = 'Invalid credentials. Please try again.';
-        this.loginError.set(errorMessage);
+        this.isSubmitting.set(false);
+        const errorMessage = 'Failed to send reset email. Please try again.';
+        this.forgotPasswordError.set(errorMessage);
         this.snackBar.open(errorMessage, 'Close', {
           duration: 5000,
           panelClass: ['error-snackbar'],
         });
       }
     } catch (error) {
-      this.isLoggingIn.set(false);
-      const errorMessage = 'Login failed. Please try again.';
-      this.loginError.set(errorMessage);
+      this.isSubmitting.set(false);
+      const errorMessage = 'Failed to send reset email. Please try again.';
+      this.forgotPasswordError.set(errorMessage);
       this.snackBar.open(errorMessage, 'Close', {
         duration: 5000,
         panelClass: ['error-snackbar'],
@@ -127,9 +124,8 @@ export class Login {
     }
   }
 
-  onTogglePasswordVisibility(event: MouseEvent) {
-    this.hide.set(!this.hide());
-    event.stopPropagation();
+  onBackToLogin() {
+    this.router.navigate(['/login']);
   }
 
   updateEmailErrorMessage = ErrorManagerFactory.getFormErrorManager(
@@ -138,15 +134,6 @@ export class Login {
     {
       required: ErrorManagerFactory.MSG_IS_REQUIRED,
       invalidEmail: ErrorManagerFactory.MSG_VALID_EMAIL,
-    }
-  );
-
-  updatePasswordErrorMessage = ErrorManagerFactory.getFormErrorManager(
-    this.form.get('password')!,
-    this.passwordErrorMessage.set,
-    {
-      required: ErrorManagerFactory.MSG_IS_REQUIRED,
-      minlength: ErrorManagerFactory.MSG_AT_LEAST_8_CHARS,
     }
   );
 }
