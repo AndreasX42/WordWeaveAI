@@ -1,1 +1,111 @@
 /* You can add global styles to this file, and also import other style files */
+@import "@angular/material/prebuilt-themes/azure-blue.css";
+
+// CSS Custom Properties for theming
+:root {
+  // Light theme colors
+  --primary-color: #1565c0;
+  --primary-dark: #0d47a1;
+  --accent-color: #ff4081;
+  --warn-color: #f44336;
+
+  // Background colors
+  --background-color: #ffffff;
+  --surface-color: #f5f5f5;
+  --card-background: #ffffff;
+
+  // Text colors
+  --text-primary: #212121;
+  --text-secondary: #757575;
+  --text-disabled: #bdbdbd;
+
+  // Border colors
+  --border-color: #e0e0e0;
+  --divider-color: #eeeeee;
+
+  // Shadow colors
+  --shadow-color: rgba(0, 0, 0, 0.12);
+  --shadow-color-dark: rgba(0, 0, 0, 0.24);
+}
+
+// Dark theme colors
+body.dark-theme {
+  --primary-color: #1976d2;
+  --primary-dark: #1565c0;
+  --accent-color: #ff4081;
+  --warn-color: #f44336;
+
+  // Background colors
+  --background-color: #121212;
+  --surface-color: #1e1e1e;
+  --card-background: #2d2d2d;
+
+  // Text colors
+  --text-primary: #ffffff;
+  --text-secondary: #b0b0b0;
+  --text-disabled: #616161;
+
+  // Border colors
+  --border-color: #404040;
+  --divider-color: #333333;
+
+  // Shadow colors
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --shadow-color-dark: rgba(0, 0, 0, 0.5);
+}
+
+// Apply theme colors to body
+body {
+  background-color: var(--background-color);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+// Light theme specific styles
+body.light-theme {
+  background-color: var(--background-color);
+  color: var(--text-primary);
+}
+
+// Dark theme specific styles
+body.dark-theme {
+  background-color: var(--background-color);
+  color: var(--text-primary);
+
+  // Override Angular Material styles for dark theme
+  .mat-mdc-card {
+    background-color: var(--card-background) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .mat-mdc-menu-panel {
+    background-color: var(--card-background) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .mat-mdc-menu-item {
+    color: var(--text-primary) !important;
+
+    &:hover {
+      background-color: #252525 !important;
+    }
+
+    .mat-mdc-menu-item-text {
+      color: var(--text-primary) !important;
+    }
+  }
+
+  .mat-mdc-list-item {
+    color: var(--text-primary) !important;
+  }
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}

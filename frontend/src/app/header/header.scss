@@ -1,0 +1,169 @@
+.header-toolbar {
+  height: 64px;
+  padding: 0 16px;
+  box-shadow: 0 2px 8px var(--shadow-color), 0 1px 4px var(--shadow-color-dark);
+  background-color: var(--primary-color) !important;
+  color: white !important;
+  position: relative;
+  z-index: 1000;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+
+  .left-section {
+    display: flex;
+    align-items: center;
+
+    .app-icon {
+      margin-right: 8px;
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
+
+    .app-title {
+      font-size: 20px;
+      font-weight: 500;
+      letter-spacing: 0.25px;
+      color: white;
+    }
+
+    .app-icon {
+      color: white;
+    }
+  }
+
+  .spacer {
+    flex: 1 1 auto;
+  }
+
+  .right-section {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    .header-button {
+      width: 40px;
+      height: 40px;
+      color: white;
+      border-radius: 50%;
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.15) !important;
+      }
+
+      &:active {
+        background-color: rgba(255, 255, 255, 0.25) !important;
+      }
+
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        color: white;
+      }
+    }
+
+    .user-button {
+      width: 40px;
+      height: 40px;
+      color: white;
+      border-radius: 50%;
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.15) !important;
+      }
+
+      &:active {
+        background-color: rgba(255, 255, 255, 0.25) !important;
+      }
+
+      mat-icon {
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
+        color: white;
+      }
+    }
+  }
+}
+
+// User menu styling
+.user-menu {
+  width: 280px;
+  margin-top: 8px;
+  background-color: var(--card-background) !important;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px var(--shadow-color);
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    padding: 16px !important;
+    cursor: default;
+    background-color: var(--surface-color);
+    border-bottom: 1px solid var(--divider-color);
+
+    .user-avatar {
+      margin-right: 12px;
+
+      mat-icon {
+        font-size: 40px;
+        width: 40px;
+        height: 40px;
+        color: var(--text-secondary);
+      }
+    }
+
+    .user-details {
+      .user-name {
+        font-weight: 500;
+        font-size: 16px;
+        line-height: 1.5;
+        color: var(--text-primary);
+      }
+
+      .user-email {
+        font-size: 14px;
+        color: var(--text-secondary);
+        line-height: 1.4;
+      }
+    }
+  }
+
+  button[mat-menu-item] {
+    height: 48px;
+    color: var(--text-primary) !important;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: var(--surface-color) !important;
+    }
+
+    mat-icon {
+      margin-right: 16px;
+      color: var(--text-secondary);
+    }
+
+    span {
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    &.logout-item {
+      mat-icon {
+        color: var(--warn-color);
+      }
+
+      span {
+        color: var(--warn-color);
+      }
+    }
+  }
+}
+
+// Global tooltip styling
+.mat-mdc-tooltip {
+  font-size: 12px;
+}
