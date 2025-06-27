@@ -79,6 +79,19 @@ export class SimpleAuthService {
     });
   }
 
+  googleLogin(): Promise<boolean> {
+    return new Promise((resolve) => {
+      // TODO: Implement Google OAuth login
+      // This would typically involve:
+      // 1. Initialize Google OAuth client
+      // 2. Handle OAuth flow
+      // 3. Get user data from Google
+      // 4. Authenticate with backend
+      // 5. Store user session
+      resolve(false);
+    });
+  }
+
   logout(): void {
     this.clearAuth();
   }

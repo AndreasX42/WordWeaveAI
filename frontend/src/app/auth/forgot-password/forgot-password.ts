@@ -43,7 +43,6 @@ function strictEmailValidator(control: AbstractControl) {
     MatFormFieldModule,
     MatIcon,
     ReactiveFormsModule,
-    RouterLink,
     MatProgressSpinner,
     CommonModule,
     MatCardModule,

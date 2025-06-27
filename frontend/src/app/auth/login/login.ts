@@ -132,6 +132,11 @@ export class Login {
     event.stopPropagation();
   }
 
+  async onGoogleLogin() {
+    this.isLoggingIn.set(true);
+    this.loginError.set('');
+  }
+
   updateEmailErrorMessage = ErrorManagerFactory.getFormErrorManager(
     this.form.get('email')!,
     this.emailErrorMessage.set,
