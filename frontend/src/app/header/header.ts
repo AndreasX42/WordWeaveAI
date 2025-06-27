@@ -5,9 +5,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { ThemeService } from '../services/theme.service';
-import { SimpleAuthService } from '../services/simple-auth.service';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-header',
@@ -25,8 +26,9 @@ import { SimpleAuthService } from '../services/simple-auth.service';
 export class Header {
   title = input<string>();
   themeService = inject(ThemeService);
-  authService = inject(SimpleAuthService);
+  authService = inject(AuthService);
   private router = inject(Router);
+  private snackBar = inject(MatSnackBar);
 
   toggleTheme(): void {
     this.themeService.toggleTheme();
@@ -45,8 +47,20 @@ export class Header {
   }
 
   onLogout(): void {
-    this.authService.logout();
-    this.router.navigate(['/home']);
+    try {
+      this.authService.logout();
+      this.snackBar.open('Logout successful!', 'Close', {
+        duration: 3000,
+        panelClass: ['success-snackbar'],
+      });
+      this.router.navigate(['/home'], { replaceUrl: true });
+    } catch (error) {
+      console.error('Logout failed:', error);
+      this.snackBar.open('Logout failed!', 'Close', {
+        duration: 3000,
+        panelClass: ['error-snackbar'],
+      });
+    }
   }
 
   onProfile(): void {

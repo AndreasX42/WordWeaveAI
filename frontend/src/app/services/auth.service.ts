@@ -1,139 +1,203 @@
-import { HttpClient, HttpResponse } from '@angular/common/http';
-import { inject, Injectable, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { User } from '../models/user.model';
-import { LoginResponse } from '../models/login-response.model';
-import { Observable, throwError } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
+import {
+  LoginResponse,
+  RegisterResponse,
+  VerifyEmailResponse,
+  ResendCodeResponse,
+} from '../models/auth.models';
 import { Configs } from '../shared/config';
-import { MessageService } from './message.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  private readonly localStorageTokenKey = 'auth_token';
-  private readonly localStorageUserKey = 'auth_user';
+  private readonly TOKEN_KEY = 'auth_token';
+  private readonly USER_KEY = 'auth_user';
 
-  private _isLoggedIn = signal<boolean>(false);
-  private _userToken = signal<string | null>(null);
-  private _user = signal<User | null>(null);
-
-  // Public readonly signals
-  isLoggedIn = this._isLoggedIn.asReadonly();
-  userToken = this._userToken.asReadonly();
-  user = this._user.asReadonly();
-
+  private _isLoggedIn: boolean = false;
+  private _user: User | null = null;
   private httpClient = inject(HttpClient);
-  private router = inject(Router);
-  private messageService = inject(MessageService);
 
   constructor() {
-    this.initializeAuthState();
+    // Safe initialization without breaking signals
+    this.loadFromStorage();
   }
 
-  private initializeAuthState(): void {
-    const token = localStorage.getItem(this.localStorageTokenKey);
-    const userStr = localStorage.getItem(this.localStorageUserKey);
+  private loadFromStorage(): void {
+    try {
+      const token = localStorage.getItem(this.TOKEN_KEY);
+      const userStr = localStorage.getItem(this.USER_KEY);
 
-    if (token && userStr) {
-      try {
+      if (token && userStr) {
         const user = JSON.parse(userStr);
-        this._isLoggedIn.set(true);
-        this._userToken.set(token);
-        this._user.set(user);
-      } catch (error) {
-        // Clear invalid data
-        this.clearAuthData();
+        this._isLoggedIn = true;
+        this._user = user;
       }
+    } catch (error) {
+      // If anything fails, just stay logged out
+      this.clearAuth();
     }
   }
 
-  login(username: string, password: string): Observable<any> {
-    return this.httpClient
-      .post<any>(
-        `${Configs.BASE_URL}${Configs.LOGIN_URL}`,
-        {
-          username: username,
-          password: password,
-        },
-        {
-          observe: 'response',
-        }
-      )
-      .pipe(
-        tap((response: HttpResponse<any>) => {
-          const jwtToken: string | null = response.headers.get('Authorization');
+  isLoggedIn(): boolean {
+    return this._isLoggedIn;
+  }
 
-          if (!jwtToken) {
-            throw new Error(
-              'Login failed: JWT token not found in the response.'
-            );
+  user(): User | null {
+    return this._user;
+  }
+
+  async login(email: string, password: string): Promise<boolean> {
+    try {
+      const response = await firstValueFrom(
+        this.httpClient.post<LoginResponse>(
+          `${Configs.BASE_URL}${Configs.LOGIN_URL}`,
+          {
+            email: email,
+            password: password,
           }
+        )
+      );
 
-          const token = jwtToken.replace('Bearer ', '');
+      if (!response || !response.token || !response.details?.user) {
+        return false;
+      }
 
-          const body: LoginResponse = response.body;
-          const userId: string = body.userId;
-          const email: string = body.email;
-          const role: string = body.role;
+      const token = response.token;
+      const apiUser = response.details.user;
 
-          // Set authentication state
-          this._isLoggedIn.set(true);
-          this._userToken.set(token);
-          this._user.set({
-            id: userId,
+      // Create user object
+      const user: User = {
+        id: apiUser.id,
+        username: apiUser.username,
+        email: apiUser.email,
+        profilePicture: apiUser.profileImage || '',
+        role: apiUser.isAdmin ? 'admin' : 'user',
+      };
+
+      // Set authentication state
+      this._isLoggedIn = true;
+      this._user = user;
+
+      // Store in localStorage
+      localStorage.setItem(this.TOKEN_KEY, token);
+      localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+
+      return true;
+    } catch (error) {
+      console.error('Login failed:', error);
+      return false;
+    }
+  }
+
+  async register(
+    username: string,
+    email: string,
+    password: string
+  ): Promise<boolean> {
+    try {
+      const response = await firstValueFrom(
+        this.httpClient.post<RegisterResponse>(
+          `${Configs.BASE_URL}${Configs.REGISTER_URL}`,
+          {
             username: username,
             email: email,
-            profilePicture: '',
-            role: role,
-          });
-
-          // Store the token and user data in localStorage
-          localStorage.setItem(this.localStorageTokenKey, token);
-          localStorage.setItem(
-            this.localStorageUserKey,
-            JSON.stringify(this.user())
-          );
-        }),
-        catchError((error) => {
-          let errorMessage = MessageService.MSG_ERROR_UNKOWN;
-          if (
-            typeof error.error === 'string' &&
-            error.error.includes('Incorrect')
-          ) {
-            errorMessage =
-              MessageService.MSG_ERROR_LOGIN_USERNAME_OR_PASSWORD_INCORRECT;
-          } else if (error.status === 0) {
-            errorMessage = MessageService.MSG_ERROR_NETWORK;
-          } else if (error.status >= 500) {
-            errorMessage = MessageService.MSG_ERROR_SERVER;
+            password: password,
           }
-
-          this.messageService.showErrorModal(errorMessage);
-          return throwError(() => new Error(errorMessage));
-        })
+        )
       );
+
+      if (!response || !response.details?.user_id) {
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Registration failed:', error);
+      return false;
+    }
+  }
+
+  async verifyEmail(email: string, code: string): Promise<boolean> {
+    try {
+      const response = await firstValueFrom(
+        this.httpClient.post<VerifyEmailResponse>(
+          `${Configs.BASE_URL}${Configs.CONFIRM_EMAIL_URL}`,
+          {
+            email: email,
+            code: code,
+          }
+        )
+      );
+
+      if (!response || !response.message) {
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Email verification failed:', error);
+      return false;
+    }
+  }
+
+  async resendVerificationCode(email: string): Promise<boolean> {
+    try {
+      const response = await firstValueFrom(
+        this.httpClient.post<ResendCodeResponse>(
+          `${Configs.BASE_URL}${Configs.RESEND_CODE_URL}`,
+          {
+            email: email,
+          }
+        )
+      );
+
+      if (!response || !response.message) {
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Resend verification code failed:', error);
+      return false;
+    }
+  }
+
+  sendPasswordResetEmail(email: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      // TODO: Replace with actual API call to send password reset email
+      resolve(false);
+    });
+  }
+
+  googleLogin(): Promise<boolean> {
+    return new Promise((resolve) => {
+      // TODO: Implement Google OAuth login
+      // This would typically involve:
+      // 1. Initialize Google OAuth client
+      // 2. Handle OAuth flow
+      // 3. Get user data from Google
+      // 4. Authenticate with backend
+      // 5. Store user session
+      resolve(false);
+    });
   }
 
   logout(): void {
-    this.clearAuthData();
-    this.router.navigate(['/login'], { replaceUrl: true });
-  }
-
-  private clearAuthData(): void {
-    localStorage.removeItem(this.localStorageTokenKey);
-    localStorage.removeItem(this.localStorageUserKey);
-    this._userToken.set(null);
-    this._user.set(null);
-    this._isLoggedIn.set(false);
+    this.clearAuth();
   }
 
   getAuthToken(): string | null {
-    return this._userToken();
+    return localStorage.getItem(this.TOKEN_KEY);
   }
 
-  isAuthenticated(): boolean {
-    return this._isLoggedIn() && !!this._userToken();
+  private clearAuth(): void {
+    this._isLoggedIn = false;
+    this._user = null;
+    localStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem(this.USER_KEY);
   }
 }

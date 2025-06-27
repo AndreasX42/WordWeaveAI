@@ -7,8 +7,9 @@ import { Router } from '@angular/router';
 import { interval } from 'rxjs';
 import { TitleCasePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { SimpleAuthService } from '../../services/simple-auth.service';
+import { AuthService } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
 import { MessageService } from '../../services/message.service';
 
@@ -27,10 +28,11 @@ import { MessageService } from '../../services/message.service';
 })
 export class Profile implements OnInit {
   private router = inject(Router);
-  private authService = inject(SimpleAuthService);
+  private authService = inject(AuthService);
   private themeService = inject(ThemeService);
   private messageService = inject(MessageService);
   private destroyRef = inject(DestroyRef);
+  private snackBar = inject(MatSnackBar);
 
   selectedDarkMode = signal(false);
   sessionTimeLeft = signal<string>('Loading...');
@@ -65,8 +67,20 @@ export class Profile implements OnInit {
   }
 
   logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login'], { replaceUrl: true });
+    try {
+      this.authService.logout();
+      this.snackBar.open('Logout successful!', 'Close', {
+        duration: 3000,
+        panelClass: ['success-snackbar'],
+      });
+      this.router.navigate(['/home'], { replaceUrl: true });
+    } catch (error) {
+      console.error('Logout failed:', error);
+      this.snackBar.open('Logout failed!', 'Close', {
+        duration: 3000,
+        panelClass: ['error-snackbar'],
+      });
+    }
   }
 
   deleteAccount(): void {

@@ -38,50 +38,54 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 		log.Fatal("JWT Error: " + err.Error())
 	}
 
-	// Health check routes
-	server.GET("/health", container.HealthHandler.HealthCheck)
-
-	// Public routes
-	server.POST("/users/register", container.UserHandler.Register)
-	server.POST("/users/confirm-email", container.UserHandler.ConfirmEmail)
-	server.POST("/users/reset-password", container.UserHandler.ResetPassword)
-
-	// OAuth routes
-	server.GET("/auth/google/login", container.OAuthHandler.GoogleLogin)
-	server.GET("/auth/google/callback", container.OAuthHandler.GoogleCallback)
-
-	// Search routes
-	server.POST("/search", container.SearchHandler.SearchVocabulary)
-
-	// JWT routes
-	server.POST("/auth/login", authMiddleware.LoginHandler)
-	server.POST("/auth/logout", authMiddleware.LogoutHandler)
-	server.POST("/auth/refresh", authMiddleware.RefreshHandler)
-
-	// Authenticated routes
-	authenticated := server.Group("/")
-	authenticated.Use(authMiddleware.MiddlewareFunc())
+	// Create API route group
+	api := server.Group("/api")
 	{
-		// User routes
-		userRoutes := authenticated.Group("/users")
-		userRoutes.DELETE("/delete", container.UserHandler.Delete)
-		userRoutes.PUT("/update", container.UserHandler.Update)
+		// Health check routes
+		api.GET("/health", container.HealthHandler.HealthCheck)
 
-		// Vocabulary list routes
-		vocabListRoutes := authenticated.Group("/vocabs")
+		// Public routes
+		api.POST("/auth/register", container.UserHandler.Register)
+		api.POST("/auth/confirm-email", container.UserHandler.ConfirmEmail)
+		api.POST("/auth/reset-password", container.UserHandler.ResetPassword)
+
+		// OAuth routes
+		api.GET("/auth/google/login", container.OAuthHandler.GoogleLogin)
+		api.GET("/auth/google/callback", container.OAuthHandler.GoogleCallback)
+
+		// Search routes
+		api.POST("/search", container.SearchHandler.SearchVocabulary)
+
+		// JWT routes
+		api.POST("/auth/login", authMiddleware.LoginHandler)
+		api.POST("/auth/logout", authMiddleware.LogoutHandler)
+		api.POST("/auth/refresh", authMiddleware.RefreshHandler)
+
+		// Authenticated routes
+		authenticated := api.Group("/")
+		authenticated.Use(authMiddleware.MiddlewareFunc())
 		{
-			// List management
-			vocabListRoutes.POST("/", container.VocabListHandler.CreateList)
-			vocabListRoutes.GET("/", container.VocabListHandler.GetLists)
-			vocabListRoutes.GET("/:listId", container.VocabListHandler.GetList)
-			vocabListRoutes.PUT("/:listId", container.VocabListHandler.UpdateList)
-			vocabListRoutes.DELETE("/:listId", container.VocabListHandler.DeleteList)
+			// User routes
+			userRoutes := authenticated.Group("/users")
+			userRoutes.DELETE("/delete", container.UserHandler.Delete)
+			userRoutes.PUT("/update", container.UserHandler.Update)
 
-			// Word management within lists
-			vocabListRoutes.POST("/:listId/words", container.VocabListHandler.AddWordToList)
-			vocabListRoutes.GET("/:listId/words", container.VocabListHandler.GetWordsInList)
-			vocabListRoutes.DELETE("/:listId/words/:wordId", container.VocabListHandler.RemoveWordFromList)
-			vocabListRoutes.PUT("/:listId/words/:wordId/status", container.VocabListHandler.UpdateWordStatus)
+			// Vocabulary list routes
+			vocabListRoutes := authenticated.Group("/vocabs")
+			{
+				// List management
+				vocabListRoutes.POST("/", container.VocabListHandler.CreateList)
+				vocabListRoutes.GET("/", container.VocabListHandler.GetLists)
+				vocabListRoutes.GET("/:listId", container.VocabListHandler.GetList)
+				vocabListRoutes.PUT("/:listId", container.VocabListHandler.UpdateList)
+				vocabListRoutes.DELETE("/:listId", container.VocabListHandler.DeleteList)
+
+				// Word management within lists
+				vocabListRoutes.POST("/:listId/words", container.VocabListHandler.AddWordToList)
+				vocabListRoutes.GET("/:listId/words", container.VocabListHandler.GetWordsInList)
+				vocabListRoutes.DELETE("/:listId/words/:wordId", container.VocabListHandler.RemoveWordFromList)
+				vocabListRoutes.PUT("/:listId/words/:wordId/status", container.VocabListHandler.UpdateWordStatus)
+			}
 		}
 	}
 }

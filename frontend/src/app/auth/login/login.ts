@@ -12,7 +12,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { Router, RouterLink } from '@angular/router';
 import { ErrorManagerFactory } from '../../shared/error.manager.factory';
-import { SimpleAuthService } from '../../services/simple-auth.service';
+import { AuthService } from '../../services/auth.service';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -54,7 +54,7 @@ function strictEmailValidator(control: AbstractControl) {
 export class Login {
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
-  private authService = inject(SimpleAuthService);
+  private authService = inject(AuthService);
   private snackBar = inject(MatSnackBar);
 
   hide = signal(true);
@@ -102,11 +102,11 @@ export class Login {
 
       if (success) {
         this.isLoggingIn.set(false);
-        this.snackBar.open('Login successful! Welcome back.', 'Close', {
+        this.snackBar.open('Login successful!', 'Close', {
           duration: 3000,
           panelClass: ['success-snackbar'],
         });
-        this.router.navigate(['/home'], { replaceUrl: true });
+        this.router.navigate(['/profile'], { replaceUrl: true });
       } else {
         this.isLoggingIn.set(false);
         const errorMessage = 'Invalid credentials. Please try again.';

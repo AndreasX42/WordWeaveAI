@@ -26,8 +26,8 @@ func NewDynamoVocabListRepository(table dynamo.Table) repositories.VocabListRepo
 
 // VocabListRecord represents the DynamoDB storage format for vocabulary list metadata
 type VocabListRecord struct {
-	PK          string    `dynamo:"PK"` // USER#{userId}
-	SK          string    `dynamo:"SK"` // LIST#{listId}#META
+	PK          string    `dynamo:"PK,hash"`  // USER#{userId}
+	SK          string    `dynamo:"SK,range"` // LIST#{listId}#META
 	ListID      string    `dynamo:"list_id"`
 	UserID      string    `dynamo:"user_id"`
 	Name        string    `dynamo:"name"`
@@ -39,8 +39,8 @@ type VocabListRecord struct {
 
 // VocabListWordRecord represents the DynamoDB storage format for words in lists
 type VocabListWordRecord struct {
-	PK        string     `dynamo:"PK"` // USER#{userId}
-	SK        string     `dynamo:"SK"` // LIST#{listId}#WORD#{base64(vocabPK|vocabSK)}
+	PK        string     `dynamo:"PK,hash"`  // USER#{userId}
+	SK        string     `dynamo:"SK,range"` // LIST#{listId}#WORD#{base64(vocabPK|vocabSK)}
 	ListID    string     `dynamo:"list_id"`
 	UserID    string     `dynamo:"user_id"`
 	VocabPK   string     `dynamo:"vocab_pk"` // Reference to vocabulary table PK

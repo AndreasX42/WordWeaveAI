@@ -12,7 +12,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { Router, RouterLink } from '@angular/router';
 import { ErrorManagerFactory } from '../../shared/error.manager.factory';
-import { SimpleAuthService } from '../../services/simple-auth.service';
+import { AuthService } from '../../services/auth.service';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -72,7 +72,7 @@ function strictEmailValidator(control: AbstractControl) {
 export class Register {
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
-  private authService = inject(SimpleAuthService);
+  private authService = inject(AuthService);
   private snackBar = inject(MatSnackBar);
 
   hide = signal(true);

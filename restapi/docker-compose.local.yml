@@ -7,10 +7,4 @@ services:
       - "8080:8080"
     volumes:
       - .:/app
-    environment:
-      - AWS_REGION=us-east-1
-      - AWS_ACCESS_KEY_ID=dummy
-      - AWS_SECRET_ACCESS_KEY=dummy
-      - DYNAMODB_TABLE_PREFIX=local
-      - JWT_SECRET_KEY=your-super-secret-jwt-key-here
-      - JWT_EXPIRATION_TIME=60
+    env_file: .env

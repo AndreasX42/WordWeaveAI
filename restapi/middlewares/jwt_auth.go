@@ -54,6 +54,9 @@ func JWTMiddleware(userService *services.UserService) (*jwt.GinJWTMiddleware, er
 				return nil, err
 			}
 
+			// Store user in context for LoginResponse function
+			c.Set("user", user)
+
 			return user, nil
 		},
 
@@ -87,6 +90,47 @@ func JWTMiddleware(userService *services.UserService) (*jwt.GinJWTMiddleware, er
 
 		Unauthorized: func(c *gin.Context, code int, message string) {
 			c.JSON(code, gin.H{"message": "Unauthorized", "details": gin.H{"error": message}})
+		},
+
+		LoginResponse: func(c *gin.Context, code int, token string, expire time.Time) {
+			// Get the user from the context
+			user, exists := c.Get("user")
+			if !exists {
+				c.JSON(code, gin.H{
+					"code":   code,
+					"token":  token,
+					"expire": expire.Format(time.RFC3339),
+				})
+				return
+			}
+
+			// Cast to User entity
+			userEntity, ok := user.(*entities.User)
+			if !ok {
+				c.JSON(code, gin.H{
+					"code":   code,
+					"token":  token,
+					"expire": expire.Format(time.RFC3339),
+				})
+				return
+			}
+
+			// Return token along with user information
+			c.JSON(code, gin.H{
+				"code":   code,
+				"token":  token,
+				"expire": expire.Format(time.RFC3339),
+				"details": gin.H{
+					"user": gin.H{
+						"id":           userEntity.ID,
+						"username":     userEntity.Username,
+						"email":        userEntity.Email,
+						"isAdmin":      userEntity.IsAdmin,
+						"createdAt":    userEntity.CreatedAt.Format(time.RFC3339),
+						"profileImage": userEntity.ProfileImage,
+					},
+				},
+			})
 		},
 
 		TokenLookup:   "header: Authorization, query: token, cookie: jwt",

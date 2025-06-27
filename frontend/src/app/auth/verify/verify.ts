@@ -11,7 +11,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ErrorManagerFactory } from '../../shared/error.manager.factory';
-import { SimpleAuthService } from '../../services/simple-auth.service';
+import { AuthService } from '../../services/auth.service';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -36,7 +36,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 export class Verify {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
-  private authService = inject(SimpleAuthService);
+  private authService = inject(AuthService);
   private snackBar = inject(MatSnackBar);
 
   isVerifying = signal(false);
@@ -82,15 +82,11 @@ export class Verify {
 
       if (success) {
         this.isVerifying.set(false);
-        this.snackBar.open(
-          'Email verified successfully! Welcome to WordWeave.',
-          'Close',
-          {
-            duration: 3000,
-            panelClass: ['success-snackbar'],
-          }
-        );
-        this.router.navigate(['/home'], { replaceUrl: true });
+        this.snackBar.open('Email verified successfully!', 'Close', {
+          duration: 3000,
+          panelClass: ['success-snackbar'],
+        });
+        this.router.navigate(['/login'], { replaceUrl: true });
       } else {
         this.isVerifying.set(false);
         const errorMessage = 'Invalid verification code. Please try again.';

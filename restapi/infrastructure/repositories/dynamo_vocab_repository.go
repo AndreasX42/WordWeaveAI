@@ -19,8 +19,8 @@ type DynamoVocabRepository struct {
 
 // VocabRecord represents the DynamoDB storage format for vocabulary entries
 type VocabRecord struct {
-	PK               string                 `dynamo:"PK"`
-	SK               string                 `dynamo:"SK"`
+	PK               string                 `dynamo:"PK,hash"`
+	SK               string                 `dynamo:"SK,range"`
 	SourceWord       string                 `dynamo:"source_word"`
 	SourceLanguage   string                 `dynamo:"source_language"`
 	SourceDefinition string                 `dynamo:"source_definition"`
@@ -30,9 +30,9 @@ type VocabRecord struct {
 	Synonyms         []string               `dynamo:"synonyms"`
 	Media            map[string]interface{} `dynamo:"media"`
 	PronunciationURL string                 `dynamo:"pronunciation_url"`
-	EnglishWord      string                 `dynamo:"english_word"`
-	LKP              string                 `dynamo:"LKP"`
-	SrcLang          string                 `dynamo:"SRC_LANG"`
+	EnglishWord      string                 `dynamo:"english_word" index:"EnglishMediaLookupIndex,hash"`
+	LKP              string                 `dynamo:"LKP" index:"ReverseLookupIndex,hash"`
+	SrcLang          string                 `dynamo:"SRC_LANG" index:"ReverseLookupIndex,range"`
 	ReferencePK      string                 `dynamo:"reference_pk"`
 	ReferenceSK      string                 `dynamo:"reference_sk"`
 }
