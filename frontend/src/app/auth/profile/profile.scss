@@ -519,6 +519,174 @@
 }
 
 // Animations
+// Mobile-first responsive design
+@media (max-width: 599px) {
+  .profile-container {
+    padding: 16px 16px 80px !important;
+    padding-top: 80px !important;
+  }
+
+  .profile-wrapper {
+    max-width: 100% !important;
+    margin: 0 auto !important;
+  }
+
+  .profile-card {
+    mat-card-content {
+      padding: 20px !important;
+    }
+  }
+
+  .brand-section {
+    margin-bottom: 20px !important;
+
+    .logo {
+      .logo-icon {
+        font-size: 36px !important;
+        width: 36px !important;
+        height: 36px !important;
+      }
+
+      .brand-name {
+        font-size: 24px !important;
+      }
+    }
+
+    .brand-tagline {
+      font-size: 14px !important;
+    }
+  }
+
+  .profile-header {
+    margin-bottom: 24px !important;
+
+    .avatar-section {
+      gap: 12px;
+
+      .avatar-icon {
+        font-size: 36px !important;
+        width: 36px !important;
+        height: 36px !important;
+      }
+
+      .profile-title {
+        font-size: 20px !important;
+      }
+    }
+  }
+
+  .profile-info {
+    gap: 24px !important;
+
+    .info-section {
+      .section-title {
+        font-size: 16px !important;
+        margin-bottom: 12px !important;
+      }
+
+      .info-grid {
+        gap: 12px !important;
+      }
+
+      .info-item {
+        padding: 10px 0 !important;
+
+        .info-icon {
+          font-size: 18px !important;
+          width: 18px !important;
+          height: 18px !important;
+        }
+
+        .info-content {
+          .info-label {
+            font-size: 11px !important;
+          }
+
+          .info-value {
+            font-size: 14px !important;
+          }
+        }
+      }
+
+      .session-info {
+        padding: 12px !important;
+
+        .session-icon {
+          font-size: 20px !important;
+          width: 20px !important;
+          height: 20px !important;
+        }
+
+        .session-content {
+          .session-label {
+            font-size: 11px !important;
+          }
+
+          .session-value {
+            font-size: 14px !important;
+          }
+        }
+      }
+
+      .preference-item {
+        .preference-content {
+          .preference-icon {
+            font-size: 20px !important;
+            width: 20px !important;
+            height: 20px !important;
+          }
+
+          .preference-text {
+            .preference-label {
+              font-size: 14px !important;
+            }
+
+            .preference-description {
+              font-size: 12px !important;
+            }
+          }
+        }
+      }
+
+      .action-buttons {
+        flex-direction: column !important;
+        gap: 12px !important;
+
+        .update-button,
+        .delete-button {
+          width: 100% !important;
+          height: 48px !important;
+          font-size: 14px !important;
+
+          mat-icon {
+            font-size: 18px !important;
+            width: 18px !important;
+            height: 18px !important;
+            margin-right: 8px !important;
+          }
+        }
+      }
+    }
+  }
+
+  .logout-section {
+    margin-top: 24px !important;
+
+    .logout-button {
+      width: 100% !important;
+      height: 48px !important;
+      font-size: 14px !important;
+
+      mat-icon {
+        font-size: 18px !important;
+        width: 18px !important;
+        height: 18px !important;
+        margin-right: 8px !important;
+      }
+    }
+  }
+}
+
 @keyframes slideInUp {
   from {
     opacity: 0;

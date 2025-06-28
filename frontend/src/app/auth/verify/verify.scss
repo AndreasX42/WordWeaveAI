@@ -207,55 +207,73 @@
   }
 }
 
-// Responsive design
-@media (max-width: 768px) {
+// Mobile-first responsive design
+@media (max-width: 599px) {
   .verify-container {
-    padding: 16px;
+    padding: 16px 16px 80px !important;
+    padding-top: 80px !important;
+  }
 
-    .verify-wrapper {
-      max-width: 100%;
-    }
+  .verify-wrapper {
+    max-width: 100% !important;
+    margin: 0 auto !important;
+  }
 
-    .brand-section {
-      margin-bottom: 24px;
-
-      .logo {
-        .logo-icon {
-          font-size: 40px;
-          width: 40px;
-          height: 40px;
-        }
-
-        .brand-name {
-          font-size: 28px;
-        }
-      }
-
-      .brand-tagline {
-        font-size: 14px;
-      }
-    }
-
-    .verify-card {
-      mat-card-content {
-        padding: 24px !important;
-      }
+  .verify-card {
+    mat-card-content {
+      padding: 20px !important;
     }
   }
-}
 
-@media (max-width: 480px) {
-  .verify-container {
-    padding: 12px;
+  .brand-section {
+    margin-bottom: 20px !important;
 
-    .verify-card {
-      mat-card-content {
-        padding: 20px !important;
+    .logo {
+      .logo-icon {
+        font-size: 36px !important;
+        width: 36px !important;
+        height: 36px !important;
+      }
+
+      .brand-name {
+        font-size: 24px !important;
       }
     }
 
-    .verify-form {
-      gap: 16px;
+    .brand-tagline {
+      font-size: 14px !important;
+    }
+  }
+
+  .verify-form {
+    gap: 16px !important;
+
+    .form-field {
+      margin-bottom: -8px !important;
+
+      .full-width {
+        input {
+          font-size: 16px !important;
+          letter-spacing: 1px !important;
+        }
+      }
+    }
+
+    .form-actions {
+      margin-top: 16px;
+
+      .verify-button {
+        height: 48px !important;
+        font-size: 16px !important;
+      }
+    }
+
+    .resend-section {
+      margin-top: 20px !important;
+
+      .resend-text {
+        font-size: 13px !important;
+      }
     }
   }
 }

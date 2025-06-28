@@ -166,7 +166,8 @@ function strictEmailValidator(control: AbstractControl) {
         display: flex;
         flex-direction: column;
         gap: 20px;
-        min-width: 400px;
+        min-width: 280px;
+        width: 100%;
       }
 
       .full-width {
@@ -234,11 +235,32 @@ function strictEmailValidator(control: AbstractControl) {
       }
 
       mat-dialog-content {
-        padding: 32px !important;
+        padding: 24px !important;
+      }
+
+      @media (max-width: 480px) {
+        mat-dialog-content {
+          padding: 16px !important;
+        }
+
+        .update-form {
+          gap: 16px;
+          min-width: 250px;
+        }
+
+        mat-dialog-actions {
+          padding: 12px 16px 16px 16px !important;
+
+          ::ng-deep .mat-mdc-button {
+            height: 44px;
+            font-size: 14px;
+            padding: 0 16px;
+          }
+        }
       }
 
       mat-dialog-actions {
-        padding: 16px 32px 32px 32px !important;
+        padding: 16px 24px 24px 24px !important;
 
         ::ng-deep .mat-mdc-button {
           height: 48px;

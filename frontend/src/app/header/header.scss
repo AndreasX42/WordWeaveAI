@@ -207,3 +207,86 @@ body.dark-theme .user-menu {
 .mat-mdc-tooltip {
   font-size: 12px;
 }
+
+// Mobile-first responsive design
+@media (max-width: 599px) {
+  .header-toolbar {
+    height: 56px !important;
+    padding: 0 12px !important;
+
+    .left-section {
+      padding: 6px 8px !important;
+
+      .app-icon {
+        font-size: 20px !important;
+        width: 20px !important;
+        height: 20px !important;
+        margin-right: 6px !important;
+      }
+
+      .app-title {
+        font-size: 18px !important;
+      }
+    }
+
+    .right-section {
+      gap: 2px !important;
+
+      .header-button,
+      .user-button {
+        width: 44px !important;
+        height: 44px !important;
+
+        mat-icon {
+          font-size: 20px !important;
+          width: 20px !important;
+          height: 20px !important;
+        }
+      }
+    }
+  }
+
+  .user-menu {
+    width: calc(100vw - 32px) !important;
+    max-width: 280px !important;
+
+    .user-info {
+      padding: 12px !important;
+
+      .user-avatar {
+        margin-right: 10px !important;
+
+        mat-icon {
+          font-size: 32px !important;
+          width: 32px !important;
+          height: 32px !important;
+        }
+      }
+
+      .user-details {
+        .user-name {
+          font-size: 14px !important;
+        }
+
+        .user-email {
+          font-size: 12px !important;
+        }
+      }
+    }
+
+    button[mat-menu-item] {
+      height: 44px !important;
+
+      mat-icon {
+        margin-right: 12px !important;
+        font-size: 18px !important;
+        width: 18px !important;
+        height: 18px !important;
+      }
+
+      span {
+        font-size: 13px !important;
+      }
+    }
+  }
+}

@@ -56,6 +56,43 @@ import { RouterLink } from '@angular/router';
         padding: 12px 32px;
         font-size: 16px;
       }
+
+      /* Mobile-first responsive design */
+      @media (max-width: 599px) {
+        .home-container {
+          padding: 80px 16px 24px !important;
+          min-height: calc(100vh - 56px) !important;
+        }
+
+        .welcome-section {
+          max-width: 100% !important;
+        }
+
+        h1 {
+          font-size: 2rem !important;
+          margin-bottom: 12px !important;
+        }
+
+        p {
+          font-size: 1rem !important;
+          margin-bottom: 24px !important;
+          line-height: 1.5 !important;
+        }
+
+        .action-buttons {
+          flex-direction: column !important;
+          align-items: center !important;
+          gap: 12px !important;
+
+          button {
+            width: 100% !important;
+            max-width: 280px !important;
+            padding: 14px 32px !important;
+            font-size: 16px !important;
+            height: 48px !important;
+          }
+        }
+      }
     `,
   ],
   imports: [MatButtonModule, RouterLink],

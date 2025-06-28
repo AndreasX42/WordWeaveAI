@@ -80,7 +80,9 @@ export class Profile implements OnInit {
 
   updateAccount(): void {
     const dialogRef = this.dialog.open(UpdateAccountDialog, {
-      width: '500px',
+      width: '90vw',
+      maxWidth: '500px',
+      minWidth: '260px',
       data: {
         user: this.user(),
       },
