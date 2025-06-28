@@ -6,6 +6,7 @@ export interface LoginResponse {
     user: {
       createdAt: string;
       email: string;
+      confirmedEmail: boolean;
       id: string;
       isAdmin: boolean;
       profileImage: string;

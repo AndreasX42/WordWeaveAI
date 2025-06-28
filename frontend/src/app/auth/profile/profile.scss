@@ -129,6 +129,14 @@
           width: 20px;
           height: 20px;
           color: var(--text-secondary);
+
+          &.verified {
+            color: var(--success-color, #4caf50);
+          }
+
+          &.unverified {
+            color: var(--warn-color, #ff9800);
+          }
         }
 
         .info-content {
@@ -149,6 +157,16 @@
             font-size: 16px;
             color: var(--text-primary);
             font-weight: 500;
+
+            &.verified {
+              color: var(--success-color, #4caf50);
+              font-weight: 600;
+            }
+
+            &.unverified {
+              color: var(--warn-color, #ff9800);
+              font-weight: 600;
+            }
           }
         }
       }

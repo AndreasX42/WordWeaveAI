@@ -45,6 +45,26 @@
               </div>
 
               <div class="info-item">
+                <mat-icon
+                  class="info-icon"
+                  [class.verified]="user()?.confirmedEmail"
+                  [class.unverified]="!user()?.confirmedEmail"
+                >
+                  {{ user()?.confirmedEmail ? "verified" : "error" }}
+                </mat-icon>
+                <div class="info-content">
+                  <span class="info-label">Email Status</span>
+                  <span
+                    class="info-value"
+                    [class.verified]="user()?.confirmedEmail"
+                    [class.unverified]="!user()?.confirmedEmail"
+                  >
+                    {{ user()?.confirmedEmail ? "Verified" : "Not Verified" }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="info-item">
                 <mat-icon class="info-icon">badge</mat-icon>
                 <div class="info-content">
                   <span class="info-label">Role</span>

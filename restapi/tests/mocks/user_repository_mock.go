@@ -125,14 +125,30 @@ func (m *MockUserRepository) Update(ctx context.Context, user *entities.User) er
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	if _, exists := m.usersByID[user.ID]; !exists {
+	existingUser, exists := m.usersByID[user.ID]
+	if !exists {
 		return fmt.Errorf("user not found")
+	}
+
+	// Remove old entries from indices
+	delete(m.users, existingUser.Email)
+	delete(m.emailIndex, existingUser.Email)
+	delete(m.usernameIndex, existingUser.Username)
+	if existingUser.GoogleID != "" {
+		delete(m.googleIDIndex, existingUser.GoogleID)
 	}
 
 	// Store copies to avoid data races
 	userCopy := *user
+
+	// Add new entries to indices
 	m.users[user.Email] = &userCopy
 	m.usersByID[user.ID] = &userCopy
+	m.emailIndex[user.Email] = user.ID
+	m.usernameIndex[user.Username] = user.ID
+	if user.GoogleID != "" {
+		m.googleIDIndex[user.GoogleID] = user.ID
+	}
 
 	return nil
 }

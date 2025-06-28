@@ -584,11 +584,13 @@ func TestUserService_UpdateUser(t *testing.T) {
 		// Get updated user after confirmation
 		user, _ = userService.GetUserByID(ctx, user.ID)
 		originalPasswordHash := user.PasswordHash
+		originalEmail := user.Email
 
 		// Execute username update
 		updateReq := services.UpdateUserRequest{
 			User:     user,
 			Username: "newusername",
+			Email:    originalEmail,
 			Password: "",
 		}
 		err := userService.UpdateUser(ctx, updateReq)
@@ -601,6 +603,11 @@ func TestUserService_UpdateUser(t *testing.T) {
 		// Verify username was updated
 		if user.Username != "newusername" {
 			t.Errorf("Expected username to be 'newusername', got '%s'", user.Username)
+		}
+
+		// Verify email was not changed
+		if user.Email != originalEmail {
+			t.Errorf("Expected email to remain '%s', got '%s'", originalEmail, user.Email)
 		}
 
 		// Verify password hash was not changed
@@ -642,12 +649,14 @@ func TestUserService_UpdateUser(t *testing.T) {
 		// Get updated user after confirmation
 		user, _ = userService.GetUserByID(ctx, user.ID)
 		originalUsername := user.Username
+		originalEmail := user.Email
 		originalPasswordHash := user.PasswordHash
 
 		// Execute password update
 		updateReq := services.UpdateUserRequest{
 			User:     user,
-			Username: "",
+			Username: originalUsername,
+			Email:    originalEmail,
 			Password: "newpassword123",
 		}
 		err := userService.UpdateUser(ctx, updateReq)
@@ -660,6 +669,11 @@ func TestUserService_UpdateUser(t *testing.T) {
 		// Verify username was not changed
 		if user.Username != originalUsername {
 			t.Errorf("Expected username to remain '%s', got '%s'", originalUsername, user.Username)
+		}
+
+		// Verify email was not changed
+		if user.Email != originalEmail {
+			t.Errorf("Expected email to remain '%s', got '%s'", originalEmail, user.Email)
 		}
 
 		// Verify password hash was changed
@@ -691,6 +705,85 @@ func TestUserService_UpdateUser(t *testing.T) {
 		}
 	})
 
+	t.Run("successful email update", func(t *testing.T) {
+		// Setup
+		userRepo := mocks.NewMockUserRepository()
+		emailService := mocks.NewMockEmailService()
+		userService := services.NewUserService(userRepo, emailService)
+
+		// Register and confirm user first
+		registerReq := services.RegisterUserRequest{
+			Email:    "old@example.com",
+			Username: "testuser",
+			Password: "password123",
+		}
+		user, _ := userService.RegisterUser(ctx, registerReq)
+
+		// Confirm email to activate user
+		confirmReq := services.ConfirmEmailRequest{
+			Email: user.Email,
+			Code:  user.ConfirmationCode,
+		}
+		_ = userService.ConfirmEmail(ctx, confirmReq)
+
+		// Get updated user after confirmation
+		user, _ = userService.GetUserByID(ctx, user.ID)
+		originalUsername := user.Username
+		originalPasswordHash := user.PasswordHash
+
+		// Execute email update
+		updateReq := services.UpdateUserRequest{
+			User:     user,
+			Username: originalUsername,
+			Email:    "new@example.com",
+			Password: "",
+		}
+		err := userService.UpdateUser(ctx, updateReq)
+
+		// Assert
+		if err != nil {
+			t.Fatalf("Expected no error during email update, got %v", err)
+		}
+
+		// Verify username was not changed
+		if user.Username != originalUsername {
+			t.Errorf("Expected username to remain '%s', got '%s'", originalUsername, user.Username)
+		}
+
+		// Verify email was updated
+		if user.Email != "new@example.com" {
+			t.Errorf("Expected email to be 'new@example.com', got '%s'", user.Email)
+		}
+
+		// Verify password hash was not changed
+		if user.PasswordHash != originalPasswordHash {
+			t.Error("Expected password hash to remain unchanged when only updating email")
+		}
+
+		// Verify user can login with new email
+		loginReq := services.LoginUserRequest{
+			Email:    "new@example.com",
+			Password: "password123",
+		}
+		loggedInUser, err := userService.LoginUser(ctx, loginReq)
+		if err != nil {
+			t.Fatalf("Expected to login with new email, got error: %v", err)
+		}
+		if loggedInUser.Email != "new@example.com" {
+			t.Errorf("Expected logged in user email to be new@example.com, got %s", loggedInUser.Email)
+		}
+
+		// Verify user cannot login with old email
+		oldLoginReq := services.LoginUserRequest{
+			Email:    "old@example.com",
+			Password: "password123",
+		}
+		_, err = userService.LoginUser(ctx, oldLoginReq)
+		if err == nil {
+			t.Error("Expected error when trying to login with old email")
+		}
+	})
+
 	t.Run("successful username and password update", func(t *testing.T) {
 		// Setup
 		userRepo := mocks.NewMockUserRepository()
@@ -714,12 +807,14 @@ func TestUserService_UpdateUser(t *testing.T) {
 
 		// Get updated user after confirmation
 		user, _ = userService.GetUserByID(ctx, user.ID)
+		originalEmail := user.Email
 		originalPasswordHash := user.PasswordHash
 
 		// Execute both username and password update
 		updateReq := services.UpdateUserRequest{
 			User:     user,
 			Username: "newusername",
+			Email:    originalEmail,
 			Password: "newpassword123",
 		}
 		err := userService.UpdateUser(ctx, updateReq)
@@ -732,6 +827,11 @@ func TestUserService_UpdateUser(t *testing.T) {
 		// Verify username was updated
 		if user.Username != "newusername" {
 			t.Errorf("Expected username to be 'newusername', got '%s'", user.Username)
+		}
+
+		// Verify email was not changed
+		if user.Email != originalEmail {
+			t.Errorf("Expected email to remain '%s', got '%s'", originalEmail, user.Email)
 		}
 
 		// Verify password hash was changed
@@ -750,6 +850,87 @@ func TestUserService_UpdateUser(t *testing.T) {
 		}
 		if loggedInUser.Username != "newusername" {
 			t.Errorf("Expected logged in user username to be 'newusername', got %s", loggedInUser.Username)
+		}
+	})
+
+	t.Run("successful username, email and password update", func(t *testing.T) {
+		// Setup
+		userRepo := mocks.NewMockUserRepository()
+		emailService := mocks.NewMockEmailService()
+		userService := services.NewUserService(userRepo, emailService)
+
+		// Register and confirm user first
+		registerReq := services.RegisterUserRequest{
+			Email:    "old@example.com",
+			Username: "oldusername",
+			Password: "oldpassword123",
+		}
+		user, _ := userService.RegisterUser(ctx, registerReq)
+
+		// Confirm email to activate user
+		confirmReq := services.ConfirmEmailRequest{
+			Email: user.Email,
+			Code:  user.ConfirmationCode,
+		}
+		_ = userService.ConfirmEmail(ctx, confirmReq)
+
+		// Get updated user after confirmation
+		user, _ = userService.GetUserByID(ctx, user.ID)
+		originalPasswordHash := user.PasswordHash
+
+		// Execute username, email and password update
+		updateReq := services.UpdateUserRequest{
+			User:     user,
+			Username: "newusername",
+			Email:    "new@example.com",
+			Password: "newpassword123",
+		}
+		err := userService.UpdateUser(ctx, updateReq)
+
+		// Assert
+		if err != nil {
+			t.Fatalf("Expected no error during update, got %v", err)
+		}
+
+		// Verify username was updated
+		if user.Username != "newusername" {
+			t.Errorf("Expected username to be 'newusername', got '%s'", user.Username)
+		}
+
+		// Verify email was updated
+		if user.Email != "new@example.com" {
+			t.Errorf("Expected email to be 'new@example.com', got '%s'", user.Email)
+		}
+
+		// Verify password hash was changed
+		if user.PasswordHash == originalPasswordHash {
+			t.Error("Expected password hash to be changed when updating password")
+		}
+
+		// Verify user can login with new credentials
+		loginReq := services.LoginUserRequest{
+			Email:    "new@example.com",
+			Password: "newpassword123",
+		}
+		loggedInUser, err := userService.LoginUser(ctx, loginReq)
+		if err != nil {
+			t.Fatalf("Expected to login with new credentials, got error: %v", err)
+		}
+		if loggedInUser.Username != "newusername" {
+			t.Errorf("Expected logged in user username to be 'newusername', got %s", loggedInUser.Username)
+		}
+		if loggedInUser.Email != "new@example.com" {
+			t.Errorf("Expected logged in user email to be 'new@example.com', got %s", loggedInUser.Email)
+		}
+
+		// Verify user cannot login with old credentials
+		oldLoginReq := services.LoginUserRequest{
+			Email:    "old@example.com",
+			Password: "oldpassword123",
+		}
+		_, err = userService.LoginUser(ctx, oldLoginReq)
+		if err == nil {
+			t.Error("Expected error when trying to login with old email")
 		}
 	})
 
@@ -777,12 +958,14 @@ func TestUserService_UpdateUser(t *testing.T) {
 		// Get updated user after confirmation
 		user, _ = userService.GetUserByID(ctx, user.ID)
 		originalUsername := user.Username
+		originalEmail := user.Email
 		originalPasswordHash := user.PasswordHash
 
-		// Execute update with empty values
+		// Execute update with empty values - should keep current values
 		updateReq := services.UpdateUserRequest{
 			User:     user,
-			Username: "",
+			Username: originalUsername,
+			Email:    originalEmail,
 			Password: "",
 		}
 		err := userService.UpdateUser(ctx, updateReq)
@@ -795,6 +978,11 @@ func TestUserService_UpdateUser(t *testing.T) {
 		// Verify username was not changed
 		if user.Username != originalUsername {
 			t.Errorf("Expected username to remain '%s', got '%s'", originalUsername, user.Username)
+		}
+
+		// Verify email was not changed
+		if user.Email != originalEmail {
+			t.Errorf("Expected email to remain '%s', got '%s'", originalEmail, user.Email)
 		}
 
 		// Verify password hash was not changed

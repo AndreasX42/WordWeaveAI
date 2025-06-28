@@ -122,12 +122,13 @@ func JWTMiddleware(userService *services.UserService) (*jwt.GinJWTMiddleware, er
 				"expire": expire.Format(time.RFC3339),
 				"details": gin.H{
 					"user": gin.H{
-						"id":           userEntity.ID,
-						"username":     userEntity.Username,
-						"email":        userEntity.Email,
-						"isAdmin":      userEntity.IsAdmin,
-						"createdAt":    userEntity.CreatedAt.Format(time.RFC3339),
-						"profileImage": userEntity.ProfileImage,
+						"id":             userEntity.ID,
+						"username":       userEntity.Username,
+						"email":          userEntity.Email,
+						"confirmedEmail": userEntity.ConfirmedEmail,
+						"isAdmin":        userEntity.IsAdmin,
+						"createdAt":      userEntity.CreatedAt.Format(time.RFC3339),
+						"profileImage":   userEntity.ProfileImage,
 					},
 				},
 			})

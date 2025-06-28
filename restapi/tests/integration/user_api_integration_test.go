@@ -334,9 +334,18 @@ func TestUserAPI_DynamoDBIntegration(t *testing.T) {
 		testConfirmEmail(t, server, "validation@example.com", confirmationCode)
 		token := testLoginUser(t, server, "validation@example.com", "password123")
 
+		// Test invalid email format
+		invalidEmailReq := map[string]string{
+			"username": "validuser",
+			"email":    "invalid-email",
+			"password": "password123",
+		}
+		testUpdateValidationError(t, server, "Bearer "+token, invalidEmailReq, "Field Email failed on the 'email' rule")
+
 		// Test username too short
 		shortUsernameReq := map[string]string{
 			"username": "ab",
+			"email":    "valid@example.com",
 			"password": "password123",
 		}
 		testUpdateValidationError(t, server, "Bearer "+token, shortUsernameReq, "Field Username failed on the 'min' rule")
@@ -344,23 +353,34 @@ func TestUserAPI_DynamoDBIntegration(t *testing.T) {
 		// Test password too short
 		shortPasswordReq := map[string]string{
 			"username": "validuser",
+			"email":    "valid@example.com",
 			"password": "short",
 		}
 		testUpdateValidationError(t, server, "Bearer "+token, shortPasswordReq, "Field Password failed on the 'min' rule")
 
-		// Test missing required fields
+		// Test missing required username field
 		missingUsernameReq := map[string]string{
+			"email":    "valid@example.com",
 			"password": "password123",
 		}
 		testUpdateValidationError(t, server, "Bearer "+token, missingUsernameReq, "Field Username failed on the 'required' rule")
 
+		// Test missing required email field
+		missingEmailReq := map[string]string{
+			"username": "validuser",
+			"password": "password123",
+		}
+		testUpdateValidationError(t, server, "Bearer "+token, missingEmailReq, "Field Email failed on the 'required' rule")
+
 		// Test multiple validation errors
 		multipleErrorsReq := map[string]string{
 			"username": "ab",
+			"email":    "invalid-email",
 			"password": "short",
 		}
 		testUpdateMultipleValidationErrors(t, server, "Bearer "+token, multipleErrorsReq, []string{
 			"Field Username failed on the 'min' rule",
+			"Field Email failed on the 'email' rule",
 			"Field Password failed on the 'min' rule",
 		})
 	})
@@ -378,9 +398,10 @@ func TestUserAPI_DynamoDBIntegration(t *testing.T) {
 		testConfirmEmail(t, server, "update@example.com", confirmationCode)
 		token := testLoginUser(t, server, "update@example.com", "oldpassword123")
 
-		// Test successful username and password update
+		// Test successful username and password update (keep same email)
 		updateReq := map[string]string{
 			"username": "newusername",
+			"email":    "update@example.com",
 			"password": "newpassword123",
 		}
 		testUpdateUser(t, server, "Bearer "+token, updateReq)
@@ -388,8 +409,63 @@ func TestUserAPI_DynamoDBIntegration(t *testing.T) {
 		// Verify user can no longer login with old credentials
 		testLoginError(t, server, "update@example.com", "oldpassword123", http.StatusUnauthorized)
 
-		// Verify user can login with new password
+		// Verify user can login with new password (same email)
 		testLoginUser(t, server, "update@example.com", "newpassword123")
+	})
+
+	t.Run("update user email functionality", func(t *testing.T) {
+		server := setupIntegrationTestServer(t)
+
+		// Register and confirm user
+		registerReq := map[string]string{
+			"email":    "oldemail@example.com",
+			"username": "emailuser",
+			"password": "password123",
+		}
+		_, confirmationCode := testRegisterUser(t, server, registerReq)
+		testConfirmEmail(t, server, "oldemail@example.com", confirmationCode)
+		token := testLoginUser(t, server, "oldemail@example.com", "password123")
+
+		// Test successful email update (keep same username and password)
+		updateReq := map[string]string{
+			"username": "emailuser",
+			"email":    "newemail@example.com",
+		}
+		testUpdateUser(t, server, "Bearer "+token, updateReq)
+
+		// Verify user can no longer login with old email
+		testLoginError(t, server, "oldemail@example.com", "password123", http.StatusUnauthorized)
+
+		// Verify user can login with new email
+		testLoginUser(t, server, "newemail@example.com", "password123")
+	})
+
+	t.Run("update user all fields functionality", func(t *testing.T) {
+		server := setupIntegrationTestServer(t)
+
+		// Register and confirm user
+		registerReq := map[string]string{
+			"email":    "allfields@example.com",
+			"username": "allfieldsuser",
+			"password": "oldpassword123",
+		}
+		_, confirmationCode := testRegisterUser(t, server, registerReq)
+		testConfirmEmail(t, server, "allfields@example.com", confirmationCode)
+		token := testLoginUser(t, server, "allfields@example.com", "oldpassword123")
+
+		// Test successful update of all fields
+		updateReq := map[string]string{
+			"username": "newallfieldsuser",
+			"email":    "newallfields@example.com",
+			"password": "newpassword123",
+		}
+		testUpdateUser(t, server, "Bearer "+token, updateReq)
+
+		// Verify user can no longer login with old credentials
+		testLoginError(t, server, "allfields@example.com", "oldpassword123", http.StatusUnauthorized)
+
+		// Verify user can login with new credentials
+		testLoginUser(t, server, "newallfields@example.com", "newpassword123")
 	})
 
 	t.Run("update user unauthorized", func(t *testing.T) {
@@ -397,6 +473,7 @@ func TestUserAPI_DynamoDBIntegration(t *testing.T) {
 
 		updateReq := map[string]string{
 			"username": "newusername",
+			"email":    "new@example.com",
 			"password": "newpassword123",
 		}
 

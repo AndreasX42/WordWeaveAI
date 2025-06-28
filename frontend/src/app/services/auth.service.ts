@@ -77,6 +77,7 @@ export class AuthService {
         id: apiUser.id,
         username: apiUser.username,
         email: apiUser.email,
+        confirmedEmail: apiUser.confirmedEmail,
         profilePicture: apiUser.profileImage || '',
         role: apiUser.isAdmin ? 'admin' : 'user',
       };
