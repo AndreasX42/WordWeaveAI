@@ -13,10 +13,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { Router, RouterLink } from '@angular/router';
 import { ErrorManagerFactory } from '../../shared/error.manager.factory';
 import { AuthService } from '../../services/auth.service';
+import { MessageService } from '../../services/message.service';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
-import { MatSnackBar } from '@angular/material/snack-bar';
 
 function strictEmailValidator(control: AbstractControl) {
   const email = control.value;
@@ -53,7 +53,7 @@ function strictEmailValidator(control: AbstractControl) {
 export class ForgotPassword {
   private router = inject(Router);
   private authService = inject(AuthService);
-  private snackBar = inject(MatSnackBar);
+  private messageService = inject(MessageService);
 
   isSubmitting = signal(false);
   emailErrorMessage = signal<string>('');
@@ -89,37 +89,29 @@ export class ForgotPassword {
     this.isSubmitting.set(true);
 
     try {
-      // Simulate API call - replace with actual service call
       const success = await this.authService.sendPasswordResetEmail(email);
 
+      this.isSubmitting.set(false);
+
       if (success) {
-        this.isSubmitting.set(false);
         this.isEmailSent.set(true);
-        this.snackBar.open(
-          'Password reset email sent! Please check your inbox.',
-          'Close',
-          {
-            duration: 5000,
-            panelClass: ['success-snackbar'],
-          }
-        );
       } else {
-        this.isSubmitting.set(false);
+        // This handles cases where the request succeeds but response is malformed
         const errorMessage = 'Failed to send reset email. Please try again.';
         this.forgotPasswordError.set(errorMessage);
-        this.snackBar.open(errorMessage, 'Close', {
-          duration: 5000,
-          panelClass: ['error-snackbar'],
-        });
+        this.messageService.showErrorMessage(errorMessage);
       }
-    } catch (error) {
+    } catch (error: any) {
       this.isSubmitting.set(false);
-      const errorMessage = 'Failed to send reset email. Please try again.';
+
+      // Extract specific error message from backend if available
+      const backendMessage =
+        error?.error?.message || error?.error?.details?.error || '';
+      const errorMessage =
+        backendMessage || 'Failed to send reset email. Please try again.';
+
       this.forgotPasswordError.set(errorMessage);
-      this.snackBar.open(errorMessage, 'Close', {
-        duration: 5000,
-        panelClass: ['error-snackbar'],
-      });
+      this.messageService.showErrorMessage(errorMessage);
     }
   }
 

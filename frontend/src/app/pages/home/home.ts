@@ -11,7 +11,7 @@ import { RouterLink } from '@angular/router';
         <h1>Welcome to WordWeave</h1>
         <p>Your creative writing companion</p>
         <div class="action-buttons">
-          <button mat-raised-button color="primary" routerLink="/login">
+          <button mat-raised-button color="primary" routerLink="/profile">
             Get Started
           </button>
         </div>

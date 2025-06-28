@@ -125,6 +125,9 @@
         color: var(--text-primary, #333333) !important;
         border: 1px solid var(--border-color, #dadce0) !important;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
 
         &:hover:not(:disabled) {
           background-color: var(--surface-color, #f8f9fa) !important;
@@ -138,6 +141,8 @@
         }
 
         .login-spinner {
+          display: inline-flex !important;
+          vertical-align: middle;
           margin-right: 12px;
         }
 
@@ -497,34 +502,6 @@ body.dark-theme {
           }
         }
       }
-
-      .login-error {
-        background-color: rgba(244, 67, 54, 0.15);
-        border: 1px solid rgba(244, 67, 54, 0.4);
-      }
     }
-  }
-}
-
-// Custom snackbar styles
-::ng-deep {
-  .success-snackbar {
-    --mdc-snackbar-container-color: #4caf50 !important;
-    --mdc-snackbar-supporting-text-color: white !important;
-  }
-
-  .error-snackbar {
-    --mdc-snackbar-container-color: #f44336 !important;
-    --mdc-snackbar-supporting-text-color: white !important;
-  }
-
-  .warning-snackbar {
-    --mdc-snackbar-container-color: #ff9800 !important;
-    --mdc-snackbar-supporting-text-color: white !important;
-  }
-
-  .info-snackbar {
-    --mdc-snackbar-container-color: #2196f3 !important;
-    --mdc-snackbar-supporting-text-color: white !important;
   }
 }

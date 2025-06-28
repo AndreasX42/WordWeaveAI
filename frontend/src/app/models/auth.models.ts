@@ -30,3 +30,20 @@ export interface VerifyEmailResponse {
 export interface ResendCodeResponse {
   message: string;
 }
+
+export interface RefreshTokenResponse {
+  code: number;
+  expire: string;
+  token: string;
+}
+
+export interface ResetPasswordResponse {
+  message: string;
+}
+
+export interface DeleteAccountErrorResponse {
+  details: {
+    error: string;
+  };
+  message: string;
+}

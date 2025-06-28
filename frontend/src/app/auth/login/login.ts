@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import {
   AbstractControl,
   FormControl,
@@ -13,10 +13,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { Router, RouterLink } from '@angular/router';
 import { ErrorManagerFactory } from '../../shared/error.manager.factory';
 import { AuthService } from '../../services/auth.service';
+import { MessageService } from '../../services/message.service';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
-import { MatSnackBar } from '@angular/material/snack-bar';
 
 function strictEmailValidator(control: AbstractControl) {
   const email = control.value;
@@ -53,15 +53,13 @@ function strictEmailValidator(control: AbstractControl) {
 })
 export class Login {
   private router = inject(Router);
-  private destroyRef = inject(DestroyRef);
   private authService = inject(AuthService);
-  private snackBar = inject(MatSnackBar);
+  private messageService = inject(MessageService);
 
   hide = signal(true);
   isLoggingIn = signal(false);
   emailErrorMessage = signal<string>('');
   passwordErrorMessage = signal<string>('');
-  loginError = signal<string>('');
 
   form = new FormGroup({
     email: new FormControl('', {
@@ -80,8 +78,6 @@ export class Login {
   }
 
   onSubmit() {
-    this.loginError.set('');
-
     if (this.form.invalid) {
       this.updateEmailErrorMessage();
       this.updatePasswordErrorMessage();
@@ -99,31 +95,46 @@ export class Login {
 
     try {
       const success = await this.authService.login(email, password);
+      this.isLoggingIn.set(false);
 
       if (success) {
-        this.isLoggingIn.set(false);
-        this.snackBar.open('Login successful!', 'Close', {
-          duration: 3000,
-          panelClass: ['success-snackbar'],
-        });
+        this.messageService.showSuccessMessage('Login successful!');
         this.router.navigate(['/profile'], { replaceUrl: true });
       } else {
-        this.isLoggingIn.set(false);
-        const errorMessage = 'Invalid credentials. Please try again.';
-        this.loginError.set(errorMessage);
-        this.snackBar.open(errorMessage, 'Close', {
-          duration: 5000,
-          panelClass: ['error-snackbar'],
-        });
+        this.messageService.showErrorMessage(
+          'Invalid credentials. Please try again.'
+        );
       }
-    } catch (error) {
+    } catch (error: any) {
       this.isLoggingIn.set(false);
-      const errorMessage = 'Login failed. Please try again.';
-      this.loginError.set(errorMessage);
-      this.snackBar.open(errorMessage, 'Close', {
-        duration: 5000,
-        panelClass: ['error-snackbar'],
-      });
+
+      const errorMessage = error?.message || '';
+
+      switch (errorMessage) {
+        case 'EMAIL_NOT_VERIFIED':
+          this.messageService.showWarningMessage(
+            'Please verify your email address before signing in.',
+            6000
+          );
+          this.router.navigate(['/verify'], {
+            queryParams: { email: email },
+            replaceUrl: true,
+          });
+          break;
+
+        case 'LOGIN_FAILED':
+          this.messageService.showErrorMessage(
+            'Login failed. Please try again.'
+          );
+          break;
+
+        default:
+          // Fallback for any unexpected errors
+          this.messageService.showErrorMessage(
+            'An unexpected error occurred. Please try again.'
+          );
+          break;
+      }
     }
   }
 
@@ -134,7 +145,6 @@ export class Login {
 
   async onGoogleLogin() {
     this.isLoggingIn.set(true);
-    this.loginError.set('');
   }
 
   updateEmailErrorMessage = ErrorManagerFactory.getFormErrorManager(

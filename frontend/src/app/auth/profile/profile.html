@@ -89,7 +89,7 @@
               <div class="preference-content">
                 <mat-icon class="preference-icon">dark_mode</mat-icon>
                 <div class="preference-text">
-                  <span class="preference-label">Dark Mode (Beta)</span>
+                  <span class="preference-label">Dark Mode</span>
                   <span class="preference-description"
                     >Switch between light and dark themes</span
                   >
@@ -108,6 +108,15 @@
           <div class="info-section">
             <h3 class="section-title">Account Actions</h3>
             <div class="action-buttons">
+              <button
+                mat-raised-button
+                color="primary"
+                class="update-button"
+                (click)="updateAccount()"
+              >
+                <mat-icon>edit</mat-icon>
+                Update Account
+              </button>
               <button
                 mat-raised-button
                 color="warn"

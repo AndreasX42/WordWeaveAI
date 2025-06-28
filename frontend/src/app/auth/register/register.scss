@@ -136,6 +136,9 @@
         color: var(--text-primary, #333333) !important;
         border: 1px solid var(--border-color, #dadce0) !important;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
 
         &:hover:not(:disabled) {
           background-color: var(--surface-color, #f8f9fa) !important;
@@ -149,6 +152,8 @@
         }
 
         .register-spinner {
+          display: inline-flex !important;
+          vertical-align: middle;
           margin-right: 12px;
         }
 
@@ -356,11 +361,6 @@ body.dark-theme {
             }
           }
         }
-      }
-
-      .register-error {
-        background-color: rgba(244, 67, 54, 0.15);
-        border: 1px solid rgba(244, 67, 54, 0.4);
       }
     }
   }

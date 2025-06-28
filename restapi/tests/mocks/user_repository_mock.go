@@ -15,6 +15,7 @@ type MockUserRepository struct {
 	usersByID     map[string]*entities.User
 	emailIndex    map[string]string // email -> userID
 	usernameIndex map[string]string // username -> userID
+	googleIDIndex map[string]string // googleID -> userID
 	mutex         sync.RWMutex
 }
 
@@ -25,6 +26,7 @@ func NewMockUserRepository() repositories.UserRepository {
 		usersByID:     make(map[string]*entities.User),
 		emailIndex:    make(map[string]string),
 		usernameIndex: make(map[string]string),
+		googleIDIndex: make(map[string]string),
 	}
 }
 
@@ -50,6 +52,9 @@ func (m *MockUserRepository) Create(ctx context.Context, user *entities.User) er
 	m.usersByID[user.ID] = &userCopy
 	m.emailIndex[user.Email] = user.ID
 	m.usernameIndex[user.Username] = user.ID
+	if user.GoogleID != "" {
+		m.googleIDIndex[user.GoogleID] = user.ID
+	}
 
 	return nil
 }
@@ -97,6 +102,25 @@ func (m *MockUserRepository) GetByUsername(ctx context.Context, username string)
 	return nil, fmt.Errorf("user not found")
 }
 
+func (m *MockUserRepository) GetByGoogleID(ctx context.Context, googleID string) (*entities.User, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+
+	userID, exists := m.googleIDIndex[googleID]
+	if !exists {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	user, exists := m.usersByID[userID]
+	if !exists {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	// Return a copy to avoid data races
+	userCopy := *user
+	return &userCopy, nil
+}
+
 func (m *MockUserRepository) Update(ctx context.Context, user *entities.User) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -126,6 +150,9 @@ func (m *MockUserRepository) Delete(ctx context.Context, id string) error {
 	delete(m.usersByID, id)
 	delete(m.emailIndex, user.Email)
 	delete(m.usernameIndex, user.Username)
+	if user.GoogleID != "" {
+		delete(m.googleIDIndex, user.GoogleID)
+	}
 
 	return nil
 }

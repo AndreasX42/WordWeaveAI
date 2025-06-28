@@ -3,15 +3,16 @@ import { MatButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { interval } from 'rxjs';
 import { TitleCasePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { AuthService } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
 import { MessageService } from '../../services/message.service';
+import { UpdateAccountDialog } from './update-account-dialog';
 
 @Component({
   selector: 'app-profile',
@@ -32,7 +33,7 @@ export class Profile implements OnInit {
   private themeService = inject(ThemeService);
   private messageService = inject(MessageService);
   private destroyRef = inject(DestroyRef);
-  private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
 
   selectedDarkMode = signal(false);
   sessionTimeLeft = signal<string>('Loading...');
@@ -69,53 +70,99 @@ export class Profile implements OnInit {
   logout(): void {
     try {
       this.authService.logout();
-      this.snackBar.open('Logout successful!', 'Close', {
-        duration: 3000,
-        panelClass: ['success-snackbar'],
-      });
+      this.messageService.showSuccessMessage('Logout successful!');
       this.router.navigate(['/home'], { replaceUrl: true });
     } catch (error) {
       console.error('Logout failed:', error);
-      this.snackBar.open('Logout failed!', 'Close', {
-        duration: 3000,
-        panelClass: ['error-snackbar'],
-      });
+      this.messageService.showErrorMessage('Logout failed!');
     }
   }
 
-  deleteAccount(): void {
-    // Show confirmation dialog
+  updateAccount(): void {
+    const dialogRef = this.dialog.open(UpdateAccountDialog, {
+      width: '500px',
+      data: {
+        user: this.user(),
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        // Account was updated successfully, refresh user data
+        this.user.set(this.authService.user());
+      }
+    });
+  }
+
+  async deleteAccount(): Promise<void> {
     const confirmed = confirm(
       'Are you sure you want to delete your account? This action cannot be undone.'
     );
 
     if (confirmed) {
-      // For now, just logout since we don't have actual delete API
-      // TODO: Implement actual account deletion API call
-      this.authService.logout();
-      this.router.navigate(['/login'], { replaceUrl: true });
+      try {
+        await this.authService.deleteAccount();
 
-      // Show success message
-      // this.messageService.showSuccessModal('Account deleted successfully');
+        // If we reach here, deletion was successful
+        this.messageService.showSuccessMessage('Account deleted successfully!');
+        this.router.navigate(['/home'], { replaceUrl: true });
+      } catch (error: any) {
+        console.error('Account deletion error:', error);
+
+        const errorMessage = error?.message || '';
+
+        if (errorMessage === 'Session expired') {
+          return;
+        }
+
+        // Display the specific error message from backend for other errors
+        const displayMessage =
+          errorMessage || 'Account deletion failed. Please try again.';
+        this.messageService.showErrorMessage(displayMessage);
+      }
     }
   }
 
   private initializeSessionTimer(): void {
-    // Simulate session timer - replace with actual JWT token logic
-    let timeLeft = 3600000; // 1 hour in milliseconds
+    const token = this.authService.getAuthToken();
+
+    if (!token) {
+      this.sessionTimeLeft.set('No session');
+      return;
+    }
+
+    const tokenExpiration = this.getTokenExpiration(token);
+
+    if (!tokenExpiration) {
+      this.sessionTimeLeft.set('Invalid session');
+      return;
+    }
 
     interval(1000)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
+        const now = Math.floor(Date.now() / 1000);
+        const timeLeft = tokenExpiration - now;
+
         if (timeLeft > 0) {
-          this.sessionTimeLeft.set(this.formatTimeLeft(timeLeft));
-          timeLeft -= 1000;
+          this.sessionTimeLeft.set(this.formatTimeLeft(timeLeft * 1000));
         } else {
           this.sessionTimeLeft.set('Session expired');
-          this.authService.logout();
-          this.router.navigate(['/login'], { replaceUrl: true });
         }
       });
+  }
+
+  private getTokenExpiration(token: string): number | null {
+    try {
+      const payload = token.split('.')[1];
+      const decodedPayload = JSON.parse(atob(payload));
+
+      // Return the exp field
+      return decodedPayload.exp || null;
+    } catch (error) {
+      console.error('Failed to decode JWT token:', error);
+      return null;
+    }
   }
 
   private formatTimeLeft(timeLeft: number): string {

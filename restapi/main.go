@@ -1,11 +1,17 @@
 package main
 
 import (
+	"encoding/base64"
+	"encoding/json"
+	"errors"
 	"log"
+	"net/http"
 	"os"
+	"strings"
 
 	"github.com/AndreasX42/restapi/config"
 	"github.com/AndreasX42/restapi/middlewares"
+	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -47,6 +53,7 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 		// Public routes
 		api.POST("/auth/register", container.UserHandler.Register)
 		api.POST("/auth/confirm-email", container.UserHandler.ConfirmEmail)
+		api.POST("/auth/resend-code", container.UserHandler.ResendConfirmationCode)
 		api.POST("/auth/reset-password", container.UserHandler.ResetPassword)
 
 		// OAuth routes
@@ -59,7 +66,7 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 		// JWT routes
 		api.POST("/auth/login", authMiddleware.LoginHandler)
 		api.POST("/auth/logout", authMiddleware.LogoutHandler)
-		api.POST("/auth/refresh", authMiddleware.RefreshHandler)
+		api.POST("/auth/refresh", createRefreshHandler(authMiddleware, container))
 
 		// Authenticated routes
 		authenticated := api.Group("/")
@@ -88,6 +95,70 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 			}
 		}
 	}
+}
+
+func createRefreshHandler(authMiddleware *jwt.GinJWTMiddleware, container *config.Container) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID, err := extractUserIDFromToken(c)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"message": "Unauthorized",
+				"details": gin.H{"error": err.Error()},
+			})
+			return
+		}
+
+		// Check if user still exists
+		if _, err := container.UserService.GetUserByID(c.Request.Context(), userID); err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"message": "Unauthorized",
+				"details": gin.H{"error": "user does not exist"},
+			})
+			return
+		}
+
+		// Delegate to the default refresh logic
+		authMiddleware.RefreshHandler(c)
+	}
+}
+
+func extractUserIDFromToken(c *gin.Context) (string, error) {
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		return "", errors.New("missing token")
+	}
+
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+	if tokenString == authHeader {
+		return "", errors.New("invalid token format")
+	}
+
+	parts := strings.Split(tokenString, ".")
+	if len(parts) != 3 {
+		return "", errors.New("invalid token format")
+	}
+
+	payload := parts[1]
+	if len(payload)%4 != 0 {
+		payload += strings.Repeat("=", 4-len(payload)%4)
+	}
+
+	claimsBytes, err := base64.URLEncoding.DecodeString(payload)
+	if err != nil {
+		return "", errors.New("invalid token claims")
+	}
+
+	var claims map[string]interface{}
+	if err := json.Unmarshal(claimsBytes, &claims); err != nil {
+		return "", errors.New("invalid token claims")
+	}
+
+	userID, ok := claims["user_id"].(string)
+	if !ok {
+		return "", errors.New("user_id not found in claims")
+	}
+
+	return userID, nil
 }
 
 func initEnvs() {

@@ -7,6 +7,9 @@ import {
   RegisterResponse,
   VerifyEmailResponse,
   ResendCodeResponse,
+  RefreshTokenResponse,
+  ResetPasswordResponse,
+  DeleteAccountErrorResponse,
 } from '../models/auth.models';
 import { Configs } from '../shared/config';
 
@@ -87,9 +90,27 @@ export class AuthService {
       localStorage.setItem(this.USER_KEY, JSON.stringify(user));
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login failed:', error);
-      return false;
+
+      // Extract error details
+      const errorDetails =
+        error?.error?.details?.error || error?.error?.message || '';
+
+      // Handle specific error cases
+      if (errorDetails.toLowerCase().includes('invalid credentials')) {
+        return false; // Invalid credentials - return false, don't throw
+      }
+
+      if (
+        errorDetails.toLowerCase().includes('email not confirmed') ||
+        errorDetails.toLowerCase().includes('email not verified')
+      ) {
+        throw new Error('EMAIL_NOT_VERIFIED');
+      }
+
+      // For all other errors, throw a generic error
+      throw new Error('LOGIN_FAILED');
     }
   }
 
@@ -117,7 +138,7 @@ export class AuthService {
       return true;
     } catch (error) {
       console.error('Registration failed:', error);
-      return false;
+      throw error;
     }
   }
 
@@ -166,11 +187,59 @@ export class AuthService {
     }
   }
 
-  sendPasswordResetEmail(email: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      // TODO: Replace with actual API call to send password reset email
-      resolve(false);
-    });
+  async refreshToken(): Promise<boolean> {
+    try {
+      const currentToken = this.getAuthToken();
+
+      if (!currentToken) {
+        return false;
+      }
+
+      const response = await firstValueFrom(
+        this.httpClient.post<RefreshTokenResponse>(
+          `${Configs.BASE_URL}${Configs.REFRESH_TOKEN_URL}`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${currentToken}`,
+            },
+          }
+        )
+      );
+
+      if (!response || !response.token) {
+        return false;
+      }
+
+      // Update the stored token
+      localStorage.setItem(this.TOKEN_KEY, response.token);
+      return true;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      return false;
+    }
+  }
+
+  async sendPasswordResetEmail(email: string): Promise<boolean> {
+    try {
+      const response = await firstValueFrom(
+        this.httpClient.post<ResetPasswordResponse>(
+          `${Configs.BASE_URL}${Configs.RESET_PASSWORD_URL}`,
+          {
+            email: email,
+          }
+        )
+      );
+
+      if (!response || !response.message) {
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Password reset email failed:', error);
+      throw error;
+    }
   }
 
   googleLogin(): Promise<boolean> {
@@ -199,5 +268,83 @@ export class AuthService {
     this._user = null;
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
+  }
+
+  async updateAccount(updateData: {
+    username: string;
+    email: string;
+    newPassword?: string;
+  }): Promise<boolean> {
+    try {
+      if (!this.isLoggedIn()) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await firstValueFrom(
+        this.httpClient.put(
+          `${Configs.BASE_URL}${Configs.UPDATE_ACCOUNT_URL}`,
+          updateData
+        )
+      );
+
+      // If update includes email or username, update the local user object
+      if (this._user) {
+        this._user.username = updateData.username;
+        this._user.email = updateData.email;
+        localStorage.setItem(this.USER_KEY, JSON.stringify(this._user));
+      }
+
+      return true;
+    } catch (error: any) {
+      console.error('Account update failed:', error);
+
+      // Check if this is a session expired error from the interceptor
+      if (error?.message === 'Session expired') {
+        // Re-throw the session expired error
+        throw error;
+      }
+
+      // Extract the specific error message from backend response
+      const errorMessage =
+        error?.error?.details?.error ||
+        error?.error?.message ||
+        'Account update failed. Please try again.';
+
+      // Throw an error with the specific message so the component can display it
+      throw new Error(errorMessage);
+    }
+  }
+
+  async deleteAccount(): Promise<void> {
+    try {
+      if (!this.isLoggedIn()) {
+        throw new Error('No authentication token found');
+      }
+
+      await firstValueFrom(
+        this.httpClient.delete(
+          `${Configs.BASE_URL}${Configs.DELETE_ACCOUNT_URL}`
+        )
+      );
+
+      this.clearAuth();
+    } catch (error: any) {
+      console.error('Account deletion failed:', error);
+
+      // Check if this is a session expired error from the interceptor
+      if (error?.message === 'Session expired') {
+        // Re-throw the session expired error
+        throw error;
+      }
+
+      // Extract the specific error message from backend response for other errors
+      const errorMessage =
+        error?.error?.details?.error ||
+        error?.error?.message ||
+        'Account deletion failed. Please try again.';
+
+      // Throw an error with the specific message so the component can display it
+      throw new Error(errorMessage);
+    }
   }
 }

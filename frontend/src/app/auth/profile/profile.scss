@@ -61,13 +61,6 @@
     background-color: var(--card-background, #ffffff) !important;
     border: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
     overflow: hidden;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-
-    &:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 16px 50px rgba(0, 0, 0, 0.18), 0 8px 25px rgba(0, 0, 0, 0.1),
-        0 4px 12px rgba(0, 0, 0, 0.08);
-    }
 
     mat-card-content {
       padding: 32px !important;
@@ -255,6 +248,70 @@
       .action-buttons {
         display: flex;
         gap: 12px;
+        justify-content: center;
+
+        .update-button {
+          height: 44px;
+          font-size: 14px;
+          font-weight: 600;
+          border-radius: 8px;
+          text-transform: none;
+          transition: all 0.3s ease;
+          background-color: #1976d2 !important;
+          color: #ffffff !important;
+          border: 1px solid #1976d2 !important;
+          box-shadow: 0 2px 4px rgba(25, 118, 210, 0.4) !important;
+          outline: none !important;
+
+          &:hover:not(:disabled) {
+            background-color: #1565c0 !important;
+            border-color: #1565c0 !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.5) !important;
+          }
+
+          &:active {
+            transform: translateY(0);
+            background-color: #0d47a1 !important;
+            border-color: #0d47a1 !important;
+          }
+
+          &:focus,
+          &:focus-visible {
+            outline: none !important;
+            background-color: #1565c0 !important;
+            border-color: #1565c0 !important;
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.5) !important;
+          }
+
+          mat-icon {
+            margin-right: 8px;
+            font-size: 18px;
+            color: #ffffff !important;
+          }
+
+          &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+          }
+
+          // Dark mode support
+          @media (prefers-color-scheme: dark) {
+            background-color: #42a5f5 !important;
+            border-color: #42a5f5 !important;
+            color: #ffffff !important;
+
+            &:hover:not(:disabled) {
+              background-color: #2196f3 !important;
+              border-color: #2196f3 !important;
+            }
+
+            &:active {
+              background-color: #1976d2 !important;
+              border-color: #1976d2 !important;
+            }
+          }
+        }
 
         .delete-button {
           height: 44px;
@@ -267,6 +324,7 @@
           color: #ffffff !important;
           border: 1px solid #b71c1c !important;
           box-shadow: 0 2px 4px rgba(183, 28, 28, 0.4) !important;
+          outline: none !important;
 
           &:hover:not(:disabled) {
             background-color: #a01e1e !important;
@@ -279,6 +337,14 @@
             transform: translateY(0);
             background-color: #8f1b1b !important;
             border-color: #8f1b1b !important;
+          }
+
+          &:focus,
+          &:focus-visible {
+            outline: none !important;
+            background-color: #a01e1e !important;
+            border-color: #a01e1e !important;
+            box-shadow: 0 4px 12px rgba(183, 28, 28, 0.5) !important;
           }
 
           mat-icon {

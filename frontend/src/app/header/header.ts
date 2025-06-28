@@ -5,10 +5,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { ThemeService } from '../services/theme.service';
 import { AuthService } from '../services/auth.service';
+import { MessageService } from '../services/message.service';
 
 @Component({
   selector: 'app-header',
@@ -28,7 +28,7 @@ export class Header {
   themeService = inject(ThemeService);
   authService = inject(AuthService);
   private router = inject(Router);
-  private snackBar = inject(MatSnackBar);
+  private messageService = inject(MessageService);
 
   toggleTheme(): void {
     this.themeService.toggleTheme();
@@ -49,17 +49,11 @@ export class Header {
   onLogout(): void {
     try {
       this.authService.logout();
-      this.snackBar.open('Logout successful!', 'Close', {
-        duration: 3000,
-        panelClass: ['success-snackbar'],
-      });
+      this.messageService.showSuccessMessage('Logout successful!');
       this.router.navigate(['/home'], { replaceUrl: true });
     } catch (error) {
       console.error('Logout failed:', error);
-      this.snackBar.open('Logout failed!', 'Close', {
-        duration: 3000,
-        panelClass: ['error-snackbar'],
-      });
+      this.messageService.showErrorMessage('Logout failed!');
     }
   }
 

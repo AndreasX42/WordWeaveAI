@@ -15,6 +15,8 @@ export class MessageService {
   static readonly MSG_ERROR_SERVER = 'Server error. Please try again later.';
   static readonly MSG_WARNING_LOGIN_FIRST =
     'Please login first to access this page.';
+  static readonly MSG_WARNING_SESSION_EXPIRED =
+    'Your session has expired. Please login again.';
 
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
@@ -24,7 +26,7 @@ export class MessageService {
       duration,
       panelClass: ['success-snackbar'],
       horizontalPosition: 'center',
-      verticalPosition: 'top',
+      verticalPosition: 'bottom',
     });
   }
 
@@ -33,7 +35,7 @@ export class MessageService {
       duration,
       panelClass: ['error-snackbar'],
       horizontalPosition: 'center',
-      verticalPosition: 'top',
+      verticalPosition: 'bottom',
     });
   }
 
@@ -42,7 +44,7 @@ export class MessageService {
       duration,
       panelClass: ['warning-snackbar'],
       horizontalPosition: 'center',
-      verticalPosition: 'top',
+      verticalPosition: 'bottom',
     });
   }
 
@@ -51,12 +53,7 @@ export class MessageService {
       duration,
       panelClass: ['info-snackbar'],
       horizontalPosition: 'center',
-      verticalPosition: 'top',
+      verticalPosition: 'bottom',
     });
-  }
-
-  showErrorModal(message: string): void {
-    // For now, use snackbar. You can implement a proper modal dialog later
-    this.showErrorMessage(message, 0); // 0 means it won't auto-dismiss
   }
 }

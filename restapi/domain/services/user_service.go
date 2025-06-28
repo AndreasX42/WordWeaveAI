@@ -47,6 +47,7 @@ type ResetPasswordRequest struct {
 type UpdateUserRequest struct {
 	User     *entities.User
 	Username string
+	Email    string
 	Password string
 }
 
@@ -140,6 +141,35 @@ func (s *UserService) ConfirmEmail(ctx context.Context, req ConfirmEmailRequest)
 	return s.userRepo.Update(ctx, user)
 }
 
+func (s *UserService) ResendConfirmationCode(ctx context.Context, email string) error {
+	user, err := s.userRepo.GetByEmail(ctx, email)
+	if err != nil {
+		return errors.New("user not found")
+	}
+
+	if user.ConfirmedEmail {
+		return errors.New("email already confirmed")
+	}
+
+	// Generate new confirmation code
+	newConfirmationCode := utils.GenerateConfirmationCode()
+	user.ConfirmationCode = newConfirmationCode
+
+	// Update user with new code
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		return err
+	}
+
+	// Send confirmation email asynchronously
+	go func() {
+		if err := s.emailService.SendConfirmationEmail(email, newConfirmationCode); err != nil {
+			log.Println("Error sending confirmation email:", err)
+		}
+	}()
+
+	return nil
+}
+
 func (s *UserService) ResetPassword(ctx context.Context, req ResetPasswordRequest) error {
 	user, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
@@ -184,6 +214,10 @@ func (s *UserService) UpdateUser(ctx context.Context, req UpdateUserRequest) err
 
 	if req.Username != "" {
 		user.Username = req.Username
+	}
+
+	if req.Email != "" {
+		user.Email = req.Email
 	}
 
 	if req.Password != "" {

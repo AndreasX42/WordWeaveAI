@@ -42,9 +42,14 @@ type ResetPasswordRequest struct {
 	Email string `json:"email" binding:"required,email"`
 }
 
+type ResendConfirmationRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
 type UpdateRequest struct {
 	Username string `json:"username" binding:"required,min=3"`
-	Password string `json:"password" binding:"required,min=8"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"omitempty,min=8"`
 }
 
 func (h *UserHandler) handleValidationError(c *gin.Context, err error) {
@@ -167,6 +172,23 @@ func (h *UserHandler) ConfirmEmail(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Email confirmed successfully"})
 }
 
+func (h *UserHandler) ResendConfirmationCode(c *gin.Context) {
+	var req ResendConfirmationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.handleValidationError(c, err)
+		return
+	}
+
+	err := h.userService.ResendConfirmationCode(c.Request.Context(), req.Email)
+	if err != nil {
+		statusCode := getErrorStatusCode(err)
+		c.JSON(statusCode, gin.H{"message": "Failed to resend confirmation code", "details": gin.H{"error": err.Error()}})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Confirmation code sent successfully. Check your email"})
+}
+
 func (h *UserHandler) ResetPassword(c *gin.Context) {
 	var req ResetPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -204,6 +226,7 @@ func (h *UserHandler) Update(c *gin.Context) {
 	serviceReq := services.UpdateUserRequest{
 		User:     user,
 		Username: req.Username,
+		Email:    req.Email,
 		Password: req.Password,
 	}
 

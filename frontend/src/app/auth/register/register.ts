@@ -13,10 +13,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { Router, RouterLink } from '@angular/router';
 import { ErrorManagerFactory } from '../../shared/error.manager.factory';
 import { AuthService } from '../../services/auth.service';
+import { MessageService } from '../../services/message.service';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
-import { MatSnackBar } from '@angular/material/snack-bar';
 
 function equalValues(controlName1: string, controlName2: string) {
   return (control: AbstractControl) => {
@@ -73,7 +73,7 @@ export class Register {
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
   private authService = inject(AuthService);
-  private snackBar = inject(MatSnackBar);
+  private messageService = inject(MessageService);
 
   hide = signal(true);
   isRegistering = signal(false);
@@ -81,7 +81,6 @@ export class Register {
   emailErrorMessage = signal<string>('');
   pwdErrorMessage = signal<string>('');
   confirmPwdErrorMessage = signal<string>('');
-  registerError = signal<string>('');
 
   form = new FormGroup({
     username: new FormControl('', {
@@ -113,8 +112,6 @@ export class Register {
   }
 
   onSubmit() {
-    this.registerError.set('');
-
     if (this.form.invalid) {
       // Update error messages for all form fields
       this.updateUsernameErrorMessage();
@@ -135,44 +132,40 @@ export class Register {
     this.isRegistering.set(true);
 
     try {
-      const success = await this.authService.register(
-        username,
-        email,
-        password
-      );
+      await this.authService.register(username, email, password);
 
-      if (success) {
-        this.isRegistering.set(false);
-        this.snackBar.open(
-          'Registration successful! Please check your email for verification code.',
-          'Close',
-          {
-            duration: 5000,
-            panelClass: ['success-snackbar'],
-          }
-        );
-        // Redirect to verification page with email as query parameter
-        this.router.navigate(['/verify'], {
-          queryParams: { email: email },
-          replaceUrl: true,
-        });
-      } else {
-        this.isRegistering.set(false);
-        const errorMessage = 'Registration failed. Please try again.';
-        this.registerError.set(errorMessage);
-        this.snackBar.open(errorMessage, 'Close', {
-          duration: 5000,
-          panelClass: ['error-snackbar'],
-        });
-      }
-    } catch (error) {
+      // If we reach here, registration was successful
       this.isRegistering.set(false);
-      const errorMessage = 'Registration failed. Please try again.';
-      this.registerError.set(errorMessage);
-      this.snackBar.open(errorMessage, 'Close', {
-        duration: 5000,
-        panelClass: ['error-snackbar'],
+      this.messageService.showSuccessMessage(
+        'Registration successful! Please check your email for verification code.',
+        5000
+      );
+      // Redirect to verification page with email as query parameter
+      this.router.navigate(['/verify'], {
+        queryParams: { email: email },
+        replaceUrl: true,
       });
+    } catch (error: any) {
+      this.isRegistering.set(false);
+
+      // Check for specific backend error messages
+      const backendError =
+        error?.error?.details?.error || error?.error?.message || '';
+      const isUsernameExists = backendError
+        .toLowerCase()
+        .includes('username already exists');
+      const isEmailExists = backendError
+        .toLowerCase()
+        .includes('email already exists');
+
+      let errorMessage = 'Registration failed. Please try again.';
+
+      if (isUsernameExists || isEmailExists) {
+        errorMessage =
+          'Username or email already exists. Please try different credentials.';
+      }
+
+      this.messageService.showErrorMessage(errorMessage);
     }
   }
 

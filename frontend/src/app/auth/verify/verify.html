@@ -81,9 +81,9 @@
               <a
                 (click)="onResendCode()"
                 class="resend-link"
-                [class.disabled]="isResending()"
+                [class.disabled]="isResending() || !canResend()"
               >
-                @if(isResending()) { Resending... } @else { Resend code }
+                {{ getResendButtonText() }}
               </a>
             </p>
           </div>

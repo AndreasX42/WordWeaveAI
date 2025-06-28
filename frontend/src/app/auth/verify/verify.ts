@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
 import {
   FormControl,
   FormGroup,
@@ -10,12 +10,14 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { Router, ActivatedRoute } from '@angular/router';
+import { interval } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ErrorManagerFactory } from '../../shared/error.manager.factory';
 import { AuthService } from '../../services/auth.service';
+import { MessageService } from '../../services/message.service';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
-import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-verify',
@@ -37,13 +39,18 @@ export class Verify {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private authService = inject(AuthService);
-  private snackBar = inject(MatSnackBar);
+  private messageService = inject(MessageService);
+  private destroyRef = inject(DestroyRef);
 
   isVerifying = signal(false);
   isResending = signal(false);
   verificationCodeErrorMessage = signal<string>('');
   verifyError = signal<string>('');
   email = signal<string>('');
+
+  // Resend timer state
+  canResend = signal(true);
+  resendCountdown = signal(0);
 
   form = new FormGroup({
     verificationCode: new FormControl('', {
@@ -82,32 +89,27 @@ export class Verify {
 
       if (success) {
         this.isVerifying.set(false);
-        this.snackBar.open('Email verified successfully!', 'Close', {
-          duration: 3000,
-          panelClass: ['success-snackbar'],
-        });
+        this.messageService.showSuccessMessage('Email verified successfully!');
         this.router.navigate(['/login'], { replaceUrl: true });
       } else {
         this.isVerifying.set(false);
         const errorMessage = 'Invalid verification code. Please try again.';
         this.verifyError.set(errorMessage);
-        this.snackBar.open(errorMessage, 'Close', {
-          duration: 5000,
-          panelClass: ['error-snackbar'],
-        });
+        this.messageService.showErrorMessage(errorMessage);
       }
     } catch (error) {
       this.isVerifying.set(false);
       const errorMessage = 'Verification failed. Please try again.';
       this.verifyError.set(errorMessage);
-      this.snackBar.open(errorMessage, 'Close', {
-        duration: 5000,
-        panelClass: ['error-snackbar'],
-      });
+      this.messageService.showErrorMessage(errorMessage);
     }
   }
 
   async onResendCode() {
+    if (!this.canResend()) {
+      return;
+    }
+
     this.isResending.set(true);
 
     try {
@@ -116,28 +118,55 @@ export class Verify {
       );
 
       if (success) {
-        this.snackBar.open('Verification code resent to your email.', 'Close', {
-          duration: 3000,
-          panelClass: ['success-snackbar'],
-        });
+        this.messageService.showSuccessMessage(
+          'Verification code resent to your email.'
+        );
+        this.startResendTimer();
       } else {
-        this.snackBar.open(
-          'Failed to resend code. Please try again.',
-          'Close',
-          {
-            duration: 5000,
-            panelClass: ['error-snackbar'],
-          }
+        this.messageService.showErrorMessage(
+          'Failed to resend code. Please try again.'
         );
       }
     } catch (error) {
-      this.snackBar.open('Failed to resend code. Please try again.', 'Close', {
-        duration: 5000,
-        panelClass: ['error-snackbar'],
-      });
+      this.messageService.showErrorMessage(
+        'Failed to resend code. Please try again.'
+      );
     } finally {
       this.isResending.set(false);
     }
+  }
+
+  private startResendTimer(): void {
+    const COUNTDOWN_SECONDS = 120;
+    this.canResend.set(false);
+    this.resendCountdown.set(COUNTDOWN_SECONDS);
+
+    interval(1000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        const currentCountdown = this.resendCountdown();
+
+        if (currentCountdown > 0) {
+          this.resendCountdown.set(currentCountdown - 1);
+        } else {
+          this.canResend.set(true);
+          this.resendCountdown.set(0);
+        }
+      });
+  }
+
+  getResendButtonText(): string {
+    if (this.isResending()) {
+      return 'Sending...';
+    }
+
+    if (!this.canResend()) {
+      const minutes = Math.floor(this.resendCountdown() / 60);
+      const seconds = this.resendCountdown() % 60;
+      return `Resend in ${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    return 'Resend Code';
   }
 
   updateVerificationCodeErrorMessage = ErrorManagerFactory.getFormErrorManager(

@@ -11,4 +11,8 @@ export class Configs {
   static readonly LOGIN_URL = '/auth/login';
   // static readonly LOGOUT_URL = '/auth/logout';
   static readonly REFRESH_TOKEN_URL = '/auth/refresh';
+
+  // users
+  static readonly UPDATE_ACCOUNT_URL = '/users/update';
+  static readonly DELETE_ACCOUNT_URL = '/users/delete';
 }
