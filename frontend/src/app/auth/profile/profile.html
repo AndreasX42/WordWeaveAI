@@ -14,7 +14,15 @@
       <mat-card-content>
         <div class="profile-header">
           <div class="avatar-section">
+            @if (user()?.profilePicture) {
+            <img
+              [src]="user()?.profilePicture"
+              alt="Profile Picture"
+              class="profile-image-large"
+            />
+            } @else {
             <mat-icon class="avatar-icon">account_circle</mat-icon>
+            }
             <h2 class="profile-title">User Profile</h2>
           </div>
         </div>

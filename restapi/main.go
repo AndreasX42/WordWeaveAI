@@ -115,6 +115,9 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 		authenticated := api.Group("/")
 		authenticated.Use(authMiddleware.MiddlewareFunc())
 		{
+			// Auth routes (authenticated)
+			authenticated.GET("/auth/me", container.UserHandler.GetCurrentUser)
+
 			// User routes
 			userRoutes := authenticated.Group("/users")
 			userRoutes.DELETE("/delete", container.UserHandler.Delete)

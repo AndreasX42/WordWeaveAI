@@ -61,7 +61,8 @@ export class AuthService {
           {
             email: email,
             password: password,
-          }
+          },
+          { withCredentials: true }
         )
       );
 
@@ -254,17 +255,51 @@ export class AuthService {
     }
   }
 
-  googleLogin(): Promise<boolean> {
-    return new Promise((resolve) => {
-      // TODO: Implement Google OAuth login
-      // This would typically involve:
-      // 1. Initialize Google OAuth client
-      // 2. Handle OAuth flow
-      // 3. Get user data from Google
-      // 4. Authenticate with backend
-      // 5. Store user session
-      resolve(false);
-    });
+  googleLogin(): void {
+    // Redirect to backend Google OAuth endpoint to start the OAuth flow
+    window.location.href = `${Configs.BASE_URL}${Configs.GOOGLE_LOGIN_URL}`;
+  }
+
+  async authenticateWithOAuth(): Promise<boolean> {
+    try {
+      // Call /api/auth/me endpoint - JWT cookie will be sent automatically
+      const response = await firstValueFrom(
+        this.httpClient.get<any>(`${Configs.BASE_URL}${Configs.AUTH_ME_URL}`, {
+          withCredentials: true, // Include cookies in request
+        })
+      );
+
+      if (!response || !response.user || !response.token) {
+        return false;
+      }
+
+      const userData = response.user;
+
+      // Create user object from response
+      const user: User = {
+        id: userData.id,
+        username: userData.username,
+        email: userData.email,
+        confirmedEmail: userData.confirmedEmail || true,
+        profilePicture: userData.profileImage || '',
+        role: userData.isAdmin ? 'admin' : 'user',
+      };
+
+      // Store the JWT token for future API requests
+      localStorage.setItem(this.TOKEN_KEY, response.token);
+
+      // Set authentication state
+      this._isLoggedIn = true;
+      this._user = user;
+
+      // Store user in localStorage
+      localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+
+      return true;
+    } catch (error) {
+      console.error('Failed to authenticate with OAuth:', error);
+      return false;
+    }
   }
 
   logout(): void {
@@ -316,14 +351,11 @@ export class AuthService {
         throw error;
       }
 
-      // Extract the specific error message from backend response
-      const errorMessage =
-        error?.error?.details?.error ||
-        error?.error?.message ||
-        'Account update failed. Please try again.';
+      // Preserve the original HTTP error structure for the dialog to handle
+      // Mark it as handled by component to prevent global error handler from showing messages
+      (error as any).handledByComponent = true;
 
-      // Throw an error with the specific message so the component can display it
-      throw new Error(errorMessage);
+      throw error;
     }
   }
 
@@ -349,14 +381,11 @@ export class AuthService {
         throw error;
       }
 
-      // Extract the specific error message from backend response for other errors
-      const errorMessage =
-        error?.error?.details?.error ||
-        error?.error?.message ||
-        'Account deletion failed. Please try again.';
+      // Preserve the original HTTP error structure for the component to handle
+      // Mark it as handled by component to prevent global error handler from showing messages
+      (error as any).handledByComponent = true;
 
-      // Throw an error with the specific message so the component can display it
-      throw new Error(errorMessage);
+      throw error;
     }
   }
 }

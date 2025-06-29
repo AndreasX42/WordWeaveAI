@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/AndreasX42/restapi/domain/entities"
 	"github.com/AndreasX42/restapi/domain/services"
@@ -133,6 +134,34 @@ func (h *UserHandler) Login(c *gin.Context) {
 			"confirmedEmail": user.ConfirmedEmail,
 			"isAdmin":        user.IsAdmin,
 		},
+	})
+}
+
+func (h *UserHandler) GetCurrentUser(c *gin.Context) {
+	user, err := h.getPrincipal(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Not authenticated"})
+		return
+	}
+
+	// Generate a fresh JWT token (like login endpoint)
+	jwtToken, err := utils.GenerateJWT(user.ID, user.Username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not generate token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"user": gin.H{
+			"id":             user.ID,
+			"username":       user.Username,
+			"email":          user.Email,
+			"confirmedEmail": user.ConfirmedEmail,
+			"isAdmin":        user.IsAdmin,
+			"profileImage":   user.ProfileImage,
+			"createdAt":      user.CreatedAt.Format(time.RFC3339),
+		},
+		"token": jwtToken,
 	})
 }
 

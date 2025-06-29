@@ -21,6 +21,15 @@ export class GlobalErrorHandler implements ErrorHandler {
       return;
     }
 
+    // Skip errors that are marked as handled by components
+    if (this.isHandledByComponent(error)) {
+      console.log(
+        'Error marked as handled by component, skipping global message'
+      );
+      this.sendToMonitoring(error);
+      return;
+    }
+
     // Handle different types of errors
     this.ngZone.run(() => {
       if (this.isHttpError(error)) {
@@ -56,6 +65,12 @@ export class GlobalErrorHandler implements ErrorHandler {
 
   private handleHttpError(error: HttpErrorResponse | any): void {
     const status = error.status || 0;
+
+    // Check if this is a validation error from update account endpoint
+    if (this.isUpdateAccountValidationError(error)) {
+      console.log('Global handler: Skipping update account validation error');
+      return;
+    }
 
     switch (status) {
       case 0:
@@ -95,6 +110,13 @@ export class GlobalErrorHandler implements ErrorHandler {
         this.messageService.showErrorMessage(
           'The requested resource was not found.',
           4000
+        );
+        break;
+
+      case 409:
+        // Conflict - could be validation error, let component handle it
+        console.log(
+          'Global handler: 409 Conflict - letting component handle it'
         );
         break;
 
@@ -252,6 +274,27 @@ export class GlobalErrorHandler implements ErrorHandler {
 
     // Also check for 401 errors that might bypass the interceptor check
     if (error?.status === 401 && error instanceof HttpErrorResponse) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private isHandledByComponent(error: any): boolean {
+    // Check if this error has been marked as handled by a component
+    return error?.handledByComponent === true;
+  }
+
+  private isUpdateAccountValidationError(error: any): boolean {
+    // Check if this is a validation error from the update account endpoint
+    const url = error?.url || '';
+    const status = error?.status;
+
+    // Skip validation errors from update endpoint - these are handled by components
+    if (
+      url.includes('/api/users/update') &&
+      (status === 409 || status === 400 || status === 422)
+    ) {
       return true;
     }
 

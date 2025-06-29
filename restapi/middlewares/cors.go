@@ -13,12 +13,9 @@ import (
 func GetCORSConfig() cors.Config {
 	// Default allowed origins for development
 	defaultOrigins := []string{
-		"http://localhost:3000",
-		"http://localhost:3001",
+		"http://localhost:4200",
 		"http://localhost:8080",
-		"http://127.0.0.1:3000",
-		"http://127.0.0.1:3001",
-		"http://127.0.0.1:8080",
+		"http://127.0.0.1:4200",
 	}
 
 	// Get allowed origins from environment variable

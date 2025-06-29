@@ -82,6 +82,21 @@
         color: var(--primary-color);
       }
 
+      .profile-image-large {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid var(--primary-color);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+        &:hover {
+          transform: scale(1.05);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+      }
+
       .profile-title {
         font-size: 24px;
         font-weight: 600;
@@ -567,6 +582,12 @@
         font-size: 36px !important;
         width: 36px !important;
         height: 36px !important;
+      }
+
+      .profile-image-large {
+        width: 56px !important;
+        height: 56px !important;
+        border-width: 2px !important;
       }
 
       .profile-title {

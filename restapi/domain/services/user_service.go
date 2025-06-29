@@ -212,14 +212,31 @@ func (s *UserService) GetUserByID(ctx context.Context, userID string) (*entities
 func (s *UserService) UpdateUser(ctx context.Context, req UpdateUserRequest) error {
 	user := req.User
 
-	if req.Username != "" {
+	// Validate username uniqueness if it's being changed
+	if req.Username != "" && req.Username != user.Username {
+		usernameExists, err := s.userRepo.UsernameExists(ctx, req.Username)
+		if err != nil {
+			return err
+		}
+		if usernameExists {
+			return errors.New("username already exists")
+		}
 		user.Username = req.Username
 	}
 
-	if req.Email != "" {
+	// Validate email uniqueness if it's being changed
+	if req.Email != "" && req.Email != user.Email {
+		emailExists, err := s.userRepo.EmailExists(ctx, req.Email)
+		if err != nil {
+			return err
+		}
+		if emailExists {
+			return errors.New("email already exists")
+		}
 		user.Email = req.Email
 	}
 
+	// Update password if provided
 	if req.Password != "" {
 		hashedPassword, err := utils.HashPassword(req.Password)
 		if err != nil {

@@ -35,6 +35,11 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'auth/callback',
+    loadComponent: () =>
+      import('./auth/callback/callback').then((mod) => mod.AuthCallback),
+  },
+  {
     path: 'profile',
     loadComponent: () =>
       import('./auth/profile/profile').then((mod) => mod.Profile),

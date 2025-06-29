@@ -59,6 +59,7 @@ function strictEmailValidator(control: AbstractControl) {
             matInput
             formControlName="username"
             (blur)="updateUsernameErrorMessage()"
+            (input)="clearUsernameError()"
           />
 
           <!-- Success icon when valid -->
@@ -83,6 +84,7 @@ function strictEmailValidator(control: AbstractControl) {
             formControlName="email"
             type="email"
             (blur)="updateEmailErrorMessage()"
+            (input)="clearEmailError()"
           />
 
           <!-- Success icon when valid -->
@@ -612,6 +614,29 @@ export class UpdateAccountDialog {
     }
   );
 
+  // Clear backend validation errors when user starts typing
+  clearUsernameError(): void {
+    if (this.usernameErrorMessage() === 'This username is already taken') {
+      this.usernameErrorMessage.set('');
+      // Clear the form field error state
+      const usernameControl = this.form.get('username');
+      if (usernameControl?.hasError('backendError')) {
+        usernameControl.setErrors(null);
+      }
+    }
+  }
+
+  clearEmailError(): void {
+    if (this.emailErrorMessage() === 'This email is already registered') {
+      this.emailErrorMessage.set('');
+      // Clear the form field error state
+      const emailControl = this.form.get('email');
+      if (emailControl?.hasError('backendError')) {
+        emailControl.setErrors(null);
+      }
+    }
+  }
+
   // Check if any form field has been modified
   hasFormChanges(): boolean {
     const currentValues = this.form.value;
@@ -641,6 +666,20 @@ export class UpdateAccountDialog {
       this.updateEmailErrorMessage();
       this.updatePasswordErrorMessage();
       return;
+    }
+
+    // Clear any previous backend validation errors
+    this.clearUsernameError();
+    this.clearEmailError();
+
+    // Also clear any backend form field errors
+    const usernameControl = this.form.get('username');
+    const emailControl = this.form.get('email');
+    if (usernameControl?.hasError('backendError')) {
+      usernameControl.setErrors(null);
+    }
+    if (emailControl?.hasError('backendError')) {
+      emailControl.setErrors(null);
     }
 
     this.isUpdating.set(true);
@@ -677,6 +716,24 @@ export class UpdateAccountDialog {
         return;
       }
 
+      // Check for specific field validation errors from backend
+      const backendError = error?.error?.details?.error || '';
+
+      if (backendError === 'email already exists') {
+        this.emailErrorMessage.set('This email is already registered');
+        // Mark the email field as invalid to trigger mat-error display
+        this.form.get('email')?.setErrors({ backendError: true });
+        return;
+      }
+
+      if (backendError === 'username already exists') {
+        this.usernameErrorMessage.set('This username is already taken');
+        // Mark the username field as invalid to trigger mat-error display
+        this.form.get('username')?.setErrors({ backendError: true });
+        return;
+      }
+
+      // For other errors, show generic message
       const errorMessage =
         error?.message || 'Failed to update account. Please try again.';
       this.messageService.showErrorMessage(errorMessage);

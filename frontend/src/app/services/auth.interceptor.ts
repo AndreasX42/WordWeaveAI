@@ -28,8 +28,8 @@ export class AuthInterceptor implements HttpInterceptor {
     request: HttpRequest<unknown>,
     next: HttpHandler
   ): Observable<HttpEvent<unknown>> {
-    // Add auth token to requests that need it
-    const authRequest = this.addAuthHeader(request);
+    // Add auth header for token-based authentication
+    let authRequest = this.addAuthHeader(request);
 
     return next.handle(authRequest).pipe(
       catchError((error: HttpErrorResponse) => {
@@ -52,6 +52,7 @@ export class AuthInterceptor implements HttpInterceptor {
       Configs.RESET_PASSWORD_URL,
       Configs.GOOGLE_LOGIN_URL,
       Configs.GOOGLE_CALLBACK_URL,
+      Configs.AUTH_ME_URL,
     ];
 
     const isAuthNotRequired = authNotRequiredEndpoints.some((endpoint) =>
@@ -85,13 +86,13 @@ export class AuthInterceptor implements HttpInterceptor {
       return false;
     }
 
-    // Don't attempt refresh for auth endpoints
     const authEndpoints = [
       Configs.LOGIN_URL,
       Configs.REGISTER_URL,
       Configs.CONFIRM_EMAIL_URL,
       Configs.RESEND_CODE_URL,
       Configs.RESET_PASSWORD_URL,
+      Configs.AUTH_ME_URL,
     ];
 
     return !authEndpoints.some((endpoint) => request.url.includes(endpoint));

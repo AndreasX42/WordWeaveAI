@@ -143,8 +143,18 @@ export class Login {
     event.stopPropagation();
   }
 
-  async onGoogleLogin() {
+  onGoogleLogin() {
     this.isLoggingIn.set(true);
+
+    try {
+      // Redirect to Google OAuth flow via backend
+      this.authService.googleLogin();
+    } catch (error) {
+      this.isLoggingIn.set(false);
+      this.messageService.showErrorMessage(
+        'Failed to initiate Google login. Please try again.'
+      );
+    }
   }
 
   updateEmailErrorMessage = ErrorManagerFactory.getFormErrorManager(

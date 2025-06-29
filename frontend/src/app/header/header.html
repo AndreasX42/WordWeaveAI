@@ -26,7 +26,15 @@
       class="user-button"
       matTooltip="Account"
     >
+      @if (authService.user()?.profilePicture) {
+      <img
+        [src]="authService.user()?.profilePicture"
+        alt="Profile"
+        class="profile-image-button"
+      />
+      } @else {
       <mat-icon>account_circle</mat-icon>
+      }
     </button>
 
     <!-- User dropdown menu -->

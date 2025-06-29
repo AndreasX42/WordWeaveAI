@@ -78,6 +78,19 @@
       color: white;
       border-radius: 50%;
       transition: background-color 0.2s ease;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 0 !important;
+      min-width: 40px !important;
+
+      // Override Material Design button defaults
+      .mdc-button__label {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0 !important;
+      }
 
       &:hover {
         background-color: rgba(255, 255, 255, 0.15) !important;
@@ -203,6 +216,31 @@ body.dark-theme .user-menu {
   }
 }
 
+// Profile image styling
+.profile-image-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  transition: border-color 0.2s ease;
+  display: block;
+  margin: 0;
+  flex-shrink: 0;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+  }
+}
+
+.profile-image-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--divider-color);
+}
+
 // Global tooltip styling
 .mat-mdc-tooltip {
   font-size: 12px;
@@ -236,11 +274,17 @@ body.dark-theme .user-menu {
       .user-button {
         width: 44px !important;
         height: 44px !important;
+        min-width: 44px !important;
 
         mat-icon {
           font-size: 20px !important;
           width: 20px !important;
           height: 20px !important;
+        }
+
+        .profile-image-button {
+          width: 28px !important;
+          height: 28px !important;
         }
       }
     }
@@ -258,6 +302,11 @@ body.dark-theme .user-menu {
 
         mat-icon {
           font-size: 32px !important;
+          width: 32px !important;
+          height: 32px !important;
+        }
+
+        .profile-image-avatar {
           width: 32px !important;
           height: 32px !important;
         }

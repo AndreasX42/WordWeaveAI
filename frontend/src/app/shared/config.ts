@@ -9,6 +9,7 @@ export class Configs {
   static readonly GOOGLE_LOGIN_URL = '/auth/google/login';
   static readonly GOOGLE_CALLBACK_URL = '/auth/google/callback';
   static readonly LOGIN_URL = '/auth/login';
+  static readonly AUTH_ME_URL = '/auth/me';
   // static readonly LOGOUT_URL = '/auth/logout';
   static readonly REFRESH_TOKEN_URL = '/auth/refresh';
 
