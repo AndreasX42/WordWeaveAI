@@ -1,4 +1,5 @@
 import { Injectable, ErrorHandler, inject, NgZone } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { MessageService } from '../../services/message.service';
 
 @Injectable({
@@ -12,28 +13,34 @@ export class GlobalErrorHandler implements ErrorHandler {
     // Log error to console for debugging
     console.error('Global error caught:', error);
 
+    // Skip errors that are already handled by interceptors
+    if (this.isHandledByInterceptor(error)) {
+      // Only log for monitoring, don't show user message
+      console.log(
+        'Global error handler: Skipping error already handled by interceptor:',
+        error?.message || error,
+        '(No duplicate message will be shown)'
+      );
+      this.sendToMonitoring(error);
+      return;
+    }
+
     // Handle different types of errors
     this.ngZone.run(() => {
-      if (this.isNetworkError(error)) {
-        this.messageService.showErrorMessage(
-          'Network connection lost. Please check your internet connection.',
-          6000
-        );
-      } else if (this.isAuthError(error)) {
-        this.messageService.showWarningMessage(
-          'Your session has expired. Please login again.',
-          5000
-        );
-      } else if (this.isValidationError(error)) {
-        this.messageService.showErrorMessage(
-          'Please check your input and try again.',
-          4000
-        );
+      if (this.isHttpError(error)) {
+        this.handleHttpError(error);
       } else if (this.isChunkLoadError(error)) {
         this.messageService.showErrorMessage(
           'Application update detected. Please refresh the page.',
           8000
         );
+      } else if (this.isScriptError(error)) {
+        this.messageService.showErrorMessage(
+          'A script error occurred. Please refresh the page.',
+          5000
+        );
+      } else if (this.isPromiseRejection(error)) {
+        this.handlePromiseRejection(error);
       } else {
         // Generic error handling
         const userMessage = this.getUserFriendlyMessage(error);
@@ -45,75 +52,302 @@ export class GlobalErrorHandler implements ErrorHandler {
     this.sendToMonitoring(error);
   }
 
-  private isNetworkError(error: any): boolean {
+  private isHttpError(error: any): boolean {
     return (
-      error?.message?.includes('Http failure') ||
-      error?.message?.includes('NetworkError') ||
-      error?.status === 0
+      error instanceof HttpErrorResponse ||
+      (error?.status !== undefined && typeof error.status === 'number')
     );
   }
 
-  private isAuthError(error: any): boolean {
-    return (
-      error?.status === 401 ||
-      error?.status === 403 ||
-      error?.message?.includes('authentication')
-    );
-  }
+  private handleHttpError(error: HttpErrorResponse | any): void {
+    const status = error.status || 0;
 
-  private isValidationError(error: any): boolean {
-    return (
-      error?.status === 400 ||
-      error?.status === 422 ||
-      error?.message?.includes('validation')
-    );
+    switch (status) {
+      case 0:
+        // Network error
+        this.messageService.showErrorMessage(
+          'Network connection lost. Please check your internet connection.',
+          6000
+        );
+        break;
+
+      case 400:
+        // Bad request
+        const badRequestMessage =
+          this.extractErrorMessage(error) ||
+          'Please check your input and try again.';
+        this.messageService.showErrorMessage(badRequestMessage, 4000);
+        break;
+
+      case 401:
+        // Unauthorized - this should be handled by interceptor
+        // Don't show message here as interceptor already handles it
+        console.log(
+          '401 error caught by global handler - should be handled by interceptor'
+        );
+        break;
+
+      case 403:
+        // Forbidden
+        this.messageService.showErrorMessage(
+          'You do not have permission to perform this action.',
+          5000
+        );
+        break;
+
+      case 404:
+        // Not found
+        this.messageService.showErrorMessage(
+          'The requested resource was not found.',
+          4000
+        );
+        break;
+
+      case 422:
+        // Validation error
+        const validationMessage =
+          this.extractErrorMessage(error) ||
+          'Please check your input and try again.';
+        this.messageService.showErrorMessage(validationMessage, 4000);
+        break;
+
+      case 429:
+        // Too many requests
+        this.messageService.showWarningMessage(
+          'Too many requests. Please wait a moment and try again.',
+          6000
+        );
+        break;
+
+      case 500:
+        // Internal server error
+        this.messageService.showErrorMessage(
+          'Server error. Please try again later.',
+          5000
+        );
+        break;
+
+      case 502:
+      case 503:
+      case 504:
+        // Service unavailable
+        this.messageService.showErrorMessage(
+          'Service temporarily unavailable. Please try again later.',
+          6000
+        );
+        break;
+
+      default:
+        // Generic HTTP error
+        const genericMessage =
+          this.extractErrorMessage(error) ||
+          `Request failed (${status}). Please try again.`;
+        this.messageService.showErrorMessage(genericMessage, 5000);
+    }
   }
 
   private isChunkLoadError(error: any): boolean {
     return (
       error?.message?.includes('Loading chunk') ||
-      error?.message?.includes('Loading CSS chunk')
+      error?.message?.includes('Loading CSS chunk') ||
+      error?.message?.includes('ChunkLoadError')
     );
   }
 
-  private getUserFriendlyMessage(error: any): string {
-    // Extract meaningful error messages
+  private isScriptError(error: any): boolean {
+    return (
+      error?.message?.includes('Script error') ||
+      error?.message?.includes('Non-Error promise rejection') ||
+      (error instanceof Error && error.name === 'ScriptError')
+    );
+  }
+
+  private isPromiseRejection(error: any): boolean {
+    return (
+      error?.rejection !== undefined ||
+      error?.promise !== undefined ||
+      error?.reason !== undefined
+    );
+  }
+
+  private handlePromiseRejection(error: any): void {
+    const rejectionReason = error.rejection || error.reason || error;
+
+    // If it's an HTTP error in the promise rejection, handle it as such
+    if (this.isHttpError(rejectionReason)) {
+      this.handleHttpError(rejectionReason);
+      return;
+    }
+
+    // Otherwise, handle as generic error
+    const message = this.getUserFriendlyMessage(rejectionReason);
+    this.messageService.showErrorMessage(message, 5000);
+  }
+
+  private extractErrorMessage(error: any): string | null {
+    // Try multiple paths to extract meaningful error message
+    if (error?.error?.details?.error) {
+      return error.error.details.error;
+    }
+
     if (error?.error?.message) {
       return error.error.message;
     }
 
-    if (error?.message) {
-      // Transform technical errors to user-friendly messages
-      if (error.message.includes('Cannot read property')) {
-        return 'Something went wrong. Please try again.';
-      }
+    if (error?.error && typeof error.error === 'string') {
+      return error.error;
+    }
 
-      if (error.message.includes('timeout')) {
-        return 'Request timed out. Please try again.';
-      }
-
+    if (error?.message && typeof error.message === 'string') {
       return error.message;
     }
 
+    return null;
+  }
+
+  private getUserFriendlyMessage(error: any): string {
+    // First try to extract a meaningful message
+    const extractedMessage = this.extractErrorMessage(error);
+    if (extractedMessage) {
+      // Transform technical errors to user-friendly messages
+      if (
+        extractedMessage.includes('Cannot read property') ||
+        extractedMessage.includes('Cannot read properties')
+      ) {
+        return 'Something went wrong. Please try again.';
+      }
+
+      if (
+        extractedMessage.includes('timeout') ||
+        extractedMessage.includes('TIMEOUT')
+      ) {
+        return 'Request timed out. Please try again.';
+      }
+
+      if (
+        extractedMessage.includes('Network Error') ||
+        extractedMessage.includes('ERR_NETWORK')
+      ) {
+        return 'Network error. Please check your connection.';
+      }
+
+      // Return the extracted message if it seems user-friendly
+      if (
+        extractedMessage.length < 100 &&
+        !extractedMessage.includes('at ') &&
+        !extractedMessage.includes('stack')
+      ) {
+        return extractedMessage;
+      }
+    }
+
     return 'An unexpected error occurred. Please try again.';
+  }
+
+  private isHandledByInterceptor(error: any): boolean {
+    // Check if this error is already handled by the auth interceptor
+    if (error?.handledByInterceptor === true) {
+      return true;
+    }
+
+    // Check for session expired errors
+    if (error?.message === 'Session expired') {
+      return true;
+    }
+
+    // Also check for 401 errors that might bypass the interceptor check
+    if (error?.status === 401 && error instanceof HttpErrorResponse) {
+      return true;
+    }
+
+    return false;
   }
 
   private sendToMonitoring(error: any): void {
     // TODO: Implement monitoring service integration
     // This could send errors to services like Sentry, LogRocket, etc.
 
-    // For now, we'll just log structured error data
+    // Enhanced error data for monitoring
     const errorData = {
       timestamp: new Date().toISOString(),
       error: {
         message: error?.message || 'Unknown error',
         stack: error?.stack,
         status: error?.status,
-        url: window.location.href,
+        statusText: error?.statusText,
+        url: error?.url || window.location.href,
         userAgent: navigator.userAgent,
+        type: this.getErrorType(error),
+        originalError: this.sanitizeErrorForLogging(error),
+      },
+      context: {
+        currentUrl: window.location.href,
+        userId: this.getCurrentUserId(),
+        sessionId: this.getSessionId(),
       },
     };
 
     console.log('Error data for monitoring:', errorData);
+  }
+
+  private getErrorType(error: any): string {
+    if (this.isHttpError(error)) return 'HTTP';
+    if (this.isChunkLoadError(error)) return 'CHUNK_LOAD';
+    if (this.isScriptError(error)) return 'SCRIPT';
+    if (this.isPromiseRejection(error)) return 'PROMISE_REJECTION';
+    if (error instanceof TypeError) return 'TYPE_ERROR';
+    if (error instanceof ReferenceError) return 'REFERENCE_ERROR';
+    if (error instanceof Error) return 'GENERIC_ERROR';
+    return 'UNKNOWN';
+  }
+
+  private sanitizeErrorForLogging(error: any): any {
+    // Remove sensitive data and circular references for logging
+    try {
+      return JSON.parse(
+        JSON.stringify(error, (key, value) => {
+          // Remove potential sensitive data
+          if (
+            key === 'password' ||
+            key === 'token' ||
+            key === 'authorization'
+          ) {
+            return '[REDACTED]';
+          }
+          return value;
+        })
+      );
+    } catch {
+      return { message: error?.message || 'Error serialization failed' };
+    }
+  }
+
+  private getCurrentUserId(): string | null {
+    // Extract user ID from local storage or auth service
+    try {
+      const userStr = localStorage.getItem('auth_user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        return user.id || null;
+      }
+    } catch {
+      // Ignore errors
+    }
+    return null;
+  }
+
+  private getSessionId(): string | null {
+    // Generate or retrieve session ID for tracking
+    try {
+      let sessionId = sessionStorage.getItem('session_id');
+      if (!sessionId) {
+        sessionId =
+          Date.now().toString(36) + Math.random().toString(36).slice(2);
+        sessionStorage.setItem('session_id', sessionId);
+      }
+      return sessionId;
+    } catch {
+      return null;
+    }
   }
 }

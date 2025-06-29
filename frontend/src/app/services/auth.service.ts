@@ -133,12 +133,13 @@ export class AuthService {
       );
 
       if (!response || !response.details?.user_id) {
-        return false;
+        throw new Error('Invalid registration response from server');
       }
 
       return true;
     } catch (error) {
       console.error('Registration failed:', error);
+      // Re-throw to allow global error handler to process it
       throw error;
     }
   }
@@ -156,13 +157,14 @@ export class AuthService {
       );
 
       if (!response || !response.message) {
-        return false;
+        throw new Error('Invalid verification response from server');
       }
 
       return true;
     } catch (error) {
       console.error('Email verification failed:', error);
-      return false;
+      // Re-throw to allow global error handler to process it
+      throw error;
     }
   }
 
@@ -178,13 +180,14 @@ export class AuthService {
       );
 
       if (!response || !response.message) {
-        return false;
+        throw new Error('Failed to resend verification code');
       }
 
       return true;
     } catch (error) {
       console.error('Resend verification code failed:', error);
-      return false;
+      // Re-throw to allow global error handler to process it
+      throw error;
     }
   }
 
@@ -193,7 +196,7 @@ export class AuthService {
       const currentToken = this.getAuthToken();
 
       if (!currentToken) {
-        return false;
+        throw new Error('No authentication token available for refresh');
       }
 
       const response = await firstValueFrom(
@@ -209,7 +212,7 @@ export class AuthService {
       );
 
       if (!response || !response.token) {
-        return false;
+        throw new Error('Invalid token refresh response from server');
       }
 
       // Update the stored token
@@ -217,7 +220,15 @@ export class AuthService {
       return true;
     } catch (error) {
       console.error('Token refresh failed:', error);
-      return false;
+      // For token refresh, we want to fail silently in some cases (handled by interceptor)
+      // But still throw for unexpected errors
+      if (
+        error instanceof Error &&
+        error.message.includes('No authentication token')
+      ) {
+        return false;
+      }
+      throw error;
     }
   }
 

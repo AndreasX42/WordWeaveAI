@@ -31,7 +31,7 @@ func JWTMiddleware(userService *services.UserService) (*jwt.GinJWTMiddleware, er
 		Realm:       "restapi",
 		Key:         []byte(secretKey),
 		Timeout:     time.Duration(expirationMinutes) * time.Minute,
-		MaxRefresh:  time.Duration(2) * time.Hour,
+		MaxRefresh:  time.Duration(0) * time.Hour,
 		IdentityKey: identityKey,
 
 		Authenticator: func(c *gin.Context) (interface{}, error) {

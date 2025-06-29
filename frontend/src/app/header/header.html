@@ -81,6 +81,12 @@
         <span>{{ themeService.isDarkMode() ? "Light" : "Dark" }}</span>
       </button>
 
+      <!-- Health Dashboard (always visible, after theme toggle) -->
+      <button mat-menu-item (click)="onHealth()">
+        <mat-icon>monitor_heart</mat-icon>
+        <span>Health Dashboard</span>
+      </button>
+
       <mat-divider></mat-divider>
 
       @if (authService.isLoggedIn()) {

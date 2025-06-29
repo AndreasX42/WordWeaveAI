@@ -124,13 +124,19 @@ export class AuthInterceptor implements HttpInterceptor {
           } else {
             // Refresh failed, logout and redirect
             this.handleSessionExpired();
-            return throwError(() => new Error('Session expired'));
+            // Create a more specific error that won't trigger additional user messages
+            const sessionError = new Error('Session expired');
+            (sessionError as any).handledByInterceptor = true;
+            return throwError(() => sessionError);
           }
         }),
         catchError(() => {
           this.isRefreshing = false;
           this.handleSessionExpired();
-          return throwError(() => new Error('Session expired'));
+          // Create a more specific error that won't trigger additional user messages
+          const sessionError = new Error('Session expired');
+          (sessionError as any).handledByInterceptor = true;
+          return throwError(() => sessionError);
         })
       );
     } else {

@@ -40,4 +40,11 @@ export const routes: Routes = [
       import('./auth/profile/profile').then((mod) => mod.Profile),
     canActivate: [AuthGuard],
   },
+  {
+    path: 'health',
+    loadComponent: () =>
+      import('./health/health-dashboard').then(
+        (mod) => mod.HealthDashboardComponent
+      ),
+  },
 ];

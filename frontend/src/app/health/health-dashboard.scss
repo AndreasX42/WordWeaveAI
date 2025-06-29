@@ -1,0 +1,509 @@
+.health-dashboard {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    gap: 16px;
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+
+      h1 {
+        margin: 0;
+        font-size: 2.5rem;
+        font-weight: 300;
+        color: var(--mat-toolbar-container-text-color);
+      }
+
+      .overall-health {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px;
+        border-radius: 24px;
+        font-weight: 500;
+        font-size: 1.1rem;
+
+        mat-icon {
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+        }
+
+        &.status-excellent {
+          background-color: rgba(76, 175, 80, 0.1);
+          color: #4caf50;
+          border: 2px solid rgba(76, 175, 80, 0.3);
+        }
+
+        &.status-good {
+          background-color: rgba(33, 150, 243, 0.1);
+          color: #2196f3;
+          border: 2px solid rgba(33, 150, 243, 0.3);
+        }
+
+        &.status-poor {
+          background-color: rgba(244, 67, 54, 0.1);
+          color: #f44336;
+          border: 2px solid rgba(244, 67, 54, 0.3);
+        }
+      }
+    }
+
+    .dashboard-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+
+      button {
+        min-width: 120px;
+
+        mat-icon {
+          margin-right: 8px;
+        }
+      }
+    }
+  }
+
+  .metrics-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 32px;
+
+    .metric-card {
+      position: relative;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      border-radius: 12px;
+      overflow: hidden;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      }
+
+      mat-card-header {
+        mat-card-title {
+          font-size: 1.1rem;
+          font-weight: 500;
+        }
+
+        mat-card-subtitle {
+          font-size: 0.85rem;
+          margin-top: 4px;
+          opacity: 0.7;
+        }
+
+        .mat-mdc-card-avatar {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          mat-icon {
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+          }
+        }
+      }
+
+      mat-card-content {
+        .metric-value {
+          font-size: 2.2rem;
+          font-weight: 600;
+          margin: 12px 0;
+          color: var(--mat-primary-color);
+        }
+
+        .metric-status {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-weight: 500;
+
+          mat-icon {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+          }
+        }
+      }
+
+      // Status-based card styling
+      &.status-excellent {
+        border-left: 4px solid #4caf50;
+
+        .mat-mdc-card-avatar {
+          background-color: rgba(76, 175, 80, 0.1);
+          color: #4caf50;
+        }
+
+        .metric-status {
+          color: #4caf50;
+        }
+      }
+
+      &.status-good {
+        border-left: 4px solid #2196f3;
+
+        .mat-mdc-card-avatar {
+          background-color: rgba(33, 150, 243, 0.1);
+          color: #2196f3;
+        }
+
+        .metric-status {
+          color: #2196f3;
+        }
+      }
+
+      &.status-poor {
+        border-left: 4px solid #f44336;
+
+        .mat-mdc-card-avatar {
+          background-color: rgba(244, 67, 54, 0.1);
+          color: #f44336;
+        }
+
+        .metric-status {
+          color: #f44336;
+        }
+      }
+    }
+  }
+
+  .metrics-table-card {
+    border-radius: 12px;
+
+    mat-card-header {
+      mat-card-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 1.3rem;
+
+        mat-icon {
+          color: var(--mat-primary-color);
+        }
+      }
+    }
+
+    .table-container {
+      overflow-x: auto;
+      margin-top: 16px;
+
+      .metrics-table {
+        width: 100%;
+        min-width: 800px;
+
+        th {
+          font-weight: 600;
+          color: var(--mat-toolbar-container-text-color);
+        }
+
+        td {
+          padding: 12px 8px;
+        }
+
+        .status-indicator {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-weight: 500;
+
+          mat-icon {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+          }
+
+          &.status-excellent {
+            color: #4caf50;
+          }
+
+          &.status-good {
+            color: #2196f3;
+          }
+
+          &.status-poor {
+            color: #f44336;
+          }
+        }
+
+        .page-cell {
+          font-family: "Roboto Mono", monospace;
+          font-size: 0.9rem;
+          max-width: 200px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .time-cell {
+          font-size: 0.85rem;
+          opacity: 0.8;
+          min-width: 140px;
+        }
+      }
+
+      mat-paginator {
+        margin-top: 16px;
+        border-top: 1px solid rgba(0, 0, 0, 0.12);
+        padding-top: 16px;
+      }
+    }
+
+    .no-data {
+      text-align: center;
+      padding: 64px 32px;
+      color: var(--mat-toolbar-container-text-color);
+      opacity: 0.8;
+      position: relative;
+      z-index: 1;
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+
+      mat-icon {
+        font-size: 4rem;
+        width: 4rem;
+        height: 4rem;
+        margin-bottom: 24px;
+        opacity: 0.6;
+        color: var(--mat-primary-color);
+      }
+
+      p {
+        margin: 12px 0;
+        font-size: 1.1rem;
+        line-height: 1.5;
+
+        &:first-of-type {
+          font-size: 1.3rem;
+          font-weight: 500;
+          margin-bottom: 16px;
+        }
+
+        &:last-of-type {
+          margin-bottom: 24px;
+          opacity: 0.8;
+        }
+      }
+
+      button {
+        margin: 8px auto 0 auto;
+        padding: 12px 32px;
+        font-size: 1.1rem;
+        font-weight: 500;
+        min-width: 160px;
+        height: 48px;
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+
+        mat-icon {
+          font-size: 1.2rem;
+          width: 1.2rem;
+          height: 1.2rem;
+          margin: 0;
+        }
+      }
+    }
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .health-dashboard {
+    padding: 16px;
+
+    .dashboard-header {
+      flex-direction: column;
+      align-items: stretch;
+
+      .header-content {
+        justify-content: center;
+        text-align: center;
+
+        h1 {
+          font-size: 2rem;
+        }
+      }
+
+      .dashboard-actions {
+        justify-content: center;
+
+        button {
+          flex: 1;
+          min-width: auto;
+        }
+      }
+    }
+
+    .metrics-summary {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .metrics-table-card {
+      .table-container {
+        .metrics-table {
+          min-width: 600px;
+        }
+      }
+    }
+  }
+}
+
+// Dark mode adjustments
+:host-context(.dark-theme) {
+  .health-dashboard {
+    .dashboard-header {
+      .header-content {
+        h1 {
+          color: #ffffff;
+        }
+
+        .overall-health {
+          &.status-excellent {
+            background-color: rgba(76, 175, 80, 0.15);
+            border-color: rgba(76, 175, 80, 0.4);
+          }
+
+          &.status-good {
+            background-color: rgba(33, 150, 243, 0.15);
+            border-color: rgba(33, 150, 243, 0.4);
+          }
+
+          &.status-poor {
+            background-color: rgba(244, 67, 54, 0.15);
+            border-color: rgba(244, 67, 54, 0.4);
+          }
+        }
+      }
+    }
+
+    .metric-card {
+      background-color: #2d2d2d;
+      color: #ffffff;
+
+      mat-card-header {
+        mat-card-title {
+          color: #ffffff;
+        }
+
+        mat-card-subtitle {
+          color: rgba(255, 255, 255, 0.7);
+        }
+      }
+
+      mat-card-content {
+        .metric-value {
+          color: #ffffff;
+        }
+      }
+
+      &.status-excellent {
+        .mat-mdc-card-avatar {
+          background-color: rgba(76, 175, 80, 0.15);
+        }
+      }
+
+      &.status-good {
+        .mat-mdc-card-avatar {
+          background-color: rgba(33, 150, 243, 0.15);
+        }
+      }
+
+      &.status-poor {
+        .mat-mdc-card-avatar {
+          background-color: rgba(244, 67, 54, 0.15);
+        }
+      }
+    }
+
+    .metrics-table-card {
+      background-color: #2d2d2d;
+      color: #ffffff;
+
+      mat-card-header {
+        mat-card-title {
+          color: #ffffff;
+        }
+      }
+
+      .metrics-table {
+        background-color: #2d2d2d;
+        color: #ffffff;
+
+        th {
+          color: #ffffff;
+          background-color: #1e1e1e;
+        }
+
+        td {
+          color: rgba(255, 255, 255, 0.9);
+          border-bottom-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .mat-mdc-row:hover {
+          background-color: rgba(255, 255, 255, 0.05);
+        }
+      }
+
+      mat-paginator {
+        background-color: #2d2d2d;
+        color: #ffffff;
+        border-top-color: rgba(255, 255, 255, 0.12);
+      }
+
+      .no-data {
+        color: rgba(255, 255, 255, 0.8);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+
+        mat-icon {
+          color: rgba(255, 255, 255, 0.6);
+        }
+
+        p {
+          &:last-of-type {
+            color: rgba(255, 255, 255, 0.7);
+          }
+        }
+
+        button {
+          background-color: var(--mat-primary-color);
+          color: #ffffff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          margin: 8px auto 0 auto;
+
+          mat-icon {
+            color: #ffffff;
+            margin: 0;
+          }
+        }
+      }
+    }
+  }
+}

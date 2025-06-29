@@ -670,6 +670,13 @@ export class UpdateAccountDialog {
     } catch (error: any) {
       console.error('Account update error:', error);
 
+      // Don't show message for session expired errors - they're handled by the interceptor
+      if (error?.message === 'Session expired') {
+        // Session expired is already handled by auth interceptor, just close dialog
+        this.dialogRef.close();
+        return;
+      }
+
       const errorMessage =
         error?.message || 'Failed to update account. Please try again.';
       this.messageService.showErrorMessage(errorMessage);

@@ -1,0 +1,263 @@
+<div class="health-dashboard">
+  <!-- Header Section -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <h1>Health Dashboard</h1>
+      <div class="overall-health" [class]="getOverallHealthClass()">
+        <mat-icon>{{ getOverallHealthIcon() }}</mat-icon>
+        <span>{{ overallHealth() | titlecase }}</span>
+      </div>
+    </div>
+
+    <div class="dashboard-actions">
+      <button mat-raised-button color="primary" (click)="refreshData()">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+      <button mat-raised-button (click)="exportData()">
+        <mat-icon>download</mat-icon>
+        Export
+      </button>
+      <button mat-raised-button color="warn" (click)="clearAllData()">
+        <mat-icon>clear</mat-icon>
+        Clear All
+      </button>
+    </div>
+  </div>
+
+  <!-- Key Metrics Summary -->
+  @if (metrics().length > 0) {
+  <div class="metrics-summary">
+    <mat-card
+      class="metric-card"
+      [class]="getStatusClass(getSummaryStatus(summary().pageLoad, 'pageLoad'))"
+    >
+      <mat-card-header>
+        <mat-icon mat-card-avatar>speed</mat-icon>
+        <mat-card-title>Page Load</mat-card-title>
+        <mat-card-subtitle>{{
+          getMetricDescription("Page Load")
+        }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="metric-value">
+          {{ formatValue(summary().pageLoad, "ms") }}
+        </div>
+        <div class="metric-status">
+          <mat-icon>{{
+            getStatusIcon(getSummaryStatus(summary().pageLoad, "pageLoad"))
+          }}</mat-icon>
+          <span>{{
+            getSummaryStatus(summary().pageLoad, "pageLoad") | titlecase
+          }}</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card
+      class="metric-card"
+      [class]="getStatusClass(getSummaryStatus(summary().fcp, 'fcp'))"
+    >
+      <mat-card-header>
+        <mat-icon mat-card-avatar>flash_on</mat-icon>
+        <mat-card-title>First Contentful Paint</mat-card-title>
+        <mat-card-subtitle>{{
+          getMetricDescription("First Contentful Paint")
+        }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="metric-value">
+          {{ formatValue(summary().fcp, "ms") }}
+        </div>
+        <div class="metric-status">
+          <mat-icon>{{
+            getStatusIcon(getSummaryStatus(summary().fcp, "fcp"))
+          }}</mat-icon>
+          <span>{{ getSummaryStatus(summary().fcp, "fcp") | titlecase }}</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card
+      class="metric-card"
+      [class]="getStatusClass(getSummaryStatus(summary().lcp, 'lcp'))"
+    >
+      <mat-card-header>
+        <mat-icon mat-card-avatar>image</mat-icon>
+        <mat-card-title>Largest Contentful Paint</mat-card-title>
+        <mat-card-subtitle>{{
+          getMetricDescription("Largest Contentful Paint")
+        }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="metric-value">
+          {{ formatValue(summary().lcp, "ms") }}
+        </div>
+        <div class="metric-status">
+          <mat-icon>{{
+            getStatusIcon(getSummaryStatus(summary().lcp, "lcp"))
+          }}</mat-icon>
+          <span>{{ getSummaryStatus(summary().lcp, "lcp") | titlecase }}</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card
+      class="metric-card"
+      [class]="getStatusClass(getSummaryStatus(summary().tti, 'tti'))"
+    >
+      <mat-card-header>
+        <mat-icon mat-card-avatar>touch_app</mat-icon>
+        <mat-card-title>Time to Interactive</mat-card-title>
+        <mat-card-subtitle>{{
+          getMetricDescription("Time to Interactive")
+        }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="metric-value">
+          {{ formatValue(summary().tti, "ms") }}
+        </div>
+        <div class="metric-status">
+          <mat-icon>{{
+            getStatusIcon(getSummaryStatus(summary().tti, "tti"))
+          }}</mat-icon>
+          <span>{{ getSummaryStatus(summary().tti, "tti") | titlecase }}</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card
+      class="metric-card"
+      [class]="getStatusClass(getSummaryStatus(summary().cls, 'cls'))"
+    >
+      <mat-card-header>
+        <mat-icon mat-card-avatar>view_quilt</mat-icon>
+        <mat-card-title>Layout Shift</mat-card-title>
+        <mat-card-subtitle>{{
+          getMetricDescription("Cumulative Layout Shift")
+        }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="metric-value">
+          {{ formatValue(summary().cls, "score") }}
+        </div>
+        <div class="metric-status">
+          <mat-icon>{{
+            getStatusIcon(getSummaryStatus(summary().cls, "cls"))
+          }}</mat-icon>
+          <span>{{ getSummaryStatus(summary().cls, "cls") | titlecase }}</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card
+      class="metric-card"
+      [class]="getStatusClass(getSummaryStatus(summary().memory, 'memory'))"
+    >
+      <mat-card-header>
+        <mat-icon mat-card-avatar>memory</mat-icon>
+        <mat-card-title>Memory Usage</mat-card-title>
+        <mat-card-subtitle>{{
+          getMetricDescription("Memory Usage")
+        }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="metric-value">
+          {{ formatValue(summary().memory, "MB") }}
+        </div>
+        <div class="metric-status">
+          <mat-icon>{{
+            getStatusIcon(getSummaryStatus(summary().memory, "memory"))
+          }}</mat-icon>
+          <span>{{
+            getSummaryStatus(summary().memory, "memory") | titlecase
+          }}</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+  }
+
+  <!-- Detailed Metrics Table -->
+  <mat-card class="metrics-table-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>table_chart</mat-icon>
+        Recent Metrics History
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      @if (metrics().length > 0) {
+      <div class="table-container">
+        <table
+          mat-table
+          [dataSource]="paginatedMetrics()"
+          class="metrics-table"
+        >
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>Metric</th>
+            <td mat-cell *matCellDef="let metric">{{ metric.name }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="value">
+            <th mat-header-cell *matHeaderCellDef>Value</th>
+            <td mat-cell *matCellDef="let metric">
+              {{ formatValue(metric.value, metric.unit) }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let metric">
+              <div
+                class="status-indicator"
+                [class]="getStatusClass(metric.status)"
+              >
+                <mat-icon>{{ getStatusIcon(metric.status) }}</mat-icon>
+                <span>{{ metric.status | titlecase }}</span>
+              </div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="page">
+            <th mat-header-cell *matHeaderCellDef>Page</th>
+            <td mat-cell *matCellDef="let metric" class="page-cell">
+              {{ metric.page }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="timestamp">
+            <th mat-header-cell *matHeaderCellDef>Time</th>
+            <td mat-cell *matCellDef="let metric" class="time-cell">
+              {{ formatTimestamp(metric.timestamp) }}
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        </table>
+
+        <mat-paginator
+          [length]="totalMetrics()"
+          [pageSize]="pageSize"
+          [pageSizeOptions]="[5, 10, 20, 50]"
+          [pageIndex]="currentPage"
+          (page)="onPageChange($event)"
+          showFirstLastButtons
+        >
+        </mat-paginator>
+      </div>
+      } @else {
+      <div class="no-data">
+        <mat-icon>info</mat-icon>
+        <p>No health metrics collected yet.</p>
+        <p>Navigate around the app to start collecting performance data.</p>
+        <button mat-raised-button color="primary" (click)="refreshData()">
+          <mat-icon>refresh</mat-icon>
+          Collect Now
+        </button>
+      </div>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

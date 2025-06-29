@@ -60,4 +60,8 @@ export class Header {
   onProfile(): void {
     this.router.navigate(['/profile']);
   }
+
+  onHealth(): void {
+    this.router.navigate(['/health']);
+  }
 }
