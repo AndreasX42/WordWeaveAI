@@ -9,6 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.69
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.43.3
 	github.com/aws/aws-sdk-go-v2/service/ses v1.30.3
+	github.com/getsentry/sentry-go v0.34.0
 	github.com/gin-contrib/cors v1.7.5
 	github.com/gin-gonic/gin v1.10.1
 	github.com/google/uuid v1.6.0

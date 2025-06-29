@@ -1,13 +1,17 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/AndreasX42/restapi/config"
 	"github.com/AndreasX42/restapi/middlewares"
@@ -30,11 +34,47 @@ func main() {
 	// Configure CORS middleware
 	server.Use(cors.New(middlewares.GetCORSConfig()))
 
+	// Configure Sentry middleware
+	server.Use(middlewares.SentryMiddleware(container.SentryConfig))
+
 	// Register routes with dependency injection
 	registerRoutes(server, container)
 
-	// Start server
-	server.Run(":8080")
+	// Create HTTP server
+	srv := &http.Server{
+		Addr:    ":8080",
+		Handler: server,
+	}
+
+	// Start server in a goroutine
+	go func() {
+		log.Println("Starting server on :8080")
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %s\n", err)
+		}
+	}()
+
+	// Wait for interrupt signal to gracefully shut down the server
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutting down server...")
+
+	// Flush Sentry events
+	if container.SentryConfig != nil {
+		log.Println("Flushing Sentry events...")
+		container.SentryConfig.Flush()
+	}
+
+	// Give a 5-second timeout for the server to finish handling requests
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal("Server forced to shutdown:", err)
+	}
+
+	log.Println("Server exiting")
 }
 
 func registerRoutes(server *gin.Engine, container *config.Container) {
@@ -62,6 +102,9 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 
 		// Search routes
 		api.POST("/search", container.SearchHandler.SearchVocabulary)
+
+		// Logging routes (public, but can be secured later if needed)
+		api.POST("/log", container.SentryHandler.LogEvent)
 
 		// JWT routes
 		api.POST("/auth/login", authMiddleware.LoginHandler)

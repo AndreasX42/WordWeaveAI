@@ -33,9 +33,11 @@ type Container struct {
 	SearchHandler       *handlers.SearchHandler
 	VocabListHandler    *handlers.VocabListHandler
 	OAuthHandler        *handlers.OAuthHandler
+	SentryHandler       *handlers.SentryHandler
 	DynamoDB            *dynamo.DB
 	SESClient           *ses.Client
 	GoogleOAuthConfig   *GoogleOAuthConfig
+	SentryConfig        *SentryConfig
 }
 
 // NewContainer creates and wires all dependencies
@@ -49,6 +51,10 @@ func NewContainer() *Container {
 	// Initialize OAuth configuration
 	log.Println("Initializing OAuth configuration")
 	container.initOAuth()
+
+	// Initialize Sentry configuration
+	log.Println("Initializing Sentry configuration")
+	container.initSentry()
 
 	// Initialize repositories
 	log.Println("Initializing repositories")
@@ -117,6 +123,10 @@ func (c *Container) initOAuth() {
 	c.GoogleOAuthConfig = NewGoogleOAuthConfig()
 }
 
+func (c *Container) initSentry() {
+	c.SentryConfig = NewSentryConfig()
+}
+
 func (c *Container) initRepositories() {
 	// Create DynamoDB table references
 	usersTable := c.DynamoDB.Table(utils.GetTableName(os.Getenv("DYNAMODB_USER_TABLE_NAME")))
@@ -142,6 +152,7 @@ func (c *Container) initHandlers() {
 	c.SearchHandler = handlers.NewSearchHandler(c.VocabService)
 	c.VocabListHandler = handlers.NewVocabListHandler(c.VocabListService)
 	c.OAuthHandler = handlers.NewOAuthHandler(c.UserService, c.GoogleOAuthConfig.Config)
+	c.SentryHandler = handlers.NewSentryHandler(c.SentryConfig.Client)
 }
 
 func (c *Container) createTables() {

@@ -1,6 +1,7 @@
 import { Injectable, ErrorHandler, inject, NgZone } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MessageService } from '../../services/message.service';
+import { Configs } from '../config';
 
 @Injectable({
   providedIn: 'root',
@@ -16,11 +17,6 @@ export class GlobalErrorHandler implements ErrorHandler {
     // Skip errors that are already handled by interceptors
     if (this.isHandledByInterceptor(error)) {
       // Only log for monitoring, don't show user message
-      console.log(
-        'Global error handler: Skipping error already handled by interceptor:',
-        error?.message || error,
-        '(No duplicate message will be shown)'
-      );
       this.sendToMonitoring(error);
       return;
     }
@@ -48,7 +44,6 @@ export class GlobalErrorHandler implements ErrorHandler {
       }
     });
 
-    // Send error to monitoring service (implement when available)
     this.sendToMonitoring(error);
   }
 
@@ -263,10 +258,7 @@ export class GlobalErrorHandler implements ErrorHandler {
     return false;
   }
 
-  private sendToMonitoring(error: any): void {
-    // TODO: Implement monitoring service integration
-    // This could send errors to services like Sentry, LogRocket, etc.
-
+  private async sendToMonitoring(error: any): Promise<void> {
     // Enhanced error data for monitoring
     const errorData = {
       timestamp: new Date().toISOString(),
@@ -287,7 +279,27 @@ export class GlobalErrorHandler implements ErrorHandler {
       },
     };
 
-    console.log('Error data for monitoring:', errorData);
+    try {
+      // Send to your Sentry API endpoint
+      await fetch(`${Configs.BASE_URL}${Configs.LOG_URL}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Add auth header if the endpoint requires authentication
+          // 'Authorization': `Bearer ${this.getAuthToken()}`
+        },
+        body: JSON.stringify(errorData),
+      });
+
+      console.log('Error sent to monitoring service');
+    } catch (loggingError) {
+      // Fallback to console logging if API fails
+      console.error(
+        'Failed to send error to monitoring service:',
+        loggingError
+      );
+      console.log('Original error data:', errorData);
+    }
   }
 
   private getErrorType(error: any): string {

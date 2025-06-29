@@ -15,4 +15,7 @@ export class Configs {
   // users
   static readonly UPDATE_ACCOUNT_URL = '/users/update';
   static readonly DELETE_ACCOUNT_URL = '/users/delete';
+
+  // logging
+  static readonly LOG_URL = '/log';
 }
