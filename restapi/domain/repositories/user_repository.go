@@ -6,6 +6,12 @@ import (
 	"github.com/AndreasX42/restapi/domain/entities"
 )
 
+// ValidationResult holds the result of existence checks
+type ValidationResult struct {
+	EmailExists    bool
+	UsernameExists bool
+}
+
 // UserRepository defines the contract for user data operations
 type UserRepository interface {
 	Create(ctx context.Context, user *entities.User) error
@@ -17,6 +23,7 @@ type UserRepository interface {
 	Delete(ctx context.Context, id string) error
 	EmailExists(ctx context.Context, email string) (bool, error)
 	UsernameExists(ctx context.Context, username string) (bool, error)
+	BatchValidateExistence(ctx context.Context, email, username string) (*ValidationResult, error)
 }
 
 // EmailService defines the contract for email operations

@@ -97,7 +97,7 @@ export class Verify {
         this.verifyError.set(errorMessage);
         this.messageService.showErrorMessage(errorMessage);
       }
-    } catch (error) {
+    } catch {
       this.isVerifying.set(false);
       const errorMessage = 'Verification failed. Please try again.';
       this.verifyError.set(errorMessage);
@@ -127,7 +127,7 @@ export class Verify {
           'Failed to resend code. Please try again.'
         );
       }
-    } catch (error) {
+    } catch {
       this.messageService.showErrorMessage(
         'Failed to resend code. Please try again.'
       );

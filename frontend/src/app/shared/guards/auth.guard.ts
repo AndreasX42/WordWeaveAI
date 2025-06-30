@@ -9,7 +9,6 @@ import { MessageService } from '../../services/message.service';
 export class AuthGuard implements CanActivate {
   private authService = inject(AuthService);
   private router = inject(Router);
-
   private messageService = inject(MessageService);
 
   canActivate(): boolean {

@@ -150,21 +150,83 @@ func (r *DynamoUserRepository) Delete(ctx context.Context, id string) error {
 }
 
 func (r *DynamoUserRepository) EmailExists(ctx context.Context, email string) (bool, error) {
-	count, err := r.table.Get("email", email).
+	var record UserRecord
+	err := r.table.Get("email", email).
 		Index("EmailIndex").
-		Count(ctx)
+		Limit(1).
+		One(ctx, &record)
+
 	if err != nil {
+		if errors.Is(err, dynamo.ErrNotFound) {
+			return false, nil
+		}
 		return false, err
 	}
-	return count > 0, nil
+	return true, nil
 }
 
 func (r *DynamoUserRepository) UsernameExists(ctx context.Context, username string) (bool, error) {
-	count, err := r.table.Get("username", username).
+	var record UserRecord
+	err := r.table.Get("username", username).
 		Index("UsernameIndex").
-		Count(ctx)
+		Limit(1).
+		One(ctx, &record)
+
 	if err != nil {
+		if errors.Is(err, dynamo.ErrNotFound) {
+			return false, nil
+		}
 		return false, err
 	}
-	return count > 0, nil
+	return true, nil
+}
+
+func (r *DynamoUserRepository) BatchValidateExistence(ctx context.Context, email, username string) (*repositories.ValidationResult, error) {
+	result := &repositories.ValidationResult{}
+
+	// Use channels to handle concurrent queries
+	type checkResult struct {
+		exists bool
+		err    error
+	}
+
+	emailChan := make(chan checkResult, 1)
+	usernameChan := make(chan checkResult, 1)
+
+	// Concurrent email existence check
+	if email != "" {
+		go func() {
+			exists, err := r.EmailExists(ctx, email)
+			emailChan <- checkResult{exists: exists, err: err}
+		}()
+	} else {
+		emailChan <- checkResult{exists: false, err: nil}
+	}
+
+	// Concurrent username existence check
+	if username != "" {
+		go func() {
+			exists, err := r.UsernameExists(ctx, username)
+			usernameChan <- checkResult{exists: exists, err: err}
+		}()
+	} else {
+		usernameChan <- checkResult{exists: false, err: nil}
+	}
+
+	// Wait for both results
+	emailResult := <-emailChan
+	usernameResult := <-usernameChan
+
+	// Check for errors
+	if emailResult.err != nil {
+		return nil, emailResult.err
+	}
+	if usernameResult.err != nil {
+		return nil, usernameResult.err
+	}
+
+	result.EmailExists = emailResult.exists
+	result.UsernameExists = usernameResult.exists
+
+	return result, nil
 }

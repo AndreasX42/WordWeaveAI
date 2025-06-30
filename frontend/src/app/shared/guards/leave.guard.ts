@@ -1,13 +1,26 @@
 import { CanDeactivateFn } from '@angular/router';
+import { FormGroup } from '@angular/forms';
 
-export const canLeaveEditPage: CanDeactivateFn<any> = (component) => {
+interface CanDeactivateEditComponent {
+  form?: FormGroup;
+}
+
+interface CanDeactivateSolveComponent {
+  isCompleted(): boolean;
+}
+
+export const canLeaveEditPage: CanDeactivateFn<CanDeactivateEditComponent> = (
+  component
+) => {
   if (component.form && component.form.touched && component.form.invalid) {
     return window.confirm('Do you really want to leave?');
   }
   return true;
 };
 
-export const canLeaveSolvePage: CanDeactivateFn<any> = (component) => {
+export const canLeaveSolvePage: CanDeactivateFn<CanDeactivateSolveComponent> = (
+  component
+) => {
   if (component.isCompleted()) {
     return true;
   }

@@ -20,16 +20,15 @@ export class AuthInterceptor implements HttpInterceptor {
   private router = inject(Router);
 
   private isRefreshing = false;
-  private refreshTokenSubject: BehaviorSubject<any> = new BehaviorSubject<any>(
-    null
-  );
+  private refreshTokenSubject: BehaviorSubject<string | null> =
+    new BehaviorSubject<string | null>(null);
 
   intercept(
     request: HttpRequest<unknown>,
     next: HttpHandler
   ): Observable<HttpEvent<unknown>> {
     // Add auth header for token-based authentication
-    let authRequest = this.addAuthHeader(request);
+    const authRequest = this.addAuthHeader(request);
 
     return next.handle(authRequest).pipe(
       catchError((error: HttpErrorResponse) => {
@@ -42,7 +41,7 @@ export class AuthInterceptor implements HttpInterceptor {
     );
   }
 
-  private addAuthHeader(request: HttpRequest<any>): HttpRequest<any> {
+  private addAuthHeader(request: HttpRequest<unknown>): HttpRequest<unknown> {
     // Don't add auth header to auth endpoints that don't need it
     const authNotRequiredEndpoints = [
       Configs.LOGIN_URL,
@@ -75,7 +74,7 @@ export class AuthInterceptor implements HttpInterceptor {
     return request;
   }
 
-  private shouldAttemptRefresh(request: HttpRequest<any>): boolean {
+  private shouldAttemptRefresh(request: HttpRequest<unknown>): boolean {
     // Don't attempt refresh if user is not logged in
     if (!this.authService.isLoggedIn()) {
       return false;
@@ -99,9 +98,9 @@ export class AuthInterceptor implements HttpInterceptor {
   }
 
   private handle401Error(
-    request: HttpRequest<any>,
+    request: HttpRequest<unknown>,
     next: HttpHandler
-  ): Observable<HttpEvent<any>> {
+  ): Observable<HttpEvent<unknown>> {
     if (!this.isRefreshing) {
       this.isRefreshing = true;
       this.refreshTokenSubject.next(null);
@@ -126,8 +125,10 @@ export class AuthInterceptor implements HttpInterceptor {
             // Refresh failed, logout and redirect
             this.handleSessionExpired();
             // Create a more specific error that won't trigger additional user messages
-            const sessionError = new Error('Session expired');
-            (sessionError as any).handledByInterceptor = true;
+            const sessionError = new Error('Session expired') as Error & {
+              handledByInterceptor?: boolean;
+            };
+            sessionError.handledByInterceptor = true;
             return throwError(() => sessionError);
           }
         }),
@@ -135,8 +136,10 @@ export class AuthInterceptor implements HttpInterceptor {
           this.isRefreshing = false;
           this.handleSessionExpired();
           // Create a more specific error that won't trigger additional user messages
-          const sessionError = new Error('Session expired');
-          (sessionError as any).handledByInterceptor = true;
+          const sessionError = new Error('Session expired') as Error & {
+            handledByInterceptor?: boolean;
+          };
+          sessionError.handledByInterceptor = true;
           return throwError(() => sessionError);
         })
       );

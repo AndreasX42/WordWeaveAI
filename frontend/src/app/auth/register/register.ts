@@ -145,12 +145,18 @@ export class Register {
         queryParams: { email: email },
         replaceUrl: true,
       });
-    } catch (error: any) {
+    } catch (error) {
       this.isRegistering.set(false);
 
       // Check for specific backend error messages
+      const errorObj = error as {
+        error?: {
+          details?: { error?: string };
+          message?: string;
+        };
+      };
       const backendError =
-        error?.error?.details?.error || error?.error?.message || '';
+        errorObj?.error?.details?.error || errorObj?.error?.message || '';
       const isUsernameExists = backendError
         .toLowerCase()
         .includes('username already exists');

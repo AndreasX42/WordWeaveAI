@@ -686,9 +686,13 @@ export class UpdateAccountDialog {
 
     try {
       const formData = this.form.value;
-      const updateData: any = {
-        username: formData.username,
-        email: formData.email,
+      const updateData: {
+        username: string;
+        email: string;
+        password?: string;
+      } = {
+        username: formData.username ?? '',
+        email: formData.email ?? '',
       };
 
       // Only include password if it's provided
@@ -706,18 +710,21 @@ export class UpdateAccountDialog {
           'Failed to update account. Please try again.'
         );
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Account update error:', error);
 
       // Don't show message for session expired errors - they're handled by the interceptor
-      if (error?.message === 'Session expired') {
+      const errorMessageFromError = (error as { message?: string })?.message;
+      if (errorMessageFromError === 'Session expired') {
         // Session expired is already handled by auth interceptor, just close dialog
         this.dialogRef.close();
         return;
       }
 
       // Check for specific field validation errors from backend
-      const backendError = error?.error?.details?.error || '';
+      const backendError =
+        (error as { error?: { details?: { error?: string } } })?.error?.details
+          ?.error || '';
 
       if (backendError === 'email already exists') {
         this.emailErrorMessage.set('This email is already registered');
@@ -735,7 +742,8 @@ export class UpdateAccountDialog {
 
       // For other errors, show generic message
       const errorMessage =
-        error?.message || 'Failed to update account. Please try again.';
+        (error as { message?: string })?.message ||
+        'Failed to update account. Please try again.';
       this.messageService.showErrorMessage(errorMessage);
     } finally {
       this.isUpdating.set(false);

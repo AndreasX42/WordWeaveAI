@@ -1,9 +1,16 @@
 <mat-toolbar color="primary" class="header-toolbar">
   <!-- Left side - App name and logo -->
-  <div class="left-section" (click)="onLogoClick()">
+  <button
+    type="button"
+    class="left-section logo-button"
+    (click)="onLogoClick()"
+    (keydown.enter)="onLogoClick()"
+    (keydown.space)="onLogoClick()"
+    aria-label="Go to home page"
+  >
     <mat-icon class="app-icon">edit</mat-icon>
     <span class="app-title">{{ title() }}</span>
-  </div>
+  </button>
 
   <span class="spacer"></span>
 

@@ -21,7 +21,7 @@ export class MessageService {
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
 
-  showSuccessMessage(message: string, duration: number = 3000): void {
+  showSuccessMessage(message: string, duration = 3000): void {
     this.snackBar.open(message, 'Close', {
       duration,
       panelClass: ['success-snackbar'],
@@ -30,7 +30,7 @@ export class MessageService {
     });
   }
 
-  showErrorMessage(message: string, duration: number = 5000): void {
+  showErrorMessage(message: string, duration = 5000): void {
     this.snackBar.open(message, 'Close', {
       duration,
       panelClass: ['error-snackbar'],
@@ -39,7 +39,7 @@ export class MessageService {
     });
   }
 
-  showWarningMessage(message: string, duration: number = 4000): void {
+  showWarningMessage(message: string, duration = 4000): void {
     this.snackBar.open(message, 'Close', {
       duration,
       panelClass: ['warning-snackbar'],
@@ -48,7 +48,7 @@ export class MessageService {
     });
   }
 
-  showInfoMessage(message: string, duration: number = 3000): void {
+  showInfoMessage(message: string, duration = 3000): void {
     this.snackBar.open(message, 'Close', {
       duration,
       panelClass: ['info-snackbar'],

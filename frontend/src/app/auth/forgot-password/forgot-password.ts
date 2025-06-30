@@ -10,7 +10,7 @@ import { MatIcon } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { ErrorManagerFactory } from '../../shared/error.manager.factory';
 import { AuthService } from '../../services/auth.service';
 import { MessageService } from '../../services/message.service';
@@ -101,12 +101,18 @@ export class ForgotPassword {
         this.forgotPasswordError.set(errorMessage);
         this.messageService.showErrorMessage(errorMessage);
       }
-    } catch (error: any) {
+    } catch (error) {
       this.isSubmitting.set(false);
 
       // Extract specific error message from backend if available
+      const errorObj = error as {
+        error?: {
+          message?: string;
+          details?: { error?: string };
+        };
+      };
       const backendMessage =
-        error?.error?.message || error?.error?.details?.error || '';
+        errorObj?.error?.message || errorObj?.error?.details?.error || '';
       const errorMessage =
         backendMessage || 'Failed to send reset email. Please try again.';
 

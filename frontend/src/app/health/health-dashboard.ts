@@ -84,7 +84,7 @@ export class HealthDashboardComponent implements OnInit, OnDestroy {
     this.paginatedMetrics.set(sortedMetrics.slice(startIndex, endIndex));
   }
 
-  onPageChange(event: any): void {
+  onPageChange(event: { pageIndex: number; pageSize: number }): void {
     this.currentPage = event.pageIndex;
     this.pageSize = event.pageSize;
     this.updatePaginatedMetrics();

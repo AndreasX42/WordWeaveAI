@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, computed, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { User } from '../models/user.model';
@@ -9,7 +9,6 @@ import {
   ResendCodeResponse,
   RefreshTokenResponse,
   ResetPasswordResponse,
-  DeleteAccountErrorResponse,
 } from '../models/auth.models';
 import { Configs } from '../shared/config';
 
@@ -20,8 +19,14 @@ export class AuthService {
   private readonly TOKEN_KEY = 'auth_token';
   private readonly USER_KEY = 'auth_user';
 
-  private _isLoggedIn: boolean = false;
-  private _user: User | null = null;
+  // Convert to signals for better reactivity
+  private _isLoggedIn = signal<boolean>(false);
+  private _user = signal<User | null>(null);
+
+  // Public computed signals
+  public isLoggedIn = computed(() => this._isLoggedIn());
+  public user = computed(() => this._user());
+
   private httpClient = inject(HttpClient);
 
   constructor() {
@@ -36,21 +41,13 @@ export class AuthService {
 
       if (token && userStr) {
         const user = JSON.parse(userStr);
-        this._isLoggedIn = true;
-        this._user = user;
+        this._isLoggedIn.set(true);
+        this._user.set(user);
       }
-    } catch (error) {
+    } catch {
       // If anything fails, just stay logged out
       this.clearAuth();
     }
-  }
-
-  isLoggedIn(): boolean {
-    return this._isLoggedIn;
-  }
-
-  user(): User | null {
-    return this._user;
   }
 
   async login(email: string, password: string): Promise<boolean> {
@@ -84,20 +81,23 @@ export class AuthService {
       };
 
       // Set authentication state
-      this._isLoggedIn = true;
-      this._user = user;
+      this._isLoggedIn.set(true);
+      this._user.set(user);
 
       // Store in localStorage
       localStorage.setItem(this.TOKEN_KEY, token);
       localStorage.setItem(this.USER_KEY, JSON.stringify(user));
 
       return true;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Login failed:', error);
 
-      // Extract error details
+      // Extract error details safely
+      const httpError = error as {
+        error?: { details?: { error?: string }; message?: string };
+      };
       const errorDetails =
-        error?.error?.details?.error || error?.error?.message || '';
+        httpError?.error?.details?.error || httpError?.error?.message || '';
 
       // Handle specific error cases
       if (errorDetails.toLowerCase().includes('invalid credentials')) {
@@ -264,7 +264,17 @@ export class AuthService {
     try {
       // Call /api/auth/me endpoint - JWT cookie will be sent automatically
       const response = await firstValueFrom(
-        this.httpClient.get<any>(`${Configs.BASE_URL}${Configs.AUTH_ME_URL}`, {
+        this.httpClient.get<{
+          user: {
+            id: string;
+            username: string;
+            email: string;
+            confirmedEmail?: boolean;
+            profileImage?: string;
+            isAdmin?: boolean;
+          };
+          token: string;
+        }>(`${Configs.BASE_URL}${Configs.AUTH_ME_URL}`, {
           withCredentials: true, // Include cookies in request
         })
       );
@@ -289,8 +299,8 @@ export class AuthService {
       localStorage.setItem(this.TOKEN_KEY, response.token);
 
       // Set authentication state
-      this._isLoggedIn = true;
-      this._user = user;
+      this._isLoggedIn.set(true);
+      this._user.set(user);
 
       // Store user in localStorage
       localStorage.setItem(this.USER_KEY, JSON.stringify(user));
@@ -311,8 +321,8 @@ export class AuthService {
   }
 
   private clearAuth(): void {
-    this._isLoggedIn = false;
-    this._user = null;
+    this._isLoggedIn.set(false);
+    this._user.set(null);
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
   }
@@ -327,7 +337,7 @@ export class AuthService {
         throw new Error('No authentication token found');
       }
 
-      const response = await firstValueFrom(
+      await firstValueFrom(
         this.httpClient.put(
           `${Configs.BASE_URL}${Configs.UPDATE_ACCOUNT_URL}`,
           updateData
@@ -335,25 +345,29 @@ export class AuthService {
       );
 
       // If update includes email or username, update the local user object
-      if (this._user) {
-        this._user.username = updateData.username;
-        this._user.email = updateData.email;
-        localStorage.setItem(this.USER_KEY, JSON.stringify(this._user));
+      const currentUser = this._user();
+      if (currentUser) {
+        this._user.set({
+          ...currentUser,
+          username: updateData.username,
+          email: updateData.email,
+        });
+        localStorage.setItem(this.USER_KEY, JSON.stringify(this._user()));
       }
 
       return true;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Account update failed:', error);
 
       // Check if this is a session expired error from the interceptor
-      if (error?.message === 'Session expired') {
+      if ((error as Error)?.message === 'Session expired') {
         // Re-throw the session expired error
         throw error;
       }
 
       // Preserve the original HTTP error structure for the dialog to handle
       // Mark it as handled by component to prevent global error handler from showing messages
-      (error as any).handledByComponent = true;
+      (error as { handledByComponent?: boolean }).handledByComponent = true;
 
       throw error;
     }
@@ -372,18 +386,18 @@ export class AuthService {
       );
 
       this.clearAuth();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Account deletion failed:', error);
 
       // Check if this is a session expired error from the interceptor
-      if (error?.message === 'Session expired') {
+      if ((error as Error)?.message === 'Session expired') {
         // Re-throw the session expired error
         throw error;
       }
 
       // Preserve the original HTTP error structure for the component to handle
       // Mark it as handled by component to prevent global error handler from showing messages
-      (error as any).handledByComponent = true;
+      (error as { handledByComponent?: boolean }).handledByComponent = true;
 
       throw error;
     }

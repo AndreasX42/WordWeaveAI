@@ -60,20 +60,16 @@ type OAuthUserRequest struct {
 }
 
 func (s *UserService) RegisterUser(ctx context.Context, req RegisterUserRequest) (*entities.User, error) {
-	// Check if user already exists
-	emailExists, err := s.userRepo.EmailExists(ctx, req.Email)
+	// Batch validate email and username existence
+	validationResult, err := s.userRepo.BatchValidateExistence(ctx, req.Email, req.Username)
 	if err != nil {
 		return nil, err
-	}
-	if emailExists {
-		return nil, errors.New("email already exists")
 	}
 
-	usernameExists, err := s.userRepo.UsernameExists(ctx, req.Username)
-	if err != nil {
-		return nil, err
+	if validationResult.EmailExists {
+		return nil, errors.New("email already exists")
 	}
-	if usernameExists {
+	if validationResult.UsernameExists {
 		return nil, errors.New("username already exists")
 	}
 
@@ -212,28 +208,42 @@ func (s *UserService) GetUserByID(ctx context.Context, userID string) (*entities
 func (s *UserService) UpdateUser(ctx context.Context, req UpdateUserRequest) error {
 	user := req.User
 
-	// Validate username uniqueness if it's being changed
-	if req.Username != "" && req.Username != user.Username {
-		usernameExists, err := s.userRepo.UsernameExists(ctx, req.Username)
-		if err != nil {
-			return err
-		}
-		if usernameExists {
-			return errors.New("username already exists")
-		}
-		user.Username = req.Username
-	}
+	// Determine what validations are needed
+	needsEmailValidation := req.Email != "" && req.Email != user.Email
+	needsUsernameValidation := req.Username != "" && req.Username != user.Username
 
-	// Validate email uniqueness if it's being changed
-	if req.Email != "" && req.Email != user.Email {
-		emailExists, err := s.userRepo.EmailExists(ctx, req.Email)
+	// Batch validate existence if any validation is needed
+	if needsEmailValidation || needsUsernameValidation {
+		emailToCheck := ""
+		usernameToCheck := ""
+
+		if needsEmailValidation {
+			emailToCheck = req.Email
+		}
+		if needsUsernameValidation {
+			usernameToCheck = req.Username
+		}
+
+		validationResult, err := s.userRepo.BatchValidateExistence(ctx, emailToCheck, usernameToCheck)
 		if err != nil {
 			return err
 		}
-		if emailExists {
+
+		// Check validation results
+		if needsEmailValidation && validationResult.EmailExists {
 			return errors.New("email already exists")
 		}
-		user.Email = req.Email
+		if needsUsernameValidation && validationResult.UsernameExists {
+			return errors.New("username already exists")
+		}
+
+		// Update fields if validation passed
+		if needsEmailValidation {
+			user.Email = req.Email
+		}
+		if needsUsernameValidation {
+			user.Username = req.Username
+		}
 	}
 
 	// Update password if provided

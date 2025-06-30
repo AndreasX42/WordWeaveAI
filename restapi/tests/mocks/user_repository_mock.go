@@ -182,3 +182,22 @@ func (m *MockUserRepository) UsernameExists(ctx context.Context, username string
 	_, exists := m.usernameIndex[username]
 	return exists, nil
 }
+
+func (m *MockUserRepository) BatchValidateExistence(ctx context.Context, email, username string) (*repositories.ValidationResult, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+
+	result := &repositories.ValidationResult{}
+
+	if email != "" {
+		_, exists := m.emailIndex[email]
+		result.EmailExists = exists
+	}
+
+	if username != "" {
+		_, exists := m.usernameIndex[username]
+		result.UsernameExists = exists
+	}
+
+	return result, nil
+}

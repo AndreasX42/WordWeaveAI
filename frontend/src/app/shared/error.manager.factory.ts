@@ -11,7 +11,7 @@ export class ErrorManagerFactory {
   static getFormErrorManager(
     control: AbstractControl,
     setErrorMessage: (message: string) => void,
-    errorMessages: { [key: string]: string }
+    errorMessages: Record<string, string>
   ) {
     return () => {
       if (control.valid || control.untouched) {

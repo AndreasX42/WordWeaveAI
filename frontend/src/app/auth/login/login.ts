@@ -105,10 +105,10 @@ export class Login {
           'Invalid credentials. Please try again.'
         );
       }
-    } catch (error: any) {
+    } catch (error) {
       this.isLoggingIn.set(false);
 
-      const errorMessage = error?.message || '';
+      const errorMessage = (error as { message?: string })?.message || '';
 
       switch (errorMessage) {
         case 'EMAIL_NOT_VERIFIED':
@@ -149,7 +149,7 @@ export class Login {
     try {
       // Redirect to Google OAuth flow via backend
       this.authService.googleLogin();
-    } catch (error) {
+    } catch {
       this.isLoggingIn.set(false);
       this.messageService.showErrorMessage(
         'Failed to initiate Google login. Please try again.'

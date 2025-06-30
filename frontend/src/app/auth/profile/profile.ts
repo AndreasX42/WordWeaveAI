@@ -12,6 +12,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
 import { MessageService } from '../../services/message.service';
+import { User } from '../../models/user.model';
 import { UpdateAccountDialog } from './update-account-dialog';
 
 @Component({
@@ -37,7 +38,7 @@ export class Profile implements OnInit {
 
   selectedDarkMode = signal(false);
   sessionTimeLeft = signal<string>('Loading...');
-  user = signal<any>(null);
+  user = signal<User | null>(null);
 
   constructor() {
     // Check if user is logged in, redirect if not
@@ -108,10 +109,10 @@ export class Profile implements OnInit {
         // If we reach here, deletion was successful
         this.messageService.showSuccessMessage('Account deleted successfully!');
         this.router.navigate(['/home'], { replaceUrl: true });
-      } catch (error: any) {
+      } catch (error) {
         console.error('Account deletion error:', error);
 
-        const errorMessage = error?.message || '';
+        const errorMessage = (error as { message?: string })?.message || '';
 
         if (errorMessage === 'Session expired') {
           return;

@@ -10,7 +10,7 @@ export class ErrorHandlerUtil {
    */
   static async handleAsyncOperation<T>(
     operation: () => Promise<T>,
-    context: string = 'Operation'
+    context = 'Operation'
   ): Promise<T> {
     try {
       return await operation();
@@ -29,10 +29,7 @@ export class ErrorHandlerUtil {
   /**
    * Wraps synchronous operations that might throw to ensure proper error handling
    */
-  static handleSyncOperation<T>(
-    operation: () => T,
-    context: string = 'Operation'
-  ): T {
+  static handleSyncOperation<T>(operation: () => T, context = 'Operation'): T {
     try {
       return operation();
     } catch (error) {
@@ -52,18 +49,22 @@ export class ErrorHandlerUtil {
    */
   static createOperationError(
     operation: string,
-    originalError?: any,
-    details?: any
+    originalError?: unknown,
+    details?: unknown
   ): Error {
     const message = `${operation} failed${
       originalError ? ': ' + this.extractErrorMessage(originalError) : ''
     }`;
-    const error = new Error(message);
+    const error = new Error(message) as Error & {
+      originalError?: unknown;
+      operation?: string;
+      details?: unknown;
+    };
 
     // Attach additional context
-    (error as any).originalError = originalError;
-    (error as any).operation = operation;
-    (error as any).details = details;
+    error.originalError = originalError;
+    error.operation = operation;
+    error.details = details;
 
     return error;
   }
@@ -71,7 +72,7 @@ export class ErrorHandlerUtil {
   /**
    * Extracts user-friendly error message from various error types
    */
-  static extractErrorMessage(error: any): string {
+  static extractErrorMessage(error: unknown): string {
     if (!error) return 'Unknown error';
 
     // HTTP errors
@@ -94,17 +95,20 @@ export class ErrorHandlerUtil {
       return error;
     }
 
-    // Object errors
-    if (error?.message) {
-      return error.message;
+    // Object errors with safe property access
+    const errorObj = error as Record<string, unknown>;
+    if (errorObj?.['message'] && typeof errorObj['message'] === 'string') {
+      return errorObj['message'];
     }
 
-    if (error?.error?.message) {
-      return error.error.message;
+    const errorProp = errorObj?.['error'] as Record<string, unknown>;
+    if (errorProp?.['message'] && typeof errorProp['message'] === 'string') {
+      return errorProp['message'];
     }
 
-    if (error?.details?.error) {
-      return error.details.error;
+    const detailsProp = errorObj?.['details'] as Record<string, unknown>;
+    if (detailsProp?.['error'] && typeof detailsProp['error'] === 'string') {
+      return detailsProp['error'];
     }
 
     return 'Unknown error occurred';
@@ -113,7 +117,7 @@ export class ErrorHandlerUtil {
   /**
    * Determines if an error should be handled silently (no user notification)
    */
-  static shouldHandleSilently(error: any): boolean {
+  static shouldHandleSilently(error: unknown): boolean {
     // Handle certain errors silently
     const silentErrors = [
       'AbortError', // Cancelled requests
@@ -131,14 +135,14 @@ export class ErrorHandlerUtil {
    * Creates an enhanced error with operation context
    */
   static enhanceError(
-    error: any,
+    error: unknown,
     context: {
       operation?: string;
       component?: string;
       userId?: string;
       attempts?: number;
       maxRetries?: number;
-      additional?: any;
+      additional?: unknown;
     }
   ): Error {
     const message = this.extractErrorMessage(error);
@@ -149,7 +153,9 @@ export class ErrorHandlerUtil {
       originalError: error,
       context,
       timestamp: new Date().toISOString(),
-      stack: error?.stack || enhancedError.stack,
+      stack:
+        (error instanceof Error ? error.stack : undefined) ||
+        enhancedError.stack,
     });
 
     return enhancedError;
@@ -197,7 +203,7 @@ export class ErrorHandlerUtil {
       maxRetries?: number;
       delay?: number;
       context?: string;
-      shouldRetry?: (error: any) => boolean;
+      shouldRetry?: (error: unknown) => boolean;
     } = {}
   ): Promise<T> {
     const {
@@ -207,7 +213,7 @@ export class ErrorHandlerUtil {
       shouldRetry = (error) => !this.shouldHandleSilently(error),
     } = options;
 
-    let lastError: any;
+    let lastError: unknown;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {

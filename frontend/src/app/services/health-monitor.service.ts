@@ -1,6 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Injectable, DestroyRef, inject, ErrorHandler } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { PoorHealthError } from '../models/errors.model';
 
 export interface HealthMetric {
   id: string;
@@ -26,11 +28,15 @@ export interface HealthSummary {
 })
 export class HealthMonitorService {
   private metrics: HealthMetric[] = [];
-  private currentPage: string = '/';
+  private currentPage = '/';
   private readonly STORAGE_KEY = 'health_metrics';
   private readonly MAX_METRICS = 100;
+  private destroyRef = inject(DestroyRef);
+  private router = inject(Router);
+  private errorHandler = inject(ErrorHandler);
+  private poorHealthReported = false;
 
-  constructor(private router: Router) {
+  constructor() {
     this.loadMetricsFromStorage();
     this.initializeRouteTracking();
     this.startMonitoring();
@@ -38,10 +44,12 @@ export class HealthMonitorService {
 
   private initializeRouteTracking(): void {
     this.router.events
-      .pipe(filter((event) => event instanceof NavigationEnd))
+      .pipe(
+        filter((event) => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe((event: NavigationEnd) => {
         this.currentPage = event.url;
-        this.capturePageMetrics();
       });
   }
 
@@ -50,57 +58,52 @@ export class HealthMonitorService {
     this.monitorFCP();
     this.monitorLCP();
     this.monitorCLS();
-    this.monitorTTI();
+    this.monitorPageTimings();
 
     // Monitor memory usage every 10 seconds
     setInterval(() => {
       this.monitorMemoryUsage();
     }, 10000);
-
-    // Monitor page load on navigation
-    this.monitorPageLoad();
   }
 
-  private capturePageMetrics(): void {
-    // Only capture real page load metrics on actual navigation, not manual refresh
-    // This prevents recording incorrect high values when refreshing manually
-    if (performance.timing && performance.timing.loadEventEnd > 0) {
-      setTimeout(() => {
-        const loadTime =
-          performance.timing.loadEventEnd - performance.timing.navigationStart;
-        // Only record reasonable load times (> 0ms and < 30 seconds) to avoid stale/invalid data
-        if (
-          loadTime > 0 &&
-          loadTime < 30000 &&
-          performance.timing.navigationStart > 0
-        ) {
-          this.addMetric(
-            'Page Load',
-            loadTime,
-            'ms',
-            this.getPageLoadStatus(loadTime)
-          );
-        }
-      }, 100);
-    }
-  }
-
-  private monitorPageLoad(): void {
+  private monitorPageTimings(): void {
     window.addEventListener('load', () => {
-      const loadTime =
-        performance.timing.loadEventEnd - performance.timing.navigationStart;
-      this.addMetric(
-        'Page Load',
-        loadTime,
-        'ms',
-        this.getPageLoadStatus(loadTime)
-      );
+      // Use setTimeout to run this after the load event has fully completed,
+      // ensuring the navigation timing metrics are accurate.
+      setTimeout(() => {
+        const navEntries = performance.getEntriesByType('navigation');
+        if (navEntries.length > 0) {
+          const navTiming = navEntries[0] as PerformanceNavigationTiming;
+
+          // Page Load
+          const loadTime = navTiming.duration;
+          if (loadTime > 0) {
+            this.addMetric(
+              'Page Load',
+              loadTime,
+              'ms',
+              this.getPageLoadStatus(loadTime)
+            );
+          }
+
+          // TTI
+          const tti = navTiming.domInteractive;
+          if (tti > 0) {
+            this.addMetric(
+              'Time to Interactive',
+              tti,
+              'ms',
+              this.getTTIStatus(tti)
+            );
+          }
+        }
+      }, 0);
     });
   }
 
   private monitorFCP(): void {
     if ('PerformanceObserver' in window) {
-      const observer = new PerformanceObserver((entryList) => {
+      const observer = new PerformanceObserver((entryList, obs) => {
         for (const entry of entryList.getEntries()) {
           if (entry.name === 'first-contentful-paint') {
             const fcp = entry.startTime;
@@ -110,13 +113,15 @@ export class HealthMonitorService {
               'ms',
               this.getFCPStatus(fcp)
             );
+            // Disconnect the observer after FCP is recorded to avoid multiple entries.
+            obs.disconnect();
           }
         }
       });
 
       try {
-        observer.observe({ entryTypes: ['paint'] });
-      } catch (e) {
+        observer.observe({ type: 'paint', buffered: true });
+      } catch {
         console.warn('FCP monitoring not supported');
       }
     }
@@ -125,8 +130,11 @@ export class HealthMonitorService {
   private monitorLCP(): void {
     if ('PerformanceObserver' in window) {
       const observer = new PerformanceObserver((entryList) => {
-        for (const entry of entryList.getEntries()) {
-          const lcp = entry.startTime;
+        const entries = entryList.getEntries();
+        if (entries.length > 0) {
+          // The last entry is the most up-to-date LCP value.
+          const lcpEntry = entries[entries.length - 1];
+          const lcp = lcpEntry.startTime;
           this.addMetric(
             'Largest Contentful Paint',
             lcp,
@@ -137,8 +145,8 @@ export class HealthMonitorService {
       });
 
       try {
-        observer.observe({ entryTypes: ['largest-contentful-paint'] });
-      } catch (e) {
+        observer.observe({ type: 'largest-contentful-paint', buffered: true });
+      } catch {
         console.warn('LCP monitoring not supported');
       }
     }
@@ -149,48 +157,43 @@ export class HealthMonitorService {
       let clsValue = 0;
       const observer = new PerformanceObserver((entryList) => {
         for (const entry of entryList.getEntries()) {
-          if (!(entry as any).hadRecentInput) {
-            clsValue += (entry as any).value;
+          const layoutShiftEntry = entry as PerformanceEntry & {
+            hadRecentInput?: boolean;
+            value: number;
+          };
+          if (!layoutShiftEntry.hadRecentInput) {
+            clsValue += layoutShiftEntry.value;
           }
         }
-        if (clsValue > 0) {
-          this.addMetric(
-            'Cumulative Layout Shift',
-            clsValue * 1000,
-            'score',
-            this.getCLSStatus(clsValue)
-          );
-        }
+        // Report final CLS value when page is hidden.
+        this.addMetric(
+          'Cumulative Layout Shift',
+          clsValue * 1000,
+          'score',
+          this.getCLSStatus(clsValue)
+        );
       });
 
       try {
-        observer.observe({ entryTypes: ['layout-shift'] });
-      } catch (e) {
+        observer.observe({ type: 'layout-shift', buffered: true });
+
+        // Report CLS when the page is hidden
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'hidden') {
+            observer.takeRecords();
+            observer.disconnect();
+          }
+        });
+      } catch {
         console.warn('CLS monitoring not supported');
       }
     }
   }
 
-  private monitorTTI(): void {
-    // Simplified TTI calculation
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        const tti =
-          performance.timing.domInteractive -
-          performance.timing.navigationStart;
-        this.addMetric(
-          'Time to Interactive',
-          tti,
-          'ms',
-          this.getTTIStatus(tti)
-        );
-      }, 100);
-    });
-  }
-
   private monitorMemoryUsage(): void {
     if ('memory' in performance) {
-      const memory = (performance as any).memory;
+      const memory = (performance as { memory: { usedJSHeapSize: number } })
+        .memory;
       const usedMB = Math.round(memory.usedJSHeapSize / 1024 / 1024);
       this.addMetric(
         'Memory Usage',
@@ -225,6 +228,7 @@ export class HealthMonitorService {
     }
 
     this.saveMetricsToStorage();
+    this.checkHealthAndReport();
   }
 
   // Status calculation methods
@@ -262,6 +266,29 @@ export class HealthMonitorService {
     if (mb < 50) return 'excellent';
     if (mb < 100) return 'good';
     return 'poor';
+  }
+
+  /**
+   * Checks the overall health and reports to the global error handler if it is 'poor'.
+   * To avoid log spam, it only reports the first time health degrades.
+   * The flag is reset when health improves.
+   */
+  private checkHealthAndReport(): void {
+    const health = this.getOverallHealth();
+    if (health === 'poor') {
+      if (!this.poorHealthReported) {
+        const recentMetrics = this.getRecentMetrics();
+        const error = new PoorHealthError(
+          'User experience performance has degraded to "poor".',
+          recentMetrics
+        );
+        this.errorHandler.handleError(error);
+        this.poorHealthReported = true;
+      }
+    } else {
+      // Health is good or excellent, so reset the flag.
+      this.poorHealthReported = false;
+    }
   }
 
   // Storage methods
@@ -303,7 +330,7 @@ export class HealthMonitorService {
     return [...this.metrics];
   }
 
-  getRecentMetrics(count: number = 20): HealthMetric[] {
+  getRecentMetrics(count = 20): HealthMetric[] {
     return this.metrics.slice(-count);
   }
 

@@ -78,13 +78,18 @@
           <div class="resend-section">
             <p class="resend-text">
               Didn't receive the code?
-              <a
+              <button
+                type="button"
                 (click)="onResendCode()"
+                (keydown.enter)="onResendCode()"
+                (keydown.space)="onResendCode()"
                 class="resend-link"
                 [class.disabled]="isResending() || !canResend()"
+                [disabled]="isResending() || !canResend()"
+                aria-label="Resend verification code"
               >
                 {{ getResendButtonText() }}
-              </a>
+              </button>
             </p>
           </div>
         </form>

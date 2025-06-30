@@ -185,15 +185,21 @@
         margin: 0;
 
         .resend-link {
-          color: var(--primary-color);
+          color: inherit;
           text-decoration: none;
-          font-weight: 600;
+          font-weight: normal;
           cursor: pointer;
           transition: color 0.2s ease;
 
+          // Reset button styles
+          background: none;
+          border: none;
+          padding: 0;
+          font: inherit;
+
           &:hover:not(.disabled) {
-            color: var(--primary-color-dark);
-            text-decoration: underline;
+            color: var(--primary-color);
+            text-decoration: none;
           }
 
           &.disabled {

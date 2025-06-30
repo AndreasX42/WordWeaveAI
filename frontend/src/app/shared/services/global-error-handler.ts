@@ -2,6 +2,7 @@ import { Injectable, ErrorHandler, inject, NgZone } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MessageService } from '../../services/message.service';
 import { Configs } from '../config';
+import { PoorHealthError } from '../../models/errors.model';
 
 @Injectable({
   providedIn: 'root',
@@ -10,7 +11,7 @@ export class GlobalErrorHandler implements ErrorHandler {
   private messageService = inject(MessageService);
   private ngZone = inject(NgZone);
 
-  handleError(error: any): void {
+  handleError(error: unknown): void {
     // Log error to console for debugging
     console.error('Global error caught:', error);
 
@@ -56,15 +57,16 @@ export class GlobalErrorHandler implements ErrorHandler {
     this.sendToMonitoring(error);
   }
 
-  private isHttpError(error: any): boolean {
+  private isHttpError(error: unknown): boolean {
     return (
       error instanceof HttpErrorResponse ||
-      (error?.status !== undefined && typeof error.status === 'number')
+      ((error as { status?: unknown })?.status !== undefined &&
+        typeof (error as { status: unknown }).status === 'number')
     );
   }
 
-  private handleHttpError(error: HttpErrorResponse | any): void {
-    const status = error.status || 0;
+  private handleHttpError(error: HttpErrorResponse | unknown): void {
+    const status = (error as { status?: number }).status || 0;
 
     // Check if this is a validation error from update account endpoint
     if (this.isUpdateAccountValidationError(error)) {
@@ -81,13 +83,14 @@ export class GlobalErrorHandler implements ErrorHandler {
         );
         break;
 
-      case 400:
+      case 400: {
         // Bad request
         const badRequestMessage =
           this.extractErrorMessage(error) ||
           'Please check your input and try again.';
         this.messageService.showErrorMessage(badRequestMessage, 4000);
         break;
+      }
 
       case 401:
         // Unauthorized - this should be handled by interceptor
@@ -120,13 +123,14 @@ export class GlobalErrorHandler implements ErrorHandler {
         );
         break;
 
-      case 422:
+      case 422: {
         // Validation error
         const validationMessage =
           this.extractErrorMessage(error) ||
           'Please check your input and try again.';
         this.messageService.showErrorMessage(validationMessage, 4000);
         break;
+      }
 
       case 429:
         // Too many requests
@@ -154,41 +158,50 @@ export class GlobalErrorHandler implements ErrorHandler {
         );
         break;
 
-      default:
+      default: {
         // Generic HTTP error
         const genericMessage =
           this.extractErrorMessage(error) ||
           `Request failed (${status}). Please try again.`;
         this.messageService.showErrorMessage(genericMessage, 5000);
+      }
     }
   }
 
-  private isChunkLoadError(error: any): boolean {
-    return (
-      error?.message?.includes('Loading chunk') ||
-      error?.message?.includes('Loading CSS chunk') ||
-      error?.message?.includes('ChunkLoadError')
+  private isChunkLoadError(error: unknown): boolean {
+    const message = (error as { message?: string })?.message;
+    return Boolean(
+      message?.includes('Loading chunk') ||
+        message?.includes('Loading CSS chunk') ||
+        message?.includes('ChunkLoadError')
     );
   }
 
-  private isScriptError(error: any): boolean {
+  private isScriptError(error: unknown): boolean {
+    const message = (error as { message?: string })?.message;
     return (
-      error?.message?.includes('Script error') ||
-      error?.message?.includes('Non-Error promise rejection') ||
+      message?.includes('Script error') ||
+      message?.includes('Non-Error promise rejection') ||
       (error instanceof Error && error.name === 'ScriptError')
     );
   }
 
-  private isPromiseRejection(error: any): boolean {
+  private isPromiseRejection(error: unknown): boolean {
+    const errorObj = error as {
+      rejection?: unknown;
+      promise?: unknown;
+      reason?: unknown;
+    };
     return (
-      error?.rejection !== undefined ||
-      error?.promise !== undefined ||
-      error?.reason !== undefined
+      errorObj?.rejection !== undefined ||
+      errorObj?.promise !== undefined ||
+      errorObj?.reason !== undefined
     );
   }
 
-  private handlePromiseRejection(error: any): void {
-    const rejectionReason = error.rejection || error.reason || error;
+  private handlePromiseRejection(error: unknown): void {
+    const errorObj = error as { rejection?: unknown; reason?: unknown };
+    const rejectionReason = errorObj.rejection || errorObj.reason || error;
 
     // If it's an HTTP error in the promise rejection, handle it as such
     if (this.isHttpError(rejectionReason)) {
@@ -201,28 +214,36 @@ export class GlobalErrorHandler implements ErrorHandler {
     this.messageService.showErrorMessage(message, 5000);
   }
 
-  private extractErrorMessage(error: any): string | null {
+  private extractErrorMessage(error: unknown): string | null {
     // Try multiple paths to extract meaningful error message
-    if (error?.error?.details?.error) {
-      return error.error.details.error;
+    const errorObj = error as {
+      error?: { details?: { error?: string }; message?: string };
+      message?: string;
+    };
+
+    if (errorObj?.error?.details?.error) {
+      return errorObj.error.details.error;
     }
 
-    if (error?.error?.message) {
-      return error.error.message;
+    if (errorObj?.error?.message) {
+      return errorObj.error.message;
     }
 
-    if (error?.error && typeof error.error === 'string') {
-      return error.error;
+    if (
+      (errorObj as { error?: unknown }).error &&
+      typeof (errorObj as { error: unknown }).error === 'string'
+    ) {
+      return (errorObj as { error: string }).error;
     }
 
-    if (error?.message && typeof error.message === 'string') {
-      return error.message;
+    if (errorObj?.message && typeof errorObj.message === 'string') {
+      return errorObj.message;
     }
 
     return null;
   }
 
-  private getUserFriendlyMessage(error: any): string {
+  private getUserFriendlyMessage(error: unknown): string {
     // First try to extract a meaningful message
     const extractedMessage = this.extractErrorMessage(error);
     if (extractedMessage) {
@@ -261,34 +282,45 @@ export class GlobalErrorHandler implements ErrorHandler {
     return 'An unexpected error occurred. Please try again.';
   }
 
-  private isHandledByInterceptor(error: any): boolean {
+  private isHandledByInterceptor(error: unknown): boolean {
     // Check if this error is already handled by the auth interceptor
-    if (error?.handledByInterceptor === true) {
+    const errorWithInterceptorFlag = error as {
+      handledByInterceptor?: boolean;
+      message?: string;
+      status?: number;
+    };
+    if (errorWithInterceptorFlag?.handledByInterceptor === true) {
       return true;
     }
 
     // Check for session expired errors
-    if (error?.message === 'Session expired') {
+    if (errorWithInterceptorFlag?.message === 'Session expired') {
       return true;
     }
 
     // Also check for 401 errors that might bypass the interceptor check
-    if (error?.status === 401 && error instanceof HttpErrorResponse) {
+    if (
+      errorWithInterceptorFlag?.status === 401 &&
+      error instanceof HttpErrorResponse
+    ) {
       return true;
     }
 
     return false;
   }
 
-  private isHandledByComponent(error: any): boolean {
-    // Check if this error has been marked as handled by a component
-    return error?.handledByComponent === true;
+  private isHandledByComponent(error: unknown): boolean {
+    // Check if this error has been marked as a handled by component
+    return (
+      (error as { handledByComponent?: boolean })?.handledByComponent === true
+    );
   }
 
-  private isUpdateAccountValidationError(error: any): boolean {
+  private isUpdateAccountValidationError(error: unknown): boolean {
     // Check if this is a validation error from the update account endpoint
-    const url = error?.url || '';
-    const status = error?.status;
+    const errorWithUrl = error as { url?: string; status?: number };
+    const url = errorWithUrl?.url || '';
+    const status = errorWithUrl?.status;
 
     // Skip validation errors from update endpoint - these are handled by components
     if (
@@ -301,25 +333,40 @@ export class GlobalErrorHandler implements ErrorHandler {
     return false;
   }
 
-  private async sendToMonitoring(error: any): Promise<void> {
+  private async sendToMonitoring(error: unknown): Promise<void> {
+    const errorWithMessage = error as {
+      message?: string;
+      stack?: string;
+      status?: number;
+      statusText?: string;
+      url?: string;
+    };
+
+    const context: Record<string, unknown> = {
+      currentUrl: window.location.href,
+      userId: this.getCurrentUserId(),
+      sessionId: this.getSessionId(),
+    };
+
+    // If it's a health error, add metrics to the context for rich logging.
+    if (error instanceof PoorHealthError) {
+      context['healthMetrics'] = error.metrics;
+    }
+
     // Enhanced error data for monitoring
     const errorData = {
       timestamp: new Date().toISOString(),
       error: {
-        message: error?.message || 'Unknown error',
-        stack: error?.stack,
-        status: error?.status,
-        statusText: error?.statusText,
-        url: error?.url || window.location.href,
+        message: errorWithMessage?.message || 'Unknown error',
+        stack: errorWithMessage?.stack,
+        status: errorWithMessage?.status,
+        statusText: errorWithMessage?.statusText,
+        url: errorWithMessage?.url || window.location.href,
         userAgent: navigator.userAgent,
         type: this.getErrorType(error),
         originalError: this.sanitizeErrorForLogging(error),
       },
-      context: {
-        currentUrl: window.location.href,
-        userId: this.getCurrentUserId(),
-        sessionId: this.getSessionId(),
-      },
+      context,
     };
 
     try {
@@ -345,7 +392,7 @@ export class GlobalErrorHandler implements ErrorHandler {
     }
   }
 
-  private getErrorType(error: any): string {
+  private getErrorType(error: unknown): string {
     if (this.isHttpError(error)) return 'HTTP';
     if (this.isChunkLoadError(error)) return 'CHUNK_LOAD';
     if (this.isScriptError(error)) return 'SCRIPT';
@@ -356,7 +403,7 @@ export class GlobalErrorHandler implements ErrorHandler {
     return 'UNKNOWN';
   }
 
-  private sanitizeErrorForLogging(error: any): any {
+  private sanitizeErrorForLogging(error: unknown): unknown {
     // Remove sensitive data and circular references for logging
     try {
       return JSON.parse(
@@ -373,7 +420,11 @@ export class GlobalErrorHandler implements ErrorHandler {
         })
       );
     } catch {
-      return { message: error?.message || 'Error serialization failed' };
+      return {
+        message:
+          (error as { message?: string })?.message ||
+          'Error serialization failed',
+      };
     }
   }
 
