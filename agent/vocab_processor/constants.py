@@ -1,8 +1,8 @@
 import os
 from enum import Enum
 
-from instructor import Mode, from_openai
-from langchain_openai import ChatOpenAI
+import boto3
+from instructor import Mode, from_bedrock, from_openai
 from openai import AsyncOpenAI
 
 
@@ -106,36 +106,90 @@ class PartOfSpeech(str, Enum):
 client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Cache instructor client to avoid recreation
-_instructor_client_mini = None
-_instructor_client_large = None
+_instructor_oai_gpt4_1_mini = None
+_instructor_oai_gpt4_1 = None
+_instructor_aws_claude4 = None
 
 
-def get_instructor_llm_mini():
+def get_instructor_oai_gpt4_1_mini():
     """Get cached instructor client for gpt-4.1-mini."""
-    global _instructor_client_mini
-    if _instructor_client_mini is None:
-        _instructor_client_mini = from_openai(
+    global _instructor_oai_gpt4_1_mini
+    if _instructor_oai_gpt4_1_mini is None:
+        _instructor_oai_gpt4_1_mini = from_openai(
             client=client,
             model="gpt-4.1-mini-2025-04-14",
             temperature=0.2,
             mode=Mode.JSON,
         )
-    return _instructor_client_mini
+    return _instructor_oai_gpt4_1_mini
 
 
-def get_instructor_llm_large():
+def get_instructor_oai_gpt4_1():
     """Get cached instructor client for gpt-4.1 for validation tasks requiring highest accuracy."""
-    global _instructor_client_large
-    if _instructor_client_large is None:
-        _instructor_client_large = from_openai(
+    global _instructor_oai_gpt4_1
+    if _instructor_oai_gpt4_1 is None:
+        _instructor_oai_gpt4_1 = from_openai(
             client=client,
             model="gpt-4.1-2025-04-14",
             temperature=0.2,
             mode=Mode.JSON,
         )
-    return _instructor_client_large
+    return _instructor_oai_gpt4_1
 
 
-# Convenience variables for easy imports
-instructor_llm = get_instructor_llm_mini()  # Default to mini for cost optimization
-instructor_llm_large = get_instructor_llm_large()  # Full model for validation tasks
+def get_instructor_aws_claude4():
+    """Get cached Instructor client for Claude-4 via AWS Bedrock."""
+    global _instructor_aws_claude4
+    if _instructor_aws_claude4 is None:
+        bedrock_client = boto3.client(
+            "bedrock-runtime", region_name=os.getenv("AWS_REGION", "us-east-1")
+        )
+
+        _instructor_aws_claude4 = from_bedrock(
+            client=bedrock_client,
+            mode=Mode.BEDROCK_JSON,
+            async_client=True,
+            temperature=0.2,
+        )
+
+    return _instructor_aws_claude4
+
+
+instructor_oai_gpt4_1_mini = get_instructor_oai_gpt4_1_mini()
+instructor_oai_gpt4_1 = get_instructor_oai_gpt4_1()
+instructor_aws_claude4 = get_instructor_aws_claude4()
+
+
+class LLMVariant(str, Enum):
+    """Supported LLM back-ends."""
+
+    GPT41M = "gpt41m"  # OpenAI GPT-4.1-mini
+    GPT41 = "gpt41"  # OpenAI GPT-4.1 (full)
+    CLAUDE4S = "claude4s"  # Claude-4 Sonnet via Bedrock
+
+
+# Map each variant to its cached Instructor client
+LLM_PROVIDERS = {
+    LLMVariant.GPT41M: instructor_oai_gpt4_1_mini,
+    LLMVariant.GPT41: instructor_oai_gpt4_1,
+    LLMVariant.CLAUDE4S: instructor_aws_claude4,
+}
+
+
+def get_llm_client(provider: "LLMVariant | str" = LLMVariant.GPT41M):
+    """Return the Instructor client for the requested provider key.
+
+    Accepts either an ``LLMVariant`` enum member or one of its values (case-insensitive string).
+    """
+    if isinstance(provider, LLMVariant):
+        return LLM_PROVIDERS[provider]
+
+    # Fallback: string value → enum lookup (case-insensitive)
+    try:
+        variant = LLMVariant(provider.lower())
+    except ValueError as exc:
+        raise ValueError(
+            f"Unknown LLM provider '{provider}'. Valid options: {[v.value for v in LLMVariant]}"
+        ) from exc
+
+    return LLM_PROVIDERS[variant]

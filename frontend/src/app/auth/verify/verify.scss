@@ -185,22 +185,14 @@
         margin: 0;
 
         .resend-link {
-          color: inherit;
-          text-decoration: none;
-          font-weight: normal;
           cursor: pointer;
-          transition: color 0.2s ease;
 
           // Reset button styles
           background: none;
           border: none;
           padding: 0;
           font: inherit;
-
-          &:hover:not(.disabled) {
-            color: var(--primary-color);
-            text-decoration: none;
-          }
+          font-weight: 500;
 
           &.disabled {
             color: var(--text-secondary);

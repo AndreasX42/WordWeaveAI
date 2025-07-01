@@ -14,17 +14,7 @@ import { MessageService } from '../../services/message.service';
         <h3>Processing OAuth Login...</h3>
         <p>Please wait while we complete your authentication.</p>
         <div style="margin-top: 20px;">
-          <div
-            style="
-            width: 40px; 
-            height: 40px; 
-            border: 4px solid #f3f3f3; 
-            border-top: 4px solid #3498db; 
-            border-radius: 50%; 
-            animation: spin 1s linear infinite; 
-            margin: 0 auto;
-          "
-          ></div>
+          <div class="spinner"></div>
         </div>
       </div>
     </div>
@@ -38,6 +28,16 @@ import { MessageService } from '../../services/message.service';
         100% {
           transform: rotate(360deg);
         }
+      }
+
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
       }
     `,
   ],

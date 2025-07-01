@@ -2,12 +2,9 @@ from typing import List, Optional
 
 from langchain.tools import tool
 from pydantic import BaseModel, Field
-from vocab_processor.constants import Language
-from vocab_processor.tools.base_tool import (
-    SystemMessages,
-    create_llm_response,
-    create_tool_error_response,
-)
+
+from vocab_processor.constants import Language, LLMVariant
+from vocab_processor.tools.base_tool import SystemMessages, create_llm_response
 
 
 class SuggestedWordInfo(BaseModel):
@@ -74,10 +71,9 @@ Output JSON only."""
             response_model=WordValidationResult,
             user_prompt=prompt,
             system_message=SystemMessages.VALIDATION_SPECIALIST,
-            use_large_model=True,  # Use large model for validation accuracy
+            llm_provider=LLMVariant.GPT41,
         )
     except Exception as e:
-        # Create fallback error response
         return WordValidationResult(
             is_valid=False,
             source_language=None,

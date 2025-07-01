@@ -6,6 +6,7 @@
   // Light theme colors
   --primary-color: #1565c0;
   --primary-dark: #0d47a1;
+  --primary-light: #42a5f5;
   --accent-color: #ff4081;
   --warn-color: #f44336;
 
@@ -32,6 +33,7 @@
 body.dark-theme {
   --primary-color: #0d47a1;
   --primary-dark: #0a3d91;
+  --primary-light: #42a5f5;
   --accent-color: #ff4081;
   --warn-color: #f44336;
 
@@ -107,6 +109,15 @@ body.dark-theme {
 
     .mat-mdc-form-field-infix input {
       color: var(--text-primary) !important;
+    }
+  }
+
+  .app-link {
+    color: var(--primary-light);
+
+    &:hover,
+    &:visited {
+      color: var(--primary-light);
     }
   }
 }
@@ -198,5 +209,22 @@ body {
       width: 44px !important;
       height: 24px !important;
     }
+  }
+}
+
+.app-link {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 500;
+
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: underline;
+  }
+
+  &:visited {
+    color: var(--primary-color);
   }
 }

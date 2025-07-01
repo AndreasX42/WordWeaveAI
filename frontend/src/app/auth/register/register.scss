@@ -188,15 +188,7 @@
         margin: 0;
 
         .login-link {
-          color: var(--primary-color);
-          text-decoration: none;
-          font-weight: 600;
-          transition: color 0.2s ease;
-
-          &:hover {
-            color: var(--primary-dark);
-            text-decoration: underline;
-          }
+          /* Styling handled globally by `.app-link` */
         }
       }
     }
@@ -320,7 +312,6 @@
     transform: translateX(2px);
   }
 }
-
 // Dark theme adjustments
 body.dark-theme {
   .register-container {

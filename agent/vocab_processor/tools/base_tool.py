@@ -4,7 +4,8 @@ from typing import Any, Dict, Type, TypeVar
 
 from aws_lambda_powertools import Logger
 from pydantic import BaseModel
-from vocab_processor.constants import instructor_llm, instructor_llm_large
+
+from vocab_processor.constants import LLMVariant, get_llm_client
 
 logger = Logger(service="vocab-processor")
 
@@ -27,7 +28,7 @@ async def create_llm_response(
     response_model: Type[T],
     user_prompt: str,
     system_message: str = SystemMessages.LINGUISTIC_SPECIALIST,
-    use_large_model: bool = False,
+    llm_provider: "LLMVariant | str" = LLMVariant.GPT41M,
     **kwargs
 ) -> T:
     """
@@ -37,13 +38,13 @@ async def create_llm_response(
         response_model: Pydantic model for response validation
         user_prompt: User prompt text
         system_message: System message (defaults to linguistic specialist)
-        use_large_model: Whether to use the large model (default: False)
+        llm_provider: Identifier of the LLM to use (LLMVariant or matching string value, e.g., "gpt41m", "gpt41", "claude4s")
         **kwargs: Additional parameters for instructor create
 
     Returns:
         Validated response model instance
     """
-    client = instructor_llm_large if use_large_model else instructor_llm
+    client = get_llm_client(str(llm_provider))
 
     try:
         return await client.create(
@@ -59,7 +60,7 @@ async def create_llm_response(
             "llm_response_failed",
             response_model=response_model.__name__,
             error=str(e),
-            use_large_model=use_large_model,
+            llm_provider=str(llm_provider),
         )
         raise
 
