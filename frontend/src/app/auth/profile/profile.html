@@ -140,8 +140,7 @@
             <div class="action-buttons">
               <button
                 mat-raised-button
-                color="primary"
-                class="update-button"
+                class="app-button-primary"
                 (click)="updateAccount()"
               >
                 <mat-icon>edit</mat-icon>
@@ -149,8 +148,7 @@
               </button>
               <button
                 mat-raised-button
-                color="warn"
-                class="delete-button"
+                class="app-button-danger"
                 (click)="deleteAccount()"
               >
                 <mat-icon>delete_forever</mat-icon>
@@ -162,12 +160,7 @@
 
         <!-- Logout Section -->
         <div class="logout-section">
-          <button
-            mat-raised-button
-            color="primary"
-            class="logout-button"
-            (click)="logout()"
-          >
+          <button mat-raised-button class="app-button" (click)="logout()">
             <mat-icon>logout</mat-icon>
             Sign Out
           </button>

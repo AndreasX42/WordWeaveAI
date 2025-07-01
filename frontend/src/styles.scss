@@ -101,7 +101,6 @@ body.dark-theme {
     color: var(--text-primary) !important;
   }
 
-  // Fix input text colors in dark mode
   .mat-mdc-form-field {
     .mat-mdc-input-element {
       color: var(--text-primary) !important;
@@ -226,5 +225,247 @@ body {
 
   &:visited {
     color: var(--primary-color);
+  }
+}
+
+/* Centralized App Button Styles */
+
+button.app-button.mat-mdc-raised-button {
+  width: 100% !important;
+  height: 48px !important;
+  background-color: var(--card-background, #ffffff) !important;
+  color: var(--text-primary, #333333) !important;
+  border: 1px solid var(--border-color, #dadce0) !important;
+  border-radius: 12px !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  letter-spacing: 0.25px !important;
+  transition: all 0.3s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+
+  // Override Material Design button styles
+  .mdc-button__label {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 12px !important;
+  }
+
+  &:hover:not(:disabled) {
+    background-color: var(--surface-color, #f8f9fa) !important;
+    border-color: var(--border-color, #c6c6c6) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  &:active {
+    transform: translateY(0) !important;
+  }
+
+  &:disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+  }
+
+  // Spinner styling for loading states
+  .app-button-spinner {
+    display: inline-flex !important;
+    vertical-align: middle !important;
+    margin-right: 12px !important;
+  }
+
+  // Icon styling for buttons with icons
+  .social-icon,
+  .google-icon {
+    width: 20px !important;
+    height: 20px !important;
+    flex-shrink: 0 !important;
+  }
+
+  // Dark mode support
+  @media (prefers-color-scheme: dark) {
+    background-color: var(--card-background, #2d3748) !important;
+    border-color: var(--border-color, #4a5568) !important;
+    color: var(--text-primary, #ffffff) !important;
+
+    &:hover:not(:disabled) {
+      background-color: var(--surface-color, #374151) !important;
+      border-color: var(--border-color, #4a5568) !important;
+    }
+  }
+}
+
+// Button variants for different semantic meanings
+button.app-button-primary.mat-mdc-raised-button {
+  width: 100% !important;
+  height: 48px !important;
+  background-color: #1565c0 !important;
+  color: #ffffff !important;
+  border: 1px solid #1565c0 !important;
+  border-radius: 12px !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  letter-spacing: 0.25px !important;
+  transition: all 0.3s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+
+  // Override Material Design button styles
+  .mdc-button__label {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 12px !important;
+  }
+
+  &:hover:not(:disabled) {
+    background-color: #0d47a1 !important;
+    border-color: #0d47a1 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 8px rgba(13, 71, 161, 0.4) !important;
+  }
+
+  &:active {
+    transform: translateY(0) !important;
+  }
+
+  &:disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+  }
+
+  // Spinner and icon styling
+  .app-button-spinner {
+    display: inline-flex !important;
+    vertical-align: middle !important;
+    margin-right: 12px !important;
+  }
+
+  .social-icon,
+  .google-icon {
+    width: 20px !important;
+    height: 20px !important;
+    flex-shrink: 0 !important;
+  }
+
+  // Dark mode support
+  @media (prefers-color-scheme: dark) {
+    background-color: #1976d2 !important;
+    border-color: #1976d2 !important;
+
+    &:hover:not(:disabled) {
+      background-color: #1565c0 !important;
+      border-color: #1565c0 !important;
+    }
+  }
+}
+
+button.app-button-danger.mat-mdc-raised-button {
+  width: 100% !important;
+  height: 48px !important;
+  background-color: #b71c1c !important;
+  color: #ffffff !important;
+  border: 1px solid #b71c1c !important;
+  border-radius: 12px !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  letter-spacing: 0.25px !important;
+  transition: all 0.3s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+
+  // Override Material Design button styles
+  .mdc-button__label {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 12px !important;
+  }
+
+  &:hover:not(:disabled) {
+    background-color: #a01e1e !important;
+    border-color: #a01e1e !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 8px rgba(183, 28, 28, 0.4) !important;
+  }
+
+  &:active {
+    transform: translateY(0) !important;
+  }
+
+  &:disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+  }
+
+  // Spinner and icon styling
+  .app-button-spinner {
+    display: inline-flex !important;
+    vertical-align: middle !important;
+    margin-right: 12px !important;
+  }
+
+  .social-icon,
+  .google-icon {
+    width: 20px !important;
+    height: 20px !important;
+    flex-shrink: 0 !important;
+  }
+
+  // Dark mode support
+  @media (prefers-color-scheme: dark) {
+    background-color: #d32f2f !important;
+    border-color: #d32f2f !important;
+
+    &:hover:not(:disabled) {
+      background-color: #c62828 !important;
+      border-color: #c62828 !important;
+    }
+  }
+}
+
+// Dark theme overrides for app buttons
+body.dark-theme {
+  button.app-button.mat-mdc-raised-button {
+    background-color: var(--card-background, #2d3748) !important;
+    border-color: var(--border-color, #4a5568) !important;
+    color: var(--text-primary, #ffffff) !important;
+
+    &:hover:not(:disabled) {
+      background-color: var(--surface-color, #374151) !important;
+      border-color: var(--border-color, #4a5568) !important;
+    }
+  }
+
+  button.app-button-primary.mat-mdc-raised-button {
+    background-color: #1976d2 !important;
+    border-color: #1976d2 !important;
+    color: #ffffff !important;
+
+    &:hover:not(:disabled) {
+      background-color: #1565c0 !important;
+      border-color: #1565c0 !important;
+    }
+  }
+
+  button.app-button-danger.mat-mdc-raised-button {
+    background-color: #d32f2f !important;
+    border-color: #d32f2f !important;
+    color: #ffffff !important;
+
+    &:hover:not(:disabled) {
+      background-color: #c62828 !important;
+      border-color: #c62828 !important;
+    }
   }
 }

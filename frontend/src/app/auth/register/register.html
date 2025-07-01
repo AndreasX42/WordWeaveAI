@@ -172,13 +172,15 @@
           <div class="form-actions">
             <button
               mat-raised-button
-              color="primary"
               type="submit"
               [disabled]="isRegistering()"
-              class="register-button"
+              class="app-button"
             >
               @if(isRegistering()) {
-              <mat-spinner diameter="20" class="register-spinner"></mat-spinner>
+              <mat-spinner
+                diameter="20"
+                class="app-button-spinner"
+              ></mat-spinner>
               <span>Creating account...</span>
               } @else {
               <span>Create Account</span>

@@ -92,13 +92,15 @@
           <div class="form-actions">
             <button
               mat-raised-button
-              color="primary"
               type="submit"
               [disabled]="isLoggingIn()"
-              class="login-button"
+              class="app-button"
             >
               @if(isLoggingIn()) {
-              <mat-spinner diameter="20" class="login-spinner"></mat-spinner>
+              <mat-spinner
+                diameter="20"
+                class="app-button-spinner"
+              ></mat-spinner>
               <span>Signing in...</span>
               } @else {
               <span>Sign In</span>
@@ -118,7 +120,7 @@
             <button
               mat-raised-button
               type="button"
-              class="google-login-button"
+              class="app-button"
               (click)="onGoogleLogin()"
               [disabled]="isLoggingIn()"
             >

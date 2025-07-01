@@ -60,13 +60,15 @@
           <div class="form-actions">
             <button
               mat-raised-button
-              color="primary"
               type="submit"
               [disabled]="isVerifying()"
-              class="verify-button"
+              class="app-button"
             >
               @if(isVerifying()) {
-              <mat-spinner diameter="20" class="verify-spinner"></mat-spinner>
+              <mat-spinner
+                diameter="20"
+                class="app-button-spinner"
+              ></mat-spinner>
               <span>Verifying...</span>
               } @else {
               <span>Verify Email</span>
