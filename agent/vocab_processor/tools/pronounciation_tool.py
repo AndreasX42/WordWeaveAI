@@ -2,9 +2,14 @@ from aws_lambda_powertools import Logger
 from elevenlabs import VoiceSettings
 from elevenlabs.client import AsyncElevenLabs
 from langchain.tools import tool
+
 from vocab_processor.constants import Language
 from vocab_processor.tools.base_tool import create_tool_error_response
-from vocab_processor.utils.s3_utils import generate_vocab_s3_paths, upload_stream_to_s3
+from vocab_processor.utils.s3_utils import (
+    generate_vocab_s3_paths,
+    is_lambda_context,
+    upload_stream_to_s3,
+)
 
 logger = Logger(service="vocab-processor")
 
@@ -26,6 +31,11 @@ async def get_pronunciation(
         # Generate S3 paths using centralized utility
         s3_paths = generate_vocab_s3_paths(target_language, target_word)
         audio_prefix = s3_paths["audio_prefix"]
+
+        if not is_lambda_context():
+            logger.info(
+                f"Local dev mode: pronunciation audio will use mock URLs (not uploaded to S3)"
+            )
 
         async def generate_and_upload_audio(text: str, filename: str) -> str:
             """Generate audio and upload directly to S3."""
@@ -67,7 +77,12 @@ async def get_pronunciation(
             )
             result["syllables"] = syllables_url
 
-        logger.info(f"Audio files uploaded to S3: {audio_prefix}/")
+        if is_lambda_context():
+            logger.info(f"Audio files uploaded to S3: {audio_prefix}/")
+        else:
+            logger.info(
+                f"Local dev mode: mock audio URLs generated for {audio_prefix}/"
+            )
         return str(result)
 
     except Exception as e:

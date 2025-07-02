@@ -10,7 +10,7 @@ import { MatIcon } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ErrorManagerFactory } from '../../shared/error.manager.factory';
 import { AuthService } from '../../services/auth.service';
 import { MessageService } from '../../services/message.service';
@@ -46,6 +46,7 @@ function strictEmailValidator(control: AbstractControl) {
     MatProgressSpinner,
     CommonModule,
     MatCardModule,
+    RouterLink,
   ],
   templateUrl: './forgot-password.html',
   styleUrl: './forgot-password.scss',

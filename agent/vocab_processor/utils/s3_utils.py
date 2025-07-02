@@ -4,6 +4,7 @@ from typing import Dict
 
 import boto3
 from aws_lambda_powertools import Logger
+
 from vocab_processor.constants import Language
 
 logger = Logger(service="vocab-processor")
@@ -13,11 +14,22 @@ S3_BUCKET = os.getenv("S3_MEDIA_BUCKET_NAME")
 # Initialize S3 client with optimized configuration
 s3_client = boto3.client(
     "s3",
+    region_name=os.getenv("AWS_REGION", "us-east-1"),
     config=boto3.session.Config(
         max_pool_connections=50,  # Increase connection pool
         retries={"max_attempts": 3, "mode": "adaptive"},
     ),
 )
+
+
+def is_lambda_context() -> bool:
+    """
+    Check if we're running in AWS Lambda context.
+
+    Returns:
+        True if running in Lambda, False if running locally (e.g., langgraph dev)
+    """
+    return os.getenv("AWS_LAMBDA_FUNCTION_NAME") is not None
 
 
 def generate_safe_word_key(word: str, max_length: int = 20) -> str:
@@ -69,6 +81,10 @@ async def check_s3_object_exists(s3_key: str) -> bool:
     Returns:
         True if object exists, False otherwise
     """
+    if not is_lambda_context():
+        logger.info(f"Local dev mode: skipping S3 existence check for {s3_key}")
+        return False
+
     try:
         await asyncio.to_thread(s3_client.head_object, Bucket=S3_BUCKET, Key=s3_key)
         return True
@@ -79,16 +95,25 @@ async def check_s3_object_exists(s3_key: str) -> bool:
 
 def generate_s3_url(s3_key: str) -> str:
     """Generate S3 URL from key."""
+    if not is_lambda_context():
+        return f"https://mock-s3-bucket.local/{s3_key}"
     return f"https://{S3_BUCKET}.s3.amazonaws.com/{s3_key}"
 
 
 async def upload_bytes_to_s3(data: bytes, s3_key: str, content_type: str) -> str:
     """
     Upload bytes directly to S3.
+    In local development mode, returns a mock URL without performing actual upload.
 
     Returns:
-        S3 URL or error message
+        S3 URL or mock URL in local mode
     """
+    if not is_lambda_context():
+        logger.info(
+            f"Local dev mode: skipping S3 upload for {s3_key} ({len(data)} bytes, {content_type})"
+        )
+        return f"https://mock-s3-bucket.local/{s3_key}"
+
     try:
         await asyncio.to_thread(
             s3_client.put_object,
@@ -107,10 +132,17 @@ async def upload_bytes_to_s3(data: bytes, s3_key: str, content_type: str) -> str
 async def upload_stream_to_s3(data_stream, s3_key: str, content_type: str) -> str:
     """
     Upload streaming data directly to S3.
+    In local development mode, returns a mock URL without performing actual upload.
 
     Returns:
-        S3 URL or error message
+        S3 URL or mock URL in local mode
     """
+    if not is_lambda_context():
+        logger.info(
+            f"Local dev mode: skipping S3 stream upload for {s3_key} ({content_type})"
+        )
+        return f"https://mock-s3-bucket.local/{s3_key}"
+
     try:
         # Collect stream data
         chunks = []

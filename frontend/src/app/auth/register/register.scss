@@ -1,50 +1,37 @@
 .register-container {
-  min-height: 100vh;
+  min-height: calc(100vh - 64px);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding-top: 80px;
+  padding: 20px;
   background-color: var(--background-color, #ffffff);
+  box-sizing: border-box;
 
   .register-wrapper {
     width: 100%;
     max-width: 400px;
     animation: slideInUp 0.6s ease-out;
+    margin: auto;
   }
 
-  .brand-section {
+  .page-header {
     text-align: center;
-    margin-bottom: 32px;
+    margin-bottom: 24px;
     color: var(--text-primary);
 
-    .logo {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 16px;
-
-      .logo-icon {
-        font-size: 48px;
-        width: 48px;
-        height: 48px;
-        margin-right: 12px;
-        color: var(--primary-color);
-      }
-
-      .brand-name {
-        font-size: 36px;
-        font-weight: 700;
-        margin: 0;
-        letter-spacing: -0.5px;
-        color: var(--text-primary);
-      }
+    .page-title {
+      font-size: 28px;
+      font-weight: 600;
+      margin: 0 0 8px 0;
+      color: var(--text-primary);
     }
 
-    .brand-tagline {
-      font-size: 16px;
+    .page-subtitle {
+      font-size: 14px;
       margin: 0;
       font-weight: 400;
       color: var(--text-secondary);
+      line-height: 1.4;
     }
   }
 
@@ -123,18 +110,16 @@
     .form-actions {
       margin-top: 8px;
     }
+  }
 
-    .login-section {
-      margin-top: 24px;
-      text-align: center;
-      padding-top: 16px;
-      border-top: 1px solid var(--divider-color);
+  .bottom-section {
+    margin-top: 24px;
+    text-align: center;
 
-      .login-text {
-        color: var(--text-secondary);
-        font-size: 14px;
-        margin: 0;
-      }
+    .login-text {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin: 0;
     }
   }
 }
@@ -142,8 +127,7 @@
 // Mobile-first responsive design
 @media (max-width: 599px) {
   .register-container {
-    padding: 16px 16px 80px !important;
-    padding-top: 80px !important;
+    padding: 16px !important;
   }
 
   .register-wrapper {
@@ -157,23 +141,15 @@
     }
   }
 
-  .brand-section {
+  .page-header {
     margin-bottom: 20px !important;
 
-    .logo {
-      .logo-icon {
-        font-size: 36px !important;
-        width: 36px !important;
-        height: 36px !important;
-      }
-
-      .brand-name {
-        font-size: 24px !important;
-      }
+    .page-title {
+      font-size: 24px !important;
     }
 
-    .brand-tagline {
-      font-size: 14px !important;
+    .page-subtitle {
+      font-size: 13px !important;
     }
   }
 
@@ -203,13 +179,13 @@
         font-size: 16px !important;
       }
     }
+  }
 
-    .login-section {
-      margin-top: 20px !important;
+  .bottom-section {
+    margin-top: 20px !important;
 
-      .login-text {
-        font-size: 13px !important;
-      }
+    .login-text {
+      font-size: 13px !important;
     }
   }
 }

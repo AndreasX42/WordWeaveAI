@@ -1,100 +1,718 @@
-import { Component } from '@angular/core';
+import { Component, inject, signal, effect } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
+import { ThemeService } from '../../services/theme.service';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-home',
   standalone: true,
   template: `
-    <div class="home-container">
-      <div class="welcome-section">
-        <h1>Welcome to WordWeave</h1>
-        <p>Your creative writing companion</p>
-        <div class="action-buttons">
-          <button mat-raised-button color="primary" routerLink="/profile">
-            Get Started
-          </button>
-        </div>
+    <div class="home-container" [class.dark-theme]="themeService.isDarkMode()">
+      <!-- Animated Background -->
+      <div class="background-animation">
+        <div class="wave wave-1"></div>
+        <div class="wave wave-2"></div>
+        <div class="wave wave-3"></div>
+        <div class="gradient-overlay"></div>
       </div>
+
+      <!-- Hero Section -->
+      <section class="hero-section">
+        <div class="hero-content">
+          <h1 class="hero-title">
+            The platform for
+            <span class="highlight-text">intelligent vocabulary</span>
+          </h1>
+
+          <p class="hero-subtitle">
+            Request vocabulary words in English, Spanish, and German. Our AI
+            agents create comprehensive vocabulary cards with ElevenLabs audio
+            pronunciation and Pexels images.
+          </p>
+
+          <div class="hero-actions">
+            <button
+              mat-flat-button
+              color="primary"
+              class="cta-button"
+              routerLink="/register"
+            >
+              <mat-icon>school</mat-icon>
+              Start Learning Now
+            </button>
+          </div>
+
+          <!-- Stats moved higher and redesigned -->
+          <div class="hero-stats">
+            <div class="stats-grid">
+              <div class="stat-item">
+                <div class="stat-number">324</div>
+                <div class="stat-label">Words Created</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">47</div>
+                <div class="stat-label">Public Lists</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">156</div>
+                <div class="stat-label">Active Users</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- How It Works Section -->
+      <section class="how-it-works-section">
+        <div class="how-it-works-container">
+          <div class="section-header">
+            <h2>How WordWeave Works</h2>
+            <p>Create personalized vocabulary in 3 simple steps</p>
+          </div>
+
+          <div class="steps-grid">
+            <div class="step-card">
+              <div class="step-number">1</div>
+              <div class="step-icon">
+                <mat-icon>add_circle</mat-icon>
+              </div>
+              <h3>Shared Vocabulary</h3>
+              <p>
+                Create vocabulary lists for any language pair. Submit vocabulary
+                words you want to learn in English, Spanish, or German if they
+                have not been created yet
+              </p>
+            </div>
+
+            <div class="step-card">
+              <div class="step-number">2</div>
+              <div class="step-icon">
+                <mat-icon>smart_toy</mat-icon>
+              </div>
+              <h3>AI Generates Content</h3>
+              <p>
+                Our AI Agents create a rich vocabulary card for the requested
+                words including examples, audio pronunciation and images to make
+                learning more engaging
+              </p>
+            </div>
+
+            <div class="step-card">
+              <div class="step-number">3</div>
+              <div class="step-icon">
+                <mat-icon>quiz</mat-icon>
+              </div>
+              <h3>Practice & Learn</h3>
+              <p>
+                Study with multiple choice quizzes and build out your own
+                personal vocabulary lists
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Features Section (Condensed) -->
+      <section class="features-section">
+        <div class="features-container">
+          <div class="section-header">
+            <h2>Everything you need to master vocabulary</h2>
+            <p>Comprehensive tools for effective language learning</p>
+          </div>
+
+          <div class="features-grid">
+            <div class="feature-card">
+              <div class="feature-icon">
+                <mat-icon>library_books</mat-icon>
+              </div>
+              <h3>Personal Collections</h3>
+              <p>
+                Create and organize vocabulary lists for any Source → Target
+                language pair
+              </p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-icon">
+                <mat-icon>public</mat-icon>
+              </div>
+              <h3>Community-Driven</h3>
+              <p>
+                Words you request become available to all users, growing our
+                shared database
+              </p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-icon">
+                <mat-icon>translate</mat-icon>
+              </div>
+              <h3>Multi-Language Support</h3>
+              <p>
+                Learn across English, Spanish, and German with any language
+                combination
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   `,
   styles: [
     `
       .home-container {
-        display: flex;
-        align-items: flex-start;
-        justify-content: center;
-        min-height: calc(100vh - 64px);
-        padding: 80px 24px 24px;
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      /* Animated Background */
+      .background-animation {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: -2;
+        overflow: hidden;
+        pointer-events: none;
+      }
+
+      .wave {
+        position: absolute;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(
+          45deg,
+          var(--primary-color, #1565c0) 0%,
+          var(--primary-light, #42a5f5) 50%,
+          var(--accent-color, #ff4081) 100%
+        );
+        opacity: 0.08;
+        animation: wave-animation 45s ease-in-out infinite;
+      }
+
+      .wave-1 {
+        animation-delay: 0s;
+        animation-duration: 45s;
+      }
+
+      .wave-2 {
+        animation-delay: -15s;
+        animation-duration: 60s;
+        opacity: 0.06;
+      }
+
+      .wave-3 {
+        animation-delay: -30s;
+        animation-duration: 75s;
+        opacity: 0.04;
+      }
+
+      @keyframes wave-animation {
+        0% {
+          transform: translateX(-50%) translateY(-50%) rotate(0deg) scale(1);
+          border-radius: 60% 40% 70% 30%;
+        }
+        12.5% {
+          transform: translateX(-48%) translateY(-52%) rotate(45deg) scale(1.05);
+          border-radius: 50% 50% 60% 40%;
+        }
+        25% {
+          transform: translateX(-45%) translateY(-55%) rotate(90deg) scale(1.1);
+          border-radius: 70% 30% 50% 50%;
+        }
+        37.5% {
+          transform: translateX(-52%) translateY(-48%) rotate(135deg)
+            scale(1.03);
+          border-radius: 40% 60% 70% 30%;
+        }
+        50% {
+          transform: translateX(-55%) translateY(-45%) rotate(180deg)
+            scale(0.95);
+          border-radius: 60% 40% 30% 70%;
+        }
+        62.5% {
+          transform: translateX(-48%) translateY(-52%) rotate(225deg)
+            scale(1.08);
+          border-radius: 30% 70% 60% 40%;
+        }
+        75% {
+          transform: translateX(-50%) translateY(-50%) rotate(270deg)
+            scale(1.02);
+          border-radius: 70% 30% 40% 60%;
+        }
+        87.5% {
+          transform: translateX(-52%) translateY(-48%) rotate(315deg)
+            scale(1.06);
+          border-radius: 40% 60% 50% 50%;
+        }
+        100% {
+          transform: translateX(-50%) translateY(-50%) rotate(360deg) scale(1);
+          border-radius: 60% 40% 70% 30%;
+        }
+      }
+
+      .gradient-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          135deg,
+          rgba(21, 101, 192, 0.03) 0%,
+          rgba(66, 165, 245, 0.02) 50%,
+          rgba(255, 64, 129, 0.03) 100%
+        );
+        z-index: -1;
+      }
+
+      /* Dark theme background adjustments */
+      .dark-theme .wave {
+        background: linear-gradient(
+          45deg,
+          rgba(13, 71, 161, 0.6) 0%,
+          rgba(66, 165, 245, 0.4) 50%,
+          rgba(255, 64, 129, 0.3) 100%
+        );
+        opacity: 0.12;
+      }
+
+      .dark-theme .gradient-overlay {
+        background: linear-gradient(
+          135deg,
+          rgba(13, 71, 161, 0.08) 0%,
+          rgba(66, 165, 245, 0.06) 50%,
+          rgba(255, 64, 129, 0.08) 100%
+        );
+      }
+
+      .dark-theme .features-section {
+        background: rgba(0, 0, 0, 0.02);
+      }
+
+      .dark-theme .how-it-works-section {
+        background: rgba(0, 0, 0, 0.03);
+      }
+
+      /* Hero Section */
+      .hero-section {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        align-items: center;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 80px 2rem 60px;
         text-align: center;
       }
 
-      .welcome-section {
-        max-width: 600px;
+      .hero-content {
+        z-index: 1;
       }
 
-      h1 {
-        font-size: 3rem;
+      .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(var(--primary-color-rgb, 21, 101, 192), 0.1);
+        color: var(--primary-color, #1565c0);
+        padding: 8px 16px;
+        border-radius: 24px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 24px;
+        border: 1px solid rgba(var(--primary-color-rgb, 21, 101, 192), 0.2);
+      }
+
+      .hero-title {
+        font-size: 3.5rem;
+        font-weight: 700;
+        line-height: 1.1;
+        margin-bottom: 5px;
+        color: var(--text-primary);
+      }
+
+      .highlight-text {
+        background: linear-gradient(
+          135deg,
+          var(--primary-color, #1565c0) 0%,
+          var(--accent-color, #ff4081) 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        position: relative;
+      }
+
+      .hero-subtitle {
+        font-size: 1.25rem;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        margin-bottom: 32px;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .hero-actions {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 32px;
+        justify-content: center;
+      }
+
+      .cta-button {
+        background: linear-gradient(
+          135deg,
+          var(--primary-color, #1565c0) 0%,
+          var(--primary-dark, #0d47a1) 100%
+        ) !important;
+        color: white !important;
+        padding: 14px 32px !important;
+        font-size: 16px !important;
+        font-weight: 600 !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 20px rgba(var(--primary-color-rgb, 21, 101, 192), 0.3) !important;
+        transition: all 0.3s ease !important;
+      }
+
+      .cta-button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 25px rgba(var(--primary-color-rgb, 21, 101, 192), 0.4) !important;
+      }
+
+      .hero-stats {
+        margin-top: 80px;
+        opacity: 0.9;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        max-width: 400px;
+        margin: 0 auto;
+      }
+
+      .stat-item {
+        padding: 16px 12px;
+        background: var(--surface-color);
+        border-radius: 12px;
+        text-align: center;
+        border: 1px solid var(--border-color);
+        transition: all 0.3s ease;
+      }
+
+      .stat-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-color: var(--primary-color);
+      }
+
+      .stat-number {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 4px;
+        color: var(--primary-color);
+        display: block;
+      }
+
+      .stat-label {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      /* How It Works Section */
+      .how-it-works-section {
+        padding: 80px 2rem;
+        position: relative;
+        z-index: 1;
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      .how-it-works-container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .steps-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 32px;
+        margin-top: 48px;
+      }
+
+      .step-card {
+        position: relative;
+        background: var(--card-background);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 32px 24px;
+        text-align: center;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      }
+
+      .step-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+        border-color: var(--primary-color);
+      }
+
+      .step-number {
+        position: absolute;
+        top: -12px;
+        left: 24px;
+        background: var(--primary-color);
+        color: white;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.875rem;
+        font-weight: 600;
+      }
+
+      .step-icon {
+        width: 64px;
+        height: 64px;
+        margin: 16px auto 20px;
+        background: linear-gradient(
+          135deg,
+          var(--primary-color, #1565c0) 0%,
+          var(--primary-light, #42a5f5) 100%
+        );
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+      }
+
+      .step-card h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: var(--text-primary);
+      }
+
+      .step-card p {
+        color: var(--text-secondary);
+        line-height: 1.5;
+        font-size: 0.95rem;
+      }
+
+      /* Features Section */
+      .features-section {
+        padding: 80px 2rem;
+        position: relative;
+        z-index: 1;
+        background: rgba(255, 255, 255, 0.01);
+      }
+
+      .features-container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .section-header {
+        text-align: center;
+        margin-bottom: 64px;
+      }
+
+      .section-header h2 {
+        font-size: 2.5rem;
         font-weight: 700;
         margin-bottom: 16px;
         color: var(--text-primary);
       }
 
-      p {
-        font-size: 1.2rem;
+      .section-header p {
+        font-size: 1.125rem;
         color: var(--text-secondary);
-        margin-bottom: 32px;
+        max-width: 600px;
+        margin: 0 auto;
       }
 
-      .action-buttons {
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 32px;
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+
+      .secondary-cta {
+        text-align: center;
+        margin-top: 48px;
+      }
+
+      .secondary-button {
+        padding: 14px 32px !important;
+        font-size: 16px !important;
+        border-radius: 12px !important;
+        border: 2px solid var(--border-color) !important;
+        color: var(--text-primary) !important;
+        transition: all 0.3s ease !important;
+      }
+
+      .secondary-button:hover {
+        border-color: var(--primary-color) !important;
+        background: rgba(
+          var(--primary-color-rgb, 21, 101, 192),
+          0.05
+        ) !important;
+        transform: translateY(-2px) !important;
+      }
+
+      .feature-card {
+        background: var(--card-background);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 32px;
+        text-align: center;
+        transition: all 0.5s ease;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      }
+
+      .feature-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+        border-color: var(--primary-color);
+      }
+
+      .feature-icon {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 24px;
+        background: linear-gradient(
+          135deg,
+          var(--primary-color, #1565c0) 0%,
+          var(--primary-light, #42a5f5) 100%
+        );
+        border-radius: 16px;
         display: flex;
-        gap: 16px;
+        align-items: center;
         justify-content: center;
+        color: white;
       }
 
-      button {
-        padding: 12px 32px;
-        font-size: 16px;
+      .feature-card h3 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 16px;
+        color: var(--text-primary);
       }
 
-      /* Mobile-first responsive design */
-      @media (max-width: 599px) {
-        .home-container {
-          padding: 80px 16px 24px !important;
-          min-height: calc(100vh - 56px) !important;
+      .feature-card p {
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
+
+      /* Mobile Responsive */
+      @media (max-width: 768px) {
+        .hero-section {
+          padding: 60px 1rem 40px;
         }
 
-        .welcome-section {
-          max-width: 100% !important;
+        .hero-title {
+          font-size: 2.5rem;
         }
 
-        h1 {
-          font-size: 2rem !important;
-          margin-bottom: 12px !important;
+        .hero-subtitle {
+          font-size: 1.125rem;
         }
 
-        p {
-          font-size: 1rem !important;
-          margin-bottom: 24px !important;
-          line-height: 1.5 !important;
+        .hero-actions {
+          flex-direction: column;
+          align-items: center;
         }
 
-        .action-buttons {
-          flex-direction: column !important;
-          align-items: center !important;
-          gap: 12px !important;
+        .cta-button {
+          width: 100%;
+          max-width: 280px;
+        }
 
-          button {
-            width: 100% !important;
-            max-width: 280px !important;
-            padding: 14px 32px !important;
-            font-size: 16px !important;
-            height: 48px !important;
-          }
+        .stats-grid {
+          grid-template-columns: repeat(3, 1fr);
+          gap: 12px;
+          max-width: 350px;
+        }
+
+        .stat-item {
+          padding: 12px 8px;
+        }
+
+        .stat-number {
+          font-size: 1.4rem;
+        }
+
+        .stat-label {
+          font-size: 0.7rem;
+        }
+
+        .steps-grid {
+          grid-template-columns: 1fr;
+          gap: 24px;
+        }
+
+        .step-card {
+          padding: 24px 20px;
+        }
+
+        .section-header h2 {
+          font-size: 2rem;
+        }
+
+        .features-grid {
+          grid-template-columns: 1fr;
+          gap: 20px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .hero-title {
+          font-size: 2rem;
+        }
+
+        .hero-actions {
+          gap: 12px;
+        }
+
+        .stats-grid {
+          grid-template-columns: 1fr;
+          max-width: 200px;
+          gap: 10px;
+        }
+
+        .stat-item {
+          padding: 14px 16px;
+        }
+
+        .stat-number {
+          font-size: 1.5rem;
+        }
+
+        .stat-label {
+          font-size: 0.7rem;
+        }
+
+        .hero-actions {
+          margin-bottom: 24px;
         }
       }
     `,
   ],
-  imports: [MatButtonModule, RouterLink],
+  imports: [MatButtonModule, MatIconModule, RouterLink, CommonModule],
 })
-export class Home {}
+export class Home {
+  themeService = inject(ThemeService);
+}

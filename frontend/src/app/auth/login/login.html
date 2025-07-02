@@ -1,12 +1,9 @@
 <div class="login-container">
   <div class="login-wrapper">
-    <!-- Logo and branding -->
-    <div class="brand-section">
-      <div class="logo">
-        <mat-icon class="logo-icon">edit</mat-icon>
-        <h1 class="brand-name">WordWeave</h1>
-      </div>
-      <p class="brand-tagline">Welcome back! Please sign in to your account.</p>
+    <!-- Page header -->
+    <div class="page-header">
+      <h1 class="page-title">Sign In</h1>
+      <p class="page-subtitle">Welcome back! Please sign in to your account.</p>
     </div>
 
     <!-- Login form card -->
@@ -108,15 +105,11 @@
             </button>
           </div>
 
-          <!-- Social login divider -->
-          <div class="social-divider">
-            <span class="divider-line"></span>
-            <span class="divider-text">or</span>
-            <span class="divider-line"></span>
-          </div>
-
-          <!-- Google login -->
-          <div class="social-login">
+          <!-- Google login section -->
+          <div class="google-section">
+            <div class="divider">
+              <span>or</span>
+            </div>
             <button
               mat-raised-button
               type="button"
@@ -150,21 +143,21 @@
               <span>Continue with Google</span>
             </button>
           </div>
-
-          <!-- Register and forgot password links -->
-          <div class="register-section">
-            <p class="register-text">
-              Don't have an account?
-              <a routerLink="/register" class="app-link">Create account</a>
-            </p>
-            <p class="forgot-text">
-              <a routerLink="/forgot-password" class="app-link"
-                >Forgot your password?</a
-              >
-            </p>
-          </div>
         </form>
       </mat-card-content>
     </mat-card>
+
+    <!-- Bottom section -->
+    <div class="bottom-section">
+      <p class="register-text">
+        Don't have an account?
+        <a routerLink="/register" class="app-link">Create account</a>
+      </p>
+      <p class="forgot-text">
+        <a routerLink="/forgot-password" class="app-link"
+          >Forgot your password?</a
+        >
+      </p>
+    </div>
   </div>
 </div>

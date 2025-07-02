@@ -5,6 +5,7 @@ import aiohttp
 from aws_lambda_powertools import Logger
 from langchain.tools import tool
 from pydantic import BaseModel, Field
+
 from vocab_processor.constants import Language
 from vocab_processor.schemas.media_model import Media, PhotoOption
 from vocab_processor.tools.base_tool import (
@@ -15,6 +16,7 @@ from vocab_processor.tools.base_tool import (
 from vocab_processor.utils.ddb_utils import get_existing_media_for_search_words
 from vocab_processor.utils.s3_utils import (
     generate_english_image_s3_paths,
+    is_lambda_context,
     upload_bytes_to_s3,
 )
 
@@ -76,6 +78,12 @@ async def fetch_photos(query: str | list[str], per_page: int = 3) -> list[PhotoO
 async def upload_to_s3(url: str, s3_key: str) -> str:
     """Download image from URL and upload directly to S3."""
     try:
+        if not is_lambda_context():
+            logger.info(
+                f"Local dev mode: skipping image download and S3 upload for {s3_key}"
+            )
+            return f"https://mock-s3-bucket.local/{s3_key}"
+
         async with aiohttp.ClientSession(timeout=_session_config) as session:
             async with session.get(url) as response:
                 if response.status == 200:
@@ -158,6 +166,11 @@ Translate alt, explanation, and memory_tip to {source_language}. Keep url and sr
             f"No existing Media found for search words {translation_result.search_query}, fetching from Pexels"
         )
 
+        if not is_lambda_context():
+            logger.info(
+                "Local dev mode: images will use mock URLs (not uploaded to S3)"
+            )
+
         photos = await fetch_photos(translation_result.search_query, per_page=10)
 
         if not photos:
@@ -202,9 +215,14 @@ Translate alt, explanation, and memory_tip to {source_language}. Keep url and sr
                             "large2x": large_s3_url,
                             "small": small_s3_url,
                         }
-                        logger.info(
-                            f"Images uploaded to S3: {image_paths['image_prefix']}/"
-                        )
+                        if is_lambda_context():
+                            logger.info(
+                                f"Images uploaded to S3: {image_paths['image_prefix']}/"
+                            )
+                        else:
+                            logger.info(
+                                f"Local dev mode: mock image URLs generated for {image_paths['image_prefix']}/"
+                            )
                     else:
                         logger.info("Failed to upload images, keeping original URLs")
 

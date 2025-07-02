@@ -28,7 +28,7 @@ async def create_llm_response(
     response_model: Type[T],
     user_prompt: str,
     system_message: str = SystemMessages.LINGUISTIC_SPECIALIST,
-    llm_provider: "LLMVariant | str" = LLMVariant.GPT41M,
+    llm_provider: LLMVariant = LLMVariant.GPT41M,
     **kwargs
 ) -> T:
     """
@@ -38,13 +38,13 @@ async def create_llm_response(
         response_model: Pydantic model for response validation
         user_prompt: User prompt text
         system_message: System message (defaults to linguistic specialist)
-        llm_provider: Identifier of the LLM to use (LLMVariant or matching string value, e.g., "gpt41m", "gpt41", "claude4s")
+        llm_provider: LLM variant to use (LLMVariant enum)
         **kwargs: Additional parameters for instructor create
 
     Returns:
         Validated response model instance
     """
-    client = get_llm_client(str(llm_provider))
+    client = get_llm_client(llm_provider)
 
     try:
         return await client.create(
@@ -60,7 +60,7 @@ async def create_llm_response(
             "llm_response_failed",
             response_model=response_model.__name__,
             error=str(e),
-            llm_provider=str(llm_provider),
+            llm_provider=llm_provider.value,
         )
         raise
 

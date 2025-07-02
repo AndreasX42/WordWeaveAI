@@ -17,13 +17,24 @@ metrics = Metrics(namespace="VocabProcessor")
 
 dynamodb = boto3.resource(
     "dynamodb",
+    region_name=os.getenv("AWS_REGION", "us-east-1"),
     config=boto3.session.Config(
         max_pool_connections=50, retries={"max_attempts": 3, "mode": "adaptive"}
     ),
 )
-VOCAB_TABLE = dynamodb.Table(os.environ["DYNAMODB_VOCAB_TABLE_NAME"])
+VOCAB_TABLE = dynamodb.Table(os.getenv("DYNAMODB_VOCAB_TABLE_NAME"))
 
 _NORMALISE_RGX = re.compile(r"[^a-z0-9]")
+
+
+def is_lambda_context() -> bool:
+    """
+    Check if we're running in AWS Lambda context.
+
+    Returns:
+        True if running in Lambda, False if running locally (e.g., langgraph dev)
+    """
+    return os.getenv("AWS_LAMBDA_FUNCTION_NAME") is not None
 
 
 def normalize_word(word: str) -> str:
@@ -60,6 +71,12 @@ async def get_existing_media_for_search_words(
     ``english_word`` attribute and are projected into the
     ``EnglishMediaLookupIndex`` GSI, a single query per word is sufficient.
     """
+
+    if not is_lambda_context():
+        logger.info(
+            f"Local dev mode: skipping DynamoDB media lookup for search words: {search_words}"
+        )
+        return None
 
     # ------------------------------------------------------------------
     # Inner coroutine: query GSI for one word
@@ -159,6 +176,16 @@ async def validate_and_check_exists(word: str, tgt_lang: str) -> Dict[str, Any]:
             "existing_item": None,
         }
 
+    if not is_lambda_context():
+        logger.info(
+            f"Local dev mode: skipping DynamoDB existence check for {word} -> {tgt_lang}"
+        )
+        return {
+            "status": "not_exists",
+            "validation_result": validation_result,
+            "existing_item": None,
+        }
+
     pk = f"SRC#{lang_code(validation_result.source_language)}#{normalize_word(word)}"
     sk = f"TGT#{tgt_lang}"
 
@@ -188,6 +215,12 @@ async def store_result(result: Dict[str, Any], req: VocabProcessRequestDto):
 
     if not all([src_lang, tgt_lang, src_word, tgt_word]):
         raise ValueError("Pipeline result missing mandatory fields")
+
+    if not is_lambda_context():
+        logger.info(
+            f"Local dev mode: skipping DynamoDB storage for {src_word} -> {tgt_word} ({lang_code(src_lang)} -> {lang_code(tgt_lang)})"
+        )
+        return
 
     pk = f"SRC#{lang_code(src_lang)}#{normalize_word(src_word)}"
     sk = f"TGT#{lang_code(tgt_lang)}"

@@ -1,12 +1,9 @@
 <div class="verify-container">
   <div class="verify-wrapper">
-    <!-- Logo and branding -->
-    <div class="brand-section">
-      <div class="logo">
-        <mat-icon class="logo-icon">edit</mat-icon>
-        <h1 class="brand-name">WordWeave</h1>
-      </div>
-      <p class="brand-tagline">
+    <!-- Page header -->
+    <div class="page-header">
+      <h1 class="page-title">Verify Email</h1>
+      <p class="page-subtitle">
         We've sent a verification code to
         <strong>{{ email() }}</strong>
       </p>
@@ -75,27 +72,27 @@
               }
             </button>
           </div>
-
-          <!-- Resend code section -->
-          <div class="resend-section">
-            <p class="resend-text">
-              Didn't receive the code?
-              <button
-                type="button"
-                (click)="onResendCode()"
-                (keydown.enter)="onResendCode()"
-                (keydown.space)="onResendCode()"
-                class="resend-link app-link"
-                [class.disabled]="isResending() || !canResend()"
-                [disabled]="isResending() || !canResend()"
-                aria-label="Resend verification code"
-              >
-                {{ getResendButtonText() }}
-              </button>
-            </p>
-          </div>
         </form>
       </mat-card-content>
     </mat-card>
+
+    <!-- Bottom section -->
+    <div class="bottom-section">
+      <p class="resend-text">
+        Didn't receive the code?
+        <button
+          type="button"
+          (click)="onResendCode()"
+          (keydown.enter)="onResendCode()"
+          (keydown.space)="onResendCode()"
+          class="resend-link app-link"
+          [class.disabled]="isResending() || !canResend()"
+          [disabled]="isResending() || !canResend()"
+          aria-label="Resend verification code"
+        >
+          {{ getResendButtonText() }}
+        </button>
+      </p>
+    </div>
   </div>
 </div>

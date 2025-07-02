@@ -141,16 +141,43 @@ def get_instructor_aws_claude4():
     """Get cached Instructor client for Claude-4 via AWS Bedrock."""
     global _instructor_aws_claude4
     if _instructor_aws_claude4 is None:
-        bedrock_client = boto3.client(
-            "bedrock-runtime", region_name=os.getenv("AWS_REGION", "us-east-1")
-        )
+        try:
+            bedrock_client = boto3.client(
+                "bedrock-runtime", region_name=os.getenv("AWS_REGION", "us-east-1")
+            )
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to create Bedrock client. Ensure AWS credentials are configured: {e}"
+            ) from e
 
-        _instructor_aws_claude4 = from_bedrock(
+        sync_instructor_client = from_bedrock(
             client=bedrock_client,
             mode=Mode.BEDROCK_JSON,
-            async_client=True,
             temperature=0.2,
+            model="us.anthropic.claude-sonnet-4-20250514-v1:0",
         )
+
+        # Wrap it in a proper async interface
+        import asyncio
+
+        from instructor import AsyncInstructor
+
+        async def async_create(*args, **kwargs):
+            """Async wrapper that properly handles blocking calls."""
+            return await asyncio.to_thread(
+                sync_instructor_client.create, *args, **kwargs
+            )
+
+        # Create a simple async wrapper class
+        class AsyncBedrockInstructor:
+            def __init__(self, sync_client):
+                self.sync_client = sync_client
+
+            async def create(self, *args, **kwargs):
+                """Async wrapper that properly handles blocking calls."""
+                return await asyncio.to_thread(self.sync_client.create, *args, **kwargs)
+
+        _instructor_aws_claude4 = AsyncBedrockInstructor(sync_instructor_client)
 
     return _instructor_aws_claude4
 
@@ -164,8 +191,8 @@ class LLMVariant(str, Enum):
     """Supported LLM back-ends."""
 
     GPT41M = "gpt41m"  # OpenAI GPT-4.1-mini
-    GPT41 = "gpt41"  # OpenAI GPT-4.1 (full)
-    CLAUDE4S = "claude4s"  # Claude-4 Sonnet via Bedrock
+    GPT41 = "gpt41"  # OpenAI GPT-4.1
+    CLAUDE4S = "claude4s"  # Claude-4 Sonnet via AWS Bedrock
 
 
 # Map each variant to its cached Instructor client
@@ -176,20 +203,10 @@ LLM_PROVIDERS = {
 }
 
 
-def get_llm_client(provider: "LLMVariant | str" = LLMVariant.GPT41M):
+def get_llm_client(provider: LLMVariant = LLMVariant.GPT41M):
     """Return the Instructor client for the requested provider key.
 
-    Accepts either an ``LLMVariant`` enum member or one of its values (case-insensitive string).
+    Args:
+        provider: LLMVariant enum member specifying which LLM to use
     """
-    if isinstance(provider, LLMVariant):
-        return LLM_PROVIDERS[provider]
-
-    # Fallback: string value → enum lookup (case-insensitive)
-    try:
-        variant = LLMVariant(provider.lower())
-    except ValueError as exc:
-        raise ValueError(
-            f"Unknown LLM provider '{provider}'. Valid options: {[v.value for v in LLMVariant]}"
-        ) from exc
-
-    return LLM_PROVIDERS[variant]
+    return LLM_PROVIDERS[provider]
