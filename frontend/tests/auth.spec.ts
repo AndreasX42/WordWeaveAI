@@ -2,6 +2,17 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Authentication Flows', () => {
   test('should allow a user to request a password reset', async ({ page }) => {
+    // Mock the API response for password reset
+    await page.route('**/api/auth/reset-password', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          message: 'Password reset email sent successfully',
+        }),
+      });
+    });
+
     // Navigate to the forgot password page
     await page.goto('/forgot-password');
 
@@ -25,6 +36,19 @@ test.describe('Authentication Flows', () => {
     const randomId = Math.random().toString(36).substring(2, 8);
     const username = `testuser_${randomId}`;
     const email = `test-${username}@example.com`;
+
+    // Mock the API response for registration
+    await page.route('**/api/auth/register', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          details: {
+            user_id: 'test-user-id-123',
+          },
+        }),
+      });
+    });
 
     // Navigate to the register page
     await page.goto('/register');
@@ -106,14 +130,28 @@ test.describe('Login Flow', () => {
   });
 
   test('should show error for invalid credentials', async ({ page }) => {
+    // Mock the API response for invalid login
+    await page.route('**/api/auth/login', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          // Missing required fields (token, details.user) will cause login to return false
+        }),
+      });
+    });
+
     await page.goto('/login');
     await page.getByLabel('Email Address').fill('wrong@example.com');
     await page
       .getByRole('textbox', { name: 'Password', exact: true })
       .fill('wrongpassword');
     await page.getByRole('button', { name: 'Sign In' }).click();
+
     await expect(
-      page.getByText('Invalid credentials. Please try again.')
+      page
+        .locator('.error-snackbar')
+        .getByText('Invalid credentials. Please try again.')
     ).toBeVisible();
   });
 });

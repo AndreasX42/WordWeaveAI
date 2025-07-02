@@ -3,11 +3,22 @@ import { test, expect } from '@playwright/test';
 test.describe('Update Account Flow', () => {
   // Set up a logged-in state before each test
   test.beforeEach(async ({ page }) => {
+    // Mock API calls that the profile page might make
+    await page.route('**/api/auth/refresh', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ token: 'mock-auth-token' }),
+      });
+    });
+
     await page.addInitScript(() => {
       const mockUser = {
         id: 'user-123',
         username: 'TestUser',
         email: 'test@example.com',
+        confirmedEmail: true,
+        profilePicture: '',
         role: 'user',
       };
       localStorage.setItem('auth_user', JSON.stringify(mockUser));
