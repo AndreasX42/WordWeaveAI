@@ -3,6 +3,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { ThemeService } from '../../services/theme.service';
+import { TranslationService } from '../../services/translation.service';
+import { TranslatePipe } from '../../shared/pipes/translate.pipe';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -22,14 +24,14 @@ import { CommonModule } from '@angular/common';
       <section class="hero-section">
         <div class="hero-content">
           <h1 class="hero-title">
-            The platform for
-            <span class="highlight-text">intelligent vocabulary</span>
+            {{ 'home.hero.title' | translate }}
+            <span class="highlight-text">{{
+              'home.hero.titleHighlight' | translate
+            }}</span>
           </h1>
 
           <p class="hero-subtitle">
-            Request vocabulary words in English, Spanish, and German. Our AI
-            agents create comprehensive vocabulary cards with ElevenLabs audio
-            pronunciation and Pexels images.
+            {{ 'home.hero.subtitle' | translate }}
           </p>
 
           <div class="hero-actions">
@@ -37,10 +39,10 @@ import { CommonModule } from '@angular/common';
               mat-flat-button
               color="primary"
               class="cta-button"
-              routerLink="/register"
+              routerLink="/login"
             >
-              <mat-icon>school</mat-icon>
-              Start Learning Now
+              <mat-icon>rocket_launch</mat-icon>
+              {{ 'home.hero.ctaButton' | translate }}
             </button>
           </div>
 
@@ -49,15 +51,21 @@ import { CommonModule } from '@angular/common';
             <div class="stats-grid">
               <div class="stat-item">
                 <div class="stat-number">324</div>
-                <div class="stat-label">Words Created</div>
+                <div class="stat-label">
+                  {{ 'home.hero.stats.wordsCreated' | translate }}
+                </div>
               </div>
               <div class="stat-item">
                 <div class="stat-number">47</div>
-                <div class="stat-label">Public Lists</div>
+                <div class="stat-label">
+                  {{ 'home.hero.stats.publicLists' | translate }}
+                </div>
               </div>
               <div class="stat-item">
                 <div class="stat-number">156</div>
-                <div class="stat-label">Active Users</div>
+                <div class="stat-label">
+                  {{ 'home.hero.stats.activeUsers' | translate }}
+                </div>
               </div>
             </div>
           </div>
@@ -68,35 +76,27 @@ import { CommonModule } from '@angular/common';
       <section class="how-it-works-section">
         <div class="how-it-works-container">
           <div class="section-header">
-            <h2>How WordWeave Works</h2>
-            <p>Create personalized vocabulary in 3 simple steps</p>
+            <h2>{{ 'home.howItWorks.title' | translate }}</h2>
+            <p>{{ 'home.howItWorks.subtitle' | translate }}</p>
           </div>
 
           <div class="steps-grid">
             <div class="step-card">
               <div class="step-number">1</div>
               <div class="step-icon">
-                <mat-icon>add_circle</mat-icon>
+                <mat-icon>library_add</mat-icon>
               </div>
-              <h3>Shared Vocabulary</h3>
-              <p>
-                Create vocabulary lists for any language pair. Submit vocabulary
-                words you want to learn in English, Spanish, or German if they
-                have not been created yet
-              </p>
+              <h3>{{ 'home.howItWorks.step1.title' | translate }}</h3>
+              <p>{{ 'home.howItWorks.step1.description' | translate }}</p>
             </div>
 
             <div class="step-card">
               <div class="step-number">2</div>
               <div class="step-icon">
-                <mat-icon>smart_toy</mat-icon>
+                <mat-icon>auto_awesome</mat-icon>
               </div>
-              <h3>AI Generates Content</h3>
-              <p>
-                Our AI Agents create a rich vocabulary card for the requested
-                words including examples, audio pronunciation and images to make
-                learning more engaging
-              </p>
+              <h3>{{ 'home.howItWorks.step2.title' | translate }}</h3>
+              <p>{{ 'home.howItWorks.step2.description' | translate }}</p>
             </div>
 
             <div class="step-card">
@@ -104,11 +104,8 @@ import { CommonModule } from '@angular/common';
               <div class="step-icon">
                 <mat-icon>quiz</mat-icon>
               </div>
-              <h3>Practice & Learn</h3>
-              <p>
-                Study with multiple choice quizzes and build out your own
-                personal vocabulary lists
-              </p>
+              <h3>{{ 'home.howItWorks.step3.title' | translate }}</h3>
+              <p>{{ 'home.howItWorks.step3.description' | translate }}</p>
             </div>
           </div>
         </div>
@@ -118,8 +115,8 @@ import { CommonModule } from '@angular/common';
       <section class="features-section">
         <div class="features-container">
           <div class="section-header">
-            <h2>Everything you need to master vocabulary</h2>
-            <p>Comprehensive tools for effective language learning</p>
+            <h2>{{ 'home.features.title' | translate }}</h2>
+            <p>{{ 'home.features.subtitle' | translate }}</p>
           </div>
 
           <div class="features-grid">
@@ -127,33 +124,26 @@ import { CommonModule } from '@angular/common';
               <div class="feature-icon">
                 <mat-icon>library_books</mat-icon>
               </div>
-              <h3>Personal Collections</h3>
+              <h3>{{ 'home.features.personalLists.title' | translate }}</h3>
+              <p>{{ 'home.features.personalLists.description' | translate }}</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-icon">
+                <mat-icon>groups</mat-icon>
+              </div>
+              <h3>{{ 'home.features.communityDatabase.title' | translate }}</h3>
               <p>
-                Create and organize vocabulary lists for any Source → Target
-                language pair
+                {{ 'home.features.communityDatabase.description' | translate }}
               </p>
             </div>
 
             <div class="feature-card">
               <div class="feature-icon">
-                <mat-icon>public</mat-icon>
+                <mat-icon>visibility</mat-icon>
               </div>
-              <h3>Community-Driven</h3>
-              <p>
-                Words you request become available to all users, growing our
-                shared database
-              </p>
-            </div>
-
-            <div class="feature-card">
-              <div class="feature-icon">
-                <mat-icon>translate</mat-icon>
-              </div>
-              <h3>Multi-Language Support</h3>
-              <p>
-                Learn across English, Spanish, and German with any language
-                combination
-              </p>
+              <h3>{{ 'home.features.aiGeneration.title' | translate }}</h3>
+              <p>{{ 'home.features.aiGeneration.description' | translate }}</p>
             </div>
           </div>
         </div>
@@ -299,14 +289,15 @@ import { CommonModule } from '@angular/common';
 
       /* Hero Section */
       .hero-section {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 2rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
         align-items: center;
         max-width: 1200px;
         margin: 0 auto;
-        padding: 80px 2rem 60px;
+        padding: 60px 2rem 50px;
         text-align: center;
+        min-height: calc(100vh - 100px);
       }
 
       .hero-content {
@@ -328,10 +319,10 @@ import { CommonModule } from '@angular/common';
       }
 
       .hero-title {
-        font-size: 3.5rem;
+        font-size: 3rem;
         font-weight: 700;
         line-height: 1.1;
-        margin-bottom: 5px;
+        margin-bottom: 32px;
         color: var(--text-primary);
       }
 
@@ -348,11 +339,11 @@ import { CommonModule } from '@angular/common';
       }
 
       .hero-subtitle {
-        font-size: 1.25rem;
+        font-size: 1.2rem;
         color: var(--text-secondary);
-        line-height: 1.6;
-        margin-bottom: 32px;
-        max-width: 600px;
+        line-height: 1.5;
+        margin-bottom: 24px;
+        max-width: 580px;
         margin-left: auto;
         margin-right: auto;
       }
@@ -360,7 +351,7 @@ import { CommonModule } from '@angular/common';
       .hero-actions {
         display: flex;
         gap: 16px;
-        margin-bottom: 32px;
+        margin-bottom: 48px;
         justify-content: center;
       }
 
@@ -385,7 +376,7 @@ import { CommonModule } from '@angular/common';
       }
 
       .hero-stats {
-        margin-top: 80px;
+        margin-top: 0px;
         opacity: 0.9;
       }
 
@@ -398,7 +389,7 @@ import { CommonModule } from '@angular/common';
       }
 
       .stat-item {
-        padding: 16px 12px;
+        padding: 12px 10px;
         background: var(--surface-color);
         border-radius: 12px;
         text-align: center;
@@ -620,15 +611,17 @@ import { CommonModule } from '@angular/common';
       /* Mobile Responsive */
       @media (max-width: 768px) {
         .hero-section {
-          padding: 60px 1rem 40px;
+          padding: 30px 1rem 30px;
+          min-height: calc(100vh - 100px);
         }
 
         .hero-title {
-          font-size: 2.5rem;
+          font-size: 2.2rem;
+          margin-bottom: 24px;
         }
 
         .hero-subtitle {
-          font-size: 1.125rem;
+          font-size: 1.1rem;
         }
 
         .hero-actions {
@@ -679,40 +672,54 @@ import { CommonModule } from '@angular/common';
       }
 
       @media (max-width: 480px) {
+        .hero-section {
+          padding: 20px 1rem 20px;
+          min-height: calc(100vh - 80px);
+        }
+
         .hero-title {
-          font-size: 2rem;
+          font-size: 1.8rem;
+          margin-bottom: 20px;
+        }
+
+        .hero-subtitle {
+          font-size: 1rem;
         }
 
         .hero-actions {
           gap: 12px;
+          margin-bottom: 24px;
         }
 
         .stats-grid {
-          grid-template-columns: 1fr;
-          max-width: 200px;
-          gap: 10px;
+          grid-template-columns: repeat(3, 1fr);
+          max-width: 320px;
+          gap: 8px;
         }
 
         .stat-item {
-          padding: 14px 16px;
+          padding: 10px 8px;
         }
 
         .stat-number {
-          font-size: 1.5rem;
+          font-size: 1.3rem;
         }
 
         .stat-label {
-          font-size: 0.7rem;
-        }
-
-        .hero-actions {
-          margin-bottom: 24px;
+          font-size: 0.65rem;
         }
       }
     `,
   ],
-  imports: [MatButtonModule, MatIconModule, RouterLink, CommonModule],
+  imports: [
+    MatButtonModule,
+    MatIconModule,
+    RouterLink,
+    CommonModule,
+    TranslatePipe,
+  ],
 })
 export class Home {
   themeService = inject(ThemeService);
+  translationService = inject(TranslationService);
 }

@@ -17,7 +17,7 @@ export class AuthGuard implements CanActivate {
     } else {
       this.router.navigate(['/login']);
       this.messageService.showWarningMessage(
-        MessageService.MSG_WARNING_LOGIN_FIRST
+        this.messageService.MSG_WARNING_LOGIN_FIRST
       );
       return false;
     }

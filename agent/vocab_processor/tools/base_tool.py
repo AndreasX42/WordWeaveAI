@@ -28,7 +28,7 @@ async def create_llm_response(
     response_model: Type[T],
     user_prompt: str,
     system_message: str = SystemMessages.LINGUISTIC_SPECIALIST,
-    llm_provider: LLMVariant = LLMVariant.GPT41M,
+    llm_provider: LLMVariant = LLMVariant.GPT41,
     **kwargs
 ) -> T:
     """

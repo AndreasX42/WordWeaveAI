@@ -15,9 +15,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ErrorManagerFactory } from '../../shared/error.manager.factory';
 import { AuthService } from '../../services/auth.service';
 import { MessageService } from '../../services/message.service';
+import { TranslationService } from '../../services/translation.service';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
+import { TranslatePipe } from '../../shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-verify',
@@ -31,6 +33,7 @@ import { MatCardModule } from '@angular/material/card';
     MatProgressSpinner,
     CommonModule,
     MatCardModule,
+    TranslatePipe,
   ],
   templateUrl: './verify.html',
   styleUrl: './verify.scss',
@@ -40,6 +43,7 @@ export class Verify {
   private route = inject(ActivatedRoute);
   private authService = inject(AuthService);
   private messageService = inject(MessageService);
+  private translationService = inject(TranslationService);
   private destroyRef = inject(DestroyRef);
 
   isVerifying = signal(false);
@@ -89,17 +93,23 @@ export class Verify {
 
       if (success) {
         this.isVerifying.set(false);
-        this.messageService.showSuccessMessage('Email verified successfully!');
+        this.messageService.showSuccessMessage(
+          this.translationService.translate('auth.emailVerifiedSuccessfully')
+        );
         this.router.navigate(['/login'], { replaceUrl: true });
       } else {
         this.isVerifying.set(false);
-        const errorMessage = 'Invalid verification code. Please try again.';
+        const errorMessage = this.translationService.translate(
+          'auth.invalidVerificationCode'
+        );
         this.verifyError.set(errorMessage);
         this.messageService.showErrorMessage(errorMessage);
       }
     } catch {
       this.isVerifying.set(false);
-      const errorMessage = 'Verification failed. Please try again.';
+      const errorMessage = this.translationService.translate(
+        'auth.verificationFailed'
+      );
       this.verifyError.set(errorMessage);
       this.messageService.showErrorMessage(errorMessage);
     }
@@ -119,17 +129,17 @@ export class Verify {
 
       if (success) {
         this.messageService.showSuccessMessage(
-          'Verification code resent to your email.'
+          this.translationService.translate('auth.verificationCodeResent')
         );
         this.startResendTimer();
       } else {
         this.messageService.showErrorMessage(
-          'Failed to resend code. Please try again.'
+          this.translationService.translate('auth.resendCodeFailed')
         );
       }
     } catch {
       this.messageService.showErrorMessage(
-        'Failed to resend code. Please try again.'
+        this.translationService.translate('auth.resendCodeFailed')
       );
     } finally {
       this.isResending.set(false);
@@ -157,16 +167,19 @@ export class Verify {
 
   getResendButtonText(): string {
     if (this.isResending()) {
-      return 'Sending...';
+      return this.translationService.translate('auth.resendingCode');
     }
 
     if (!this.canResend()) {
       const minutes = Math.floor(this.resendCountdown() / 60);
       const seconds = this.resendCountdown() % 60;
-      return `Resend in ${minutes}:${seconds.toString().padStart(2, '0')}`;
+      const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      return this.translationService.translate('auth.resendInTime', {
+        time: timeString,
+      });
     }
 
-    return 'Resend Code';
+    return this.translationService.translate('auth.resendCode');
   }
 
   updateVerificationCodeErrorMessage = ErrorManagerFactory.getFormErrorManager(

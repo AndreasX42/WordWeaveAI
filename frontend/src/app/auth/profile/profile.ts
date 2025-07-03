@@ -12,8 +12,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
 import { MessageService } from '../../services/message.service';
+import { TranslationService } from '../../services/translation.service';
 import { User } from '../../models/user.model';
 import { UpdateAccountDialog } from './update-account-dialog';
+import { TranslatePipe } from '../../shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-profile',
@@ -24,6 +26,7 @@ import { UpdateAccountDialog } from './update-account-dialog';
     MatCardModule,
     MatSlideToggleModule,
     TitleCasePipe,
+    TranslatePipe,
   ],
   templateUrl: './profile.html',
   styleUrl: './profile.scss',
@@ -33,6 +36,7 @@ export class Profile implements OnInit {
   private authService = inject(AuthService);
   private themeService = inject(ThemeService);
   private messageService = inject(MessageService);
+  private translationService = inject(TranslationService);
   private destroyRef = inject(DestroyRef);
   private dialog = inject(MatDialog);
 
@@ -71,11 +75,15 @@ export class Profile implements OnInit {
   logout(): void {
     try {
       this.authService.logout();
-      this.messageService.showSuccessMessage('Logout successful!');
+      this.messageService.showSuccessMessage(
+        this.translationService.translate('auth.logoutSuccessful')
+      );
       this.router.navigate(['/home'], { replaceUrl: true });
     } catch (error) {
       console.error('Logout failed:', error);
-      this.messageService.showErrorMessage('Logout failed!');
+      this.messageService.showErrorMessage(
+        this.translationService.translate('auth.logoutFailed')
+      );
     }
   }
 
@@ -99,7 +107,7 @@ export class Profile implements OnInit {
 
   async deleteAccount(): Promise<void> {
     const confirmed = confirm(
-      'Are you sure you want to delete your account? This action cannot be undone.'
+      this.translationService.translate('auth.deleteAccountConfirm')
     );
 
     if (confirmed) {
@@ -107,7 +115,9 @@ export class Profile implements OnInit {
         await this.authService.deleteAccount();
 
         // If we reach here, deletion was successful
-        this.messageService.showSuccessMessage('Account deleted successfully!');
+        this.messageService.showSuccessMessage(
+          this.translationService.translate('auth.accountDeletedSuccessfully')
+        );
         this.router.navigate(['/home'], { replaceUrl: true });
       } catch (error) {
         console.error('Account deletion error:', error);
@@ -120,7 +130,8 @@ export class Profile implements OnInit {
 
         // Display the specific error message from backend for other errors
         const displayMessage =
-          errorMessage || 'Account deletion failed. Please try again.';
+          errorMessage ||
+          this.translationService.translate('auth.accountDeletionFailed');
         this.messageService.showErrorMessage(displayMessage);
       }
     }
@@ -130,14 +141,18 @@ export class Profile implements OnInit {
     const token = this.authService.getAuthToken();
 
     if (!token) {
-      this.sessionTimeLeft.set('No session');
+      this.sessionTimeLeft.set(
+        this.translationService.translate('auth.noSession')
+      );
       return;
     }
 
     const tokenExpiration = this.getTokenExpiration(token);
 
     if (!tokenExpiration) {
-      this.sessionTimeLeft.set('Invalid session');
+      this.sessionTimeLeft.set(
+        this.translationService.translate('auth.invalidSession')
+      );
       return;
     }
 
@@ -150,7 +165,9 @@ export class Profile implements OnInit {
         if (timeLeft > 0) {
           this.sessionTimeLeft.set(this.formatTimeLeft(timeLeft * 1000));
         } else {
-          this.sessionTimeLeft.set('Session expired');
+          this.sessionTimeLeft.set(
+            this.translationService.translate('auth.sessionExpired')
+          );
         }
       });
   }

@@ -348,3 +348,47 @@ body.dark-theme .user-menu {
     }
   }
 }
+
+.current-language {
+  margin-left: auto !important;
+  font-size: 16px;
+}
+
+// Clean language menu
+.language-menu {
+  min-width: 160px;
+
+  button[mat-menu-item] {
+    height: 48px;
+    color: var(--text-primary) !important;
+
+    &.active-language {
+      background-color: rgba(var(--primary-color-rgb), 0.1) !important;
+      color: var(--primary-color) !important;
+    }
+
+    .language-flag {
+      font-size: 16px;
+      margin-right: 12px;
+    }
+
+    .check-icon {
+      margin-left: auto;
+      font-size: 18px;
+      color: var(--primary-color);
+    }
+  }
+}
+
+// Dark theme overrides
+body.dark-theme .language-menu {
+  button[mat-menu-item] {
+    &:hover {
+      background-color: #4d4d4d !important;
+    }
+
+    &.active-language {
+      background-color: rgba(var(--primary-color-rgb), 0.15) !important;
+    }
+  }
+}

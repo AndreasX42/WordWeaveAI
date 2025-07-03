@@ -163,7 +163,7 @@ export class AuthInterceptor implements HttpInterceptor {
   private handleSessionExpired(): void {
     this.authService.logout();
     this.messageService.showWarningMessage(
-      MessageService.MSG_WARNING_SESSION_EXPIRED
+      this.messageService.MSG_WARNING_SESSION_EXPIRED
     );
     this.router.navigate(['login']);
   }

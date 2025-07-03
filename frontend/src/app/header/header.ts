@@ -9,6 +9,8 @@ import { Router } from '@angular/router';
 import { ThemeService } from '../services/theme.service';
 import { AuthService } from '../services/auth.service';
 import { MessageService } from '../services/message.service';
+import { TranslationService, Language } from '../services/translation.service';
+import { TranslatePipe } from '../shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-header',
@@ -21,6 +23,7 @@ import { MessageService } from '../services/message.service';
     MatMenuTrigger,
     MatTooltip,
     MatDivider,
+    TranslatePipe,
   ],
   templateUrl: './header.html',
   styleUrl: './header.scss',
@@ -29,6 +32,7 @@ export class Header {
   title = input<string>();
   themeService = inject(ThemeService);
   authService = inject(AuthService);
+  translationService = inject(TranslationService);
   private router = inject(Router);
   private messageService = inject(MessageService);
 
@@ -65,5 +69,17 @@ export class Header {
 
   onHealth(): void {
     this.router.navigate(['/health']);
+  }
+
+  changeLanguage(languageCode: string): void {
+    this.translationService.changeLanguage(languageCode);
+  }
+
+  getCurrentLanguage(): Language {
+    return this.translationService.getCurrentLanguage()();
+  }
+
+  getAvailableLanguages(): Language[] {
+    return this.translationService.languages;
   }
 }

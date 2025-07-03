@@ -1,4 +1,5 @@
 from aws_lambda_powertools import Logger
+
 from vocab_processor.tools import *
 from vocab_processor.utils.state import VocabState
 
@@ -48,7 +49,13 @@ async def node_get_classification(state: VocabState) -> VocabState:
         }
     )
 
-    # print(f"Categorization: {response}")
+    logger.debug(
+        "classification_result",
+        word=state.source_word,
+        source_definition=response.source_definition,
+        source_part_of_speech=response.source_part_of_speech,
+        source_article=response.source_article,
+    )
 
     return {
         "source_definition": response.source_definition,
@@ -68,7 +75,13 @@ async def node_get_translation(state: VocabState) -> VocabState:
         }
     )
 
-    # print(f"Translation: {response}")
+    logger.debug(
+        "translation_result",
+        word=state.source_word,
+        target_word=response.target_word,
+        target_part_of_speech=response.target_part_of_speech,
+        target_article=response.target_article,
+    )
 
     return {
         "target_word": response.target_word,
@@ -87,7 +100,11 @@ async def node_get_synonyms(state: VocabState) -> VocabState:
         }
     )
 
-    # print(f"Synonyms: {response}")
+    logger.debug(
+        "synonyms_result",
+        word=state.target_word,
+        synonyms=response.synonyms,
+    )
 
     return {"synonyms": response.synonyms}
 
@@ -101,7 +118,11 @@ async def node_get_syllables(state: VocabState) -> VocabState:
         }
     )
 
-    # print(f"Syllables: {response.syllables}")
+    logger.debug(
+        "syllables_result",
+        word=state.target_word,
+        syllables=response.syllables,
+    )
 
     return {"target_syllables": response.syllables}
 
@@ -117,7 +138,11 @@ async def node_get_pronunciation(state: VocabState) -> VocabState:
         }
     )
 
-    # print(f"Pronunciation result: {result}")
+    logger.debug(
+        "pronunciation_result",
+        word=state.target_word,
+        pronunciations=result,
+    )
 
     return {"pronunciations": result}
 
@@ -133,7 +158,14 @@ async def node_get_media(state: VocabState) -> VocabState:
         }
     )
 
-    # print(f"Memory aid: {response}")
+    logger.debug(
+        "media_result",
+        word=state.source_word,
+        media=response.get("media", None),
+        english_word=response.get("english_word", None),
+        search_query=response.get("search_query", []),
+        media_reused=response.get("media_reused", False),
+    )
 
     return {
         "media": response.get("media", None),
@@ -154,7 +186,11 @@ async def node_get_examples(state: VocabState) -> VocabState:
         }
     )
 
-    # print(f"Examples: {response}")
+    logger.debug(
+        "examples_result",
+        word=state.source_word,
+        examples=response.examples,
+    )
 
     return {"examples": response.examples}
 
@@ -172,6 +208,10 @@ async def node_get_conjugation(state: VocabState) -> VocabState:
         }
     )
 
-    # print(f"Conjugation: {response}")
+    logger.debug(
+        "conjugation_result",
+        word=state.target_word,
+        conjugation=response,
+    )
 
     return {"conjugation": response}

@@ -2,10 +2,9 @@
   <div class="verify-wrapper">
     <!-- Page header -->
     <div class="page-header">
-      <h1 class="page-title">Verify Email</h1>
+      <h1 class="page-title">{{ "auth.verifyEmail" | translate }}</h1>
       <p class="page-subtitle">
-        We've sent a verification code to
-        <strong>{{ email() }}</strong>
+        {{ "auth.verifyEmailSubtitle" | translate : { email: email() } }}
       </p>
     </div>
 
@@ -16,7 +15,7 @@
           <!-- Verification code field -->
           <div class="form-field">
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Verification Code</mat-label>
+              <mat-label>{{ "auth.verificationCode" | translate }}</mat-label>
               <input
                 matInput
                 id="verificationCode"
@@ -24,7 +23,7 @@
                 name="verificationCode"
                 formControlName="verificationCode"
                 (blur)="updateVerificationCodeErrorMessage()"
-                placeholder="Enter 6-digit code"
+                [placeholder]="'auth.enterVerificationCode' | translate"
                 maxlength="6"
                 autocomplete="one-time-code"
               />
@@ -66,9 +65,9 @@
                 diameter="20"
                 class="app-button-spinner"
               ></mat-spinner>
-              <span>Verifying...</span>
+              <span>{{ "auth.verifying" | translate }}</span>
               } @else {
-              <span>Verify Email</span>
+              <span>{{ "auth.verifyEmailButton" | translate }}</span>
               }
             </button>
           </div>
@@ -79,7 +78,7 @@
     <!-- Bottom section -->
     <div class="bottom-section">
       <p class="resend-text">
-        Didn't receive the code?
+        {{ "auth.didntReceiveCode" | translate }}
         <button
           type="button"
           (click)="onResendCode()"
@@ -88,7 +87,7 @@
           class="resend-link app-link"
           [class.disabled]="isResending() || !canResend()"
           [disabled]="isResending() || !canResend()"
-          aria-label="Resend verification code"
+          [attr.aria-label]="'auth.resendVerificationCode' | translate"
         >
           {{ getResendButtonText() }}
         </button>

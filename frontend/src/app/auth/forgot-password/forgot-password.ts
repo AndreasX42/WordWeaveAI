@@ -14,9 +14,11 @@ import { Router, RouterLink } from '@angular/router';
 import { ErrorManagerFactory } from '../../shared/error.manager.factory';
 import { AuthService } from '../../services/auth.service';
 import { MessageService } from '../../services/message.service';
+import { TranslationService } from '../../services/translation.service';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
+import { TranslatePipe } from '../../shared/pipes/translate.pipe';
 
 function strictEmailValidator(control: AbstractControl) {
   const email = control.value;
@@ -47,6 +49,7 @@ function strictEmailValidator(control: AbstractControl) {
     CommonModule,
     MatCardModule,
     RouterLink,
+    TranslatePipe,
   ],
   templateUrl: './forgot-password.html',
   styleUrl: './forgot-password.scss',
@@ -55,6 +58,7 @@ export class ForgotPassword {
   private router = inject(Router);
   private authService = inject(AuthService);
   private messageService = inject(MessageService);
+  private translationService = inject(TranslationService);
 
   isSubmitting = signal(false);
   emailErrorMessage = signal<string>('');
@@ -98,7 +102,9 @@ export class ForgotPassword {
         this.isEmailSent.set(true);
       } else {
         // This handles cases where the request succeeds but response is malformed
-        const errorMessage = 'Failed to send reset email. Please try again.';
+        const errorMessage = this.translationService.translate(
+          'auth.resetEmailFailed'
+        );
         this.forgotPasswordError.set(errorMessage);
         this.messageService.showErrorMessage(errorMessage);
       }
@@ -115,7 +121,8 @@ export class ForgotPassword {
       const backendMessage =
         errorObj?.error?.message || errorObj?.error?.details?.error || '';
       const errorMessage =
-        backendMessage || 'Failed to send reset email. Please try again.';
+        backendMessage ||
+        this.translationService.translate('auth.resetEmailFailed');
 
       this.forgotPasswordError.set(errorMessage);
       this.messageService.showErrorMessage(errorMessage);

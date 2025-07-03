@@ -6,7 +6,7 @@
         <mat-icon class="logo-icon">edit</mat-icon>
         <h1 class="brand-name">WordWeave</h1>
       </div>
-      <p class="brand-tagline">Manage your account settings and preferences</p>
+      <p class="brand-tagline">{{ "auth.manageAccount" | translate }}</p>
     </div>
 
     <!-- Profile information card -->
@@ -25,21 +25,27 @@
             } @else {
             <mat-icon class="avatar-icon">account_circle</mat-icon>
             }
-            <h2 class="profile-title">User Profile</h2>
+            <h2 class="profile-title">{{ "auth.userProfile" | translate }}</h2>
           </div>
         </div>
 
         <div class="profile-info">
           <!-- User Information -->
           <div class="info-section">
-            <h3 class="section-title">Account Information</h3>
+            <h3 class="section-title">
+              {{ "auth.accountInformation" | translate }}
+            </h3>
             <div class="info-grid">
               <div class="info-item">
                 <mat-icon class="info-icon">person</mat-icon>
                 <div class="info-content">
-                  <span class="info-label">Username</span>
+                  <span class="info-label">{{
+                    "auth.username" | translate
+                  }}</span>
                   <span class="info-value">{{
-                    user()?.username ? user()?.username : "Not available"
+                    user()?.username
+                      ? user()?.username
+                      : ("auth.notAvailable" | translate)
                   }}</span>
                 </div>
               </div>
@@ -47,9 +53,11 @@
               <div class="info-item">
                 <mat-icon class="info-icon">email</mat-icon>
                 <div class="info-content">
-                  <span class="info-label">Email</span>
+                  <span class="info-label">{{ "auth.email" | translate }}</span>
                   <span class="info-value">{{
-                    user()?.email ? user()?.email : "Not available"
+                    user()?.email
+                      ? user()?.email
+                      : ("auth.notAvailable" | translate)
                   }}</span>
                 </div>
               </div>
@@ -63,13 +71,19 @@
                   {{ user()?.confirmedEmail ? "verified" : "error" }}
                 </mat-icon>
                 <div class="info-content">
-                  <span class="info-label">Email Status</span>
+                  <span class="info-label">{{
+                    "auth.emailStatus" | translate
+                  }}</span>
                   <span
                     class="info-value"
                     [class.verified]="user()?.confirmedEmail"
                     [class.unverified]="!user()?.confirmedEmail"
                   >
-                    {{ user()?.confirmedEmail ? "Verified" : "Not Verified" }}
+                    {{
+                      user()?.confirmedEmail
+                        ? ("auth.verified" | translate)
+                        : ("auth.notVerified" | translate)
+                    }}
                   </span>
                 </div>
               </div>
@@ -77,7 +91,7 @@
               <div class="info-item">
                 <mat-icon class="info-icon">badge</mat-icon>
                 <div class="info-content">
-                  <span class="info-label">Role</span>
+                  <span class="info-label">{{ "auth.role" | translate }}</span>
                   <span class="info-value">{{
                     user()?.role ? (user()?.role | titlecase) : "User"
                   }}</span>
@@ -88,25 +102,37 @@
 
           <!-- Session Information -->
           <div class="info-section">
-            <h3 class="section-title">Session Status</h3>
+            <h3 class="section-title">
+              {{ "auth.sessionStatus" | translate }}
+            </h3>
             <div class="session-info">
               <mat-icon
                 class="session-icon"
-                [class.expired]="sessionTimeLeft() === 'Session expired'"
+                [class.expired]="
+                  sessionTimeLeft() === ('auth.sessionExpired' | translate)
+                "
               >
                 {{
-                  sessionTimeLeft() === "Session expired"
+                  sessionTimeLeft() === ("auth.sessionExpired" | translate)
                     ? "warning"
                     : "schedule"
                 }}
               </mat-icon>
               <div class="session-content">
-                <span class="session-label">Session Expires In</span>
+                <span class="session-label">{{
+                  "auth.sessionExpiresIn" | translate
+                }}</span>
                 <span
                   class="session-value"
-                  [class.expired]="sessionTimeLeft() === 'Session expired'"
+                  [class.expired]="
+                    sessionTimeLeft() === ('auth.sessionExpired' | translate)
+                  "
                 >
-                  {{ sessionTimeLeft() ? sessionTimeLeft() : "Loading..." }}
+                  {{
+                    sessionTimeLeft()
+                      ? sessionTimeLeft()
+                      : ("common.loading" | translate)
+                  }}
                 </span>
               </div>
             </div>
@@ -114,15 +140,17 @@
 
           <!-- Preferences -->
           <div class="info-section">
-            <h3 class="section-title">Preferences</h3>
+            <h3 class="section-title">{{ "auth.preferences" | translate }}</h3>
             <div class="preference-item">
               <div class="preference-content">
                 <mat-icon class="preference-icon">dark_mode</mat-icon>
                 <div class="preference-text">
-                  <span class="preference-label">Dark Mode</span>
-                  <span class="preference-description"
-                    >Switch between light and dark themes</span
-                  >
+                  <span class="preference-label">{{
+                    "auth.darkMode" | translate
+                  }}</span>
+                  <span class="preference-description">{{
+                    "auth.darkModeDescription" | translate
+                  }}</span>
                 </div>
               </div>
               <mat-slide-toggle
@@ -136,7 +164,9 @@
 
           <!-- Account Actions -->
           <div class="info-section">
-            <h3 class="section-title">Account Actions</h3>
+            <h3 class="section-title">
+              {{ "auth.accountActions" | translate }}
+            </h3>
             <div class="action-buttons">
               <button
                 mat-raised-button
@@ -144,7 +174,7 @@
                 (click)="updateAccount()"
               >
                 <mat-icon>edit</mat-icon>
-                Update Account
+                {{ "auth.updateAccount" | translate }}
               </button>
               <button
                 mat-raised-button
@@ -152,7 +182,7 @@
                 (click)="deleteAccount()"
               >
                 <mat-icon>delete_forever</mat-icon>
-                Delete Account
+                {{ "auth.deleteAccount" | translate }}
               </button>
             </div>
           </div>
@@ -162,7 +192,7 @@
         <div class="logout-section">
           <button mat-raised-button class="app-button" (click)="logout()">
             <mat-icon>logout</mat-icon>
-            Sign Out
+            {{ "auth.signOut" | translate }}
           </button>
         </div>
       </mat-card-content>

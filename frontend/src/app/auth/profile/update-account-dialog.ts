@@ -18,7 +18,9 @@ import {
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { MessageService } from '../../services/message.service';
+import { TranslationService } from '../../services/translation.service';
 import { ErrorManagerFactory } from '../../shared/error.manager.factory';
+import { TranslatePipe } from '../../shared/pipes/translate.pipe';
 
 function strictEmailValidator(control: AbstractControl) {
   const email = control.value;
@@ -47,14 +49,15 @@ function strictEmailValidator(control: AbstractControl) {
     MatIconModule,
     ReactiveFormsModule,
     CommonModule,
+    TranslatePipe,
   ],
   template: `
-    <h2 mat-dialog-title>Update Account</h2>
+    <h2 mat-dialog-title>{{ 'auth.updateAccount' | translate }}</h2>
     <mat-dialog-content>
       <form [formGroup]="form" class="update-form">
         <!-- Username field -->
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Username</mat-label>
+          <mat-label>{{ 'auth.username' | translate }}</mat-label>
           <input
             matInput
             formControlName="username"
@@ -78,7 +81,7 @@ function strictEmailValidator(control: AbstractControl) {
 
         <!-- Email field -->
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Email</mat-label>
+          <mat-label>{{ 'auth.email' | translate }}</mat-label>
           <input
             matInput
             formControlName="email"
@@ -103,7 +106,7 @@ function strictEmailValidator(control: AbstractControl) {
 
         <!-- Password field -->
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Password (optional)</mat-label>
+          <mat-label>{{ 'auth.passwordOptional' | translate }}</mat-label>
           <input
             matInput
             formControlName="password"
@@ -135,14 +138,20 @@ function strictEmailValidator(control: AbstractControl) {
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button (click)="onCancel()">Cancel</button>
+      <button mat-button (click)="onCancel()">
+        {{ 'common.cancel' | translate }}
+      </button>
       <button
         mat-raised-button
         color="primary"
         (click)="onSave()"
         [disabled]="isUpdating() || form.invalid || !hasFormChanges()"
       >
-        {{ isUpdating() ? 'Updating...' : 'Update Account' }}
+        {{
+          isUpdating()
+            ? ('auth.updatingAccount' | translate)
+            : ('auth.updateAccountButton' | translate)
+        }}
       </button>
     </mat-dialog-actions>
   `,
@@ -559,6 +568,7 @@ export class UpdateAccountDialog {
   private data = inject(MAT_DIALOG_DATA);
   private authService = inject(AuthService);
   private messageService = inject(MessageService);
+  private translationService = inject(TranslationService);
 
   hidePassword = signal(true);
   isUpdating = signal(false);
@@ -703,11 +713,13 @@ export class UpdateAccountDialog {
       const success = await this.authService.updateAccount(updateData);
 
       if (success) {
-        this.messageService.showSuccessMessage('Account updated successfully!');
+        this.messageService.showSuccessMessage(
+          this.translationService.translate('auth.updateAccountSuccess')
+        );
         this.dialogRef.close(true);
       } else {
         this.messageService.showErrorMessage(
-          'Failed to update account. Please try again.'
+          this.translationService.translate('auth.updateAccountFailed')
         );
       }
     } catch (error) {

@@ -14,9 +14,11 @@ import { Router, RouterLink } from '@angular/router';
 import { ErrorManagerFactory } from '../../shared/error.manager.factory';
 import { AuthService } from '../../services/auth.service';
 import { MessageService } from '../../services/message.service';
+import { TranslationService } from '../../services/translation.service';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
+import { TranslatePipe } from '../../shared/pipes/translate.pipe';
 
 function equalValues(controlName1: string, controlName2: string) {
   return (control: AbstractControl) => {
@@ -65,6 +67,7 @@ function strictEmailValidator(control: AbstractControl) {
     MatProgressSpinner,
     CommonModule,
     MatCardModule,
+    TranslatePipe,
   ],
   templateUrl: './register.html',
   styleUrl: './register.scss',
@@ -74,6 +77,7 @@ export class Register {
   private destroyRef = inject(DestroyRef);
   private authService = inject(AuthService);
   private messageService = inject(MessageService);
+  private translationService = inject(TranslationService);
 
   hide = signal(true);
   isRegistering = signal(false);
@@ -137,7 +141,7 @@ export class Register {
       // If we reach here, registration was successful
       this.isRegistering.set(false);
       this.messageService.showSuccessMessage(
-        'Registration successful! Please check your email for verification code.',
+        this.translationService.translate('auth.registrationSuccessful'),
         5000
       );
       // Redirect to verification page with email as query parameter
@@ -164,11 +168,14 @@ export class Register {
         .toLowerCase()
         .includes('email already exists');
 
-      let errorMessage = 'Registration failed. Please try again.';
+      let errorMessage = this.translationService.translate(
+        'auth.registrationFailed'
+      );
 
       if (isUsernameExists || isEmailExists) {
-        errorMessage =
-          'Username or email already exists. Please try different credentials.';
+        errorMessage = this.translationService.translate(
+          'auth.usernameOrEmailExists'
+        );
       }
 
       this.messageService.showErrorMessage(errorMessage);

@@ -14,9 +14,11 @@ import { Router, RouterLink } from '@angular/router';
 import { ErrorManagerFactory } from '../../shared/error.manager.factory';
 import { AuthService } from '../../services/auth.service';
 import { MessageService } from '../../services/message.service';
+import { TranslationService } from '../../services/translation.service';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
+import { TranslatePipe } from '../../shared/pipes/translate.pipe';
 
 function strictEmailValidator(control: AbstractControl) {
   const email = control.value;
@@ -47,6 +49,7 @@ function strictEmailValidator(control: AbstractControl) {
     MatProgressSpinner,
     CommonModule,
     MatCardModule,
+    TranslatePipe,
   ],
   templateUrl: './login.html',
   styleUrl: './login.scss',
@@ -55,6 +58,7 @@ export class Login {
   private router = inject(Router);
   private authService = inject(AuthService);
   private messageService = inject(MessageService);
+  private translationService = inject(TranslationService);
 
   hide = signal(true);
   isLoggingIn = signal(false);
@@ -98,11 +102,13 @@ export class Login {
       this.isLoggingIn.set(false);
 
       if (success) {
-        this.messageService.showSuccessMessage('Login successful!');
+        this.messageService.showSuccessMessage(
+          this.translationService.translate('auth.loginSuccessful')
+        );
         this.router.navigate(['/profile'], { replaceUrl: true });
       } else {
         this.messageService.showErrorMessage(
-          'Invalid credentials. Please try again.'
+          this.translationService.translate('auth.invalidCredentials')
         );
       }
     } catch (error) {
@@ -113,7 +119,7 @@ export class Login {
       switch (errorMessage) {
         case 'EMAIL_NOT_VERIFIED':
           this.messageService.showWarningMessage(
-            'Please verify your email address before signing in.',
+            this.translationService.translate('auth.emailNotVerified'),
             6000
           );
           this.router.navigate(['/verify'], {
@@ -124,14 +130,14 @@ export class Login {
 
         case 'LOGIN_FAILED':
           this.messageService.showErrorMessage(
-            'Login failed. Please try again.'
+            this.translationService.translate('auth.loginFailed')
           );
           break;
 
         default:
           // Fallback for any unexpected errors
           this.messageService.showErrorMessage(
-            'An unexpected error occurred. Please try again.'
+            this.translationService.translate('auth.unexpectedError')
           );
           break;
       }
@@ -152,7 +158,7 @@ export class Login {
     } catch {
       this.isLoggingIn.set(false);
       this.messageService.showErrorMessage(
-        'Failed to initiate Google login. Please try again.'
+        this.translationService.translate('auth.googleLoginFailed')
       );
     }
   }
