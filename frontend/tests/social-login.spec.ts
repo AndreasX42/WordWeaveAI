@@ -27,7 +27,7 @@ test.describe('Social Login Flows', () => {
     await expect(page).toHaveURL('/profile');
 
     // Assert that the mock user's details are visible
-    await expect(page.getByText('GoogleUser')).toBeVisible();
-    await expect(page.getByText('google.user@example.com')).toBeVisible();
+    await expect(page.getByText(/GoogleUser/)).toBeVisible();
+    await expect(page.getByText(/google\.user@example\.com/)).toBeVisible();
   });
 });

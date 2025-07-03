@@ -18,7 +18,7 @@ export class TranslatePipe implements PipeTransform {
     });
   }
 
-  transform(key: string, params?: { [key: string]: any }): string {
+  transform(key: string, params?: Record<string, string>): string {
     // Access the signal to trigger updates
     this.updateSignal();
     return this.translationService.translate(key, params);

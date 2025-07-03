@@ -36,16 +36,16 @@ test.describe('Update Account Flow', () => {
     });
 
     // Open the update dialog
-    await page.getByRole('button', { name: 'Update Account' }).click();
+    await page.getByRole('button', { name: /update account/i }).click();
 
     // Get a locator for the dialog to scope actions
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
 
     // Fill in the new details within the dialog
-    await dialog.getByLabel('Username').fill('UpdatedUser');
+    await dialog.locator('#update-username').fill('UpdatedUser');
     await dialog
-      .getByRole('button', { name: 'Update Account', exact: true })
+      .getByRole('button', { name: /update account/i, exact: true })
       .click();
 
     // The success message appears in a snackbar with a specific class
@@ -71,14 +71,14 @@ test.describe('Update Account Flow', () => {
       });
     });
 
-    await page.getByRole('button', { name: 'Update Account' }).click();
+    await page.getByRole('button', { name: /update account/i }).click();
 
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
 
-    await dialog.getByLabel('Username').fill('existingUser');
+    await dialog.locator('#update-username').fill('existingUser');
     await dialog
-      .getByRole('button', { name: 'Update Account', exact: true })
+      .getByRole('button', { name: /update account/i, exact: true })
       .click();
 
     // The error message should appear within the dialog
@@ -100,14 +100,14 @@ test.describe('Update Account Flow', () => {
       });
     });
 
-    await page.getByRole('button', { name: 'Update Account' }).click();
+    await page.getByRole('button', { name: /update account/i }).click();
 
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
 
-    await dialog.getByLabel('Email').fill('existing@example.com');
+    await dialog.locator('#update-email').fill('existing@example.com');
     await dialog
-      .getByRole('button', { name: 'Update Account', exact: true })
+      .getByRole('button', { name: /update account/i, exact: true })
       .click();
 
     // The error message should appear within the dialog
@@ -118,12 +118,12 @@ test.describe('Update Account Flow', () => {
 
   // Frontend-only validation tests (no API mock needed)
   test('should show validation error for short username', async ({ page }) => {
-    await page.getByRole('button', { name: 'Update Account' }).click();
+    await page.getByRole('button', { name: /update account/i }).click();
 
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
 
-    const usernameInput = dialog.getByLabel('Username');
+    const usernameInput = dialog.locator('#update-username');
     await usernameInput.fill('a');
     await usernameInput.blur();
 
@@ -133,12 +133,12 @@ test.describe('Update Account Flow', () => {
   });
 
   test('should show validation error for invalid email', async ({ page }) => {
-    await page.getByRole('button', { name: 'Update Account' }).click();
+    await page.getByRole('button', { name: /update account/i }).click();
 
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
 
-    const emailInput = dialog.getByLabel('Email');
+    const emailInput = dialog.locator('#update-email');
     await emailInput.fill('invalid-email');
     await emailInput.blur();
 
@@ -148,12 +148,12 @@ test.describe('Update Account Flow', () => {
   });
 
   test('should show validation error for short password', async ({ page }) => {
-    await page.getByRole('button', { name: 'Update Account' }).click();
+    await page.getByRole('button', { name: /update account/i }).click();
 
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
 
-    const passwordInput = dialog.getByLabel('Password (optional)');
+    const passwordInput = dialog.locator('#update-password');
     await passwordInput.fill('123');
     await passwordInput.blur();
 
@@ -165,13 +165,13 @@ test.describe('Update Account Flow', () => {
   test('should have update button disabled when no changes are made', async ({
     page,
   }) => {
-    await page.getByRole('button', { name: 'Update Account' }).click();
+    await page.getByRole('button', { name: /update account/i }).click();
 
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
 
     const updateButton = dialog.getByRole('button', {
-      name: 'Update Account',
+      name: /update account/i,
       exact: true,
     });
 
@@ -179,7 +179,7 @@ test.describe('Update Account Flow', () => {
     await expect(updateButton).toBeDisabled();
 
     // 2. Change username and assert button is enabled
-    const usernameInput = dialog.getByLabel('Username');
+    const usernameInput = dialog.locator('#update-username');
     await usernameInput.fill('NewUsername');
     await expect(updateButton).toBeEnabled();
 
@@ -188,7 +188,7 @@ test.describe('Update Account Flow', () => {
     await expect(updateButton).toBeDisabled();
 
     // 4. Change email and assert button is enabled
-    const emailInput = dialog.getByLabel('Email');
+    const emailInput = dialog.locator('#update-email');
     await emailInput.fill('new@example.com');
     await expect(updateButton).toBeEnabled();
 

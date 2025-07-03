@@ -1,6 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map, of } from 'rxjs';
 
 export interface Language {
   code: string;
@@ -27,7 +26,7 @@ export class TranslationService {
   private currentLanguageSignal = signal<Language>(this.languages[0]); // English default
 
   // Translation cache
-  private translationCache = new Map<string, any>();
+  private translationCache = new Map<string, Record<string, unknown>>();
 
   constructor() {
     // Load saved language preference
@@ -69,7 +68,7 @@ export class TranslationService {
   }
 
   // Get translation for a key
-  translate(key: string, params?: { [key: string]: any }): string {
+  translate(key: string, params?: Record<string, string>): string {
     const currentLang = this.currentLanguageSignal().code;
     const translations = this.translationCache.get(currentLang) || {};
 
@@ -86,12 +85,20 @@ export class TranslationService {
   }
 
   // Get nested translation from object
-  private getNestedTranslation(obj: any, key: string): string | null {
-    return key.split('.').reduce((o, i) => o?.[i], obj);
+  private getNestedTranslation(
+    obj: Record<string, unknown>,
+    key: string
+  ): string | null {
+    return key.split('.').reduce((o, i) => {
+      if (o && typeof o === 'object' && i in o) {
+        return (o as Record<string, unknown>)[i];
+      }
+      return undefined;
+    }, obj as unknown) as string | null;
   }
 
   // Get translations for a language
-  private getTranslations(languageCode: string): any {
+  private getTranslations(languageCode: string): Record<string, unknown> {
     const translations = {
       en: {
         header: {
@@ -103,16 +110,16 @@ export class TranslationService {
           lightMode: 'Light Mode',
           darkMode: 'Dark Mode',
           healthDashboard: 'Health Dashboard',
-          signOut: 'Sign out',
-          signIn: 'Sign in',
+          signIn: 'Sign In',
+          signOut: 'Sign Out',
           register: 'Register',
           guestUser: 'Guest User',
-          notSignedIn: 'Not signed in',
+          notSignedIn: 'Not Signed In',
         },
         common: {
           welcome: 'Welcome',
           home: 'Home',
-          loading: 'Loading...',
+          loading: 'Loading…',
           error: 'Error',
           success: 'Success',
           cancel: 'Cancel',
@@ -123,23 +130,20 @@ export class TranslationService {
           close: 'Close',
         },
         messages: {
-          // Error messages
-          unknownError: 'An unknown error occurred. Please try again.',
+          unknownError: 'Something went wrong. Please try again.',
           loginCredentialsIncorrect:
             'Invalid username or password. Please check your credentials and try again.',
           networkError:
             'Network error. Please check your connection and try again.',
           serverError: 'Server error. Please try again later.',
-
-          // Warning messages
-          loginFirst: 'Please login first to access this page.',
-          sessionExpired: 'Your session has expired. Please login again.',
+          loginFirst: 'Please sign in to continue.',
+          sessionExpired: 'Your session has expired. Please sign in again.',
         },
         health: {
           dashboard: {
             title: 'Health Dashboard',
             refresh: 'Refresh',
-            lastUpdated: 'Last updated',
+            lastUpdated: 'Last Updated',
             status: {
               excellent: 'Excellent',
               good: 'Good',
@@ -147,17 +151,17 @@ export class TranslationService {
             },
             tiles: {
               backendHealth: 'Backend Health',
-              backendHealthDescription: 'Backend API response time',
-              backendResponseTime: 'Backend Response Time',
+              backendHealthDescription: 'Backend API uptime & error rate',
+              backendResponseTime: 'Response Time',
               backendResponseTimeDescription: 'Average API response time',
-              backendErrorRate: 'Backend Error Rate',
+              backendErrorRate: 'Error Rate',
               backendErrorRateDescription: 'Backend errors per minute',
               jsErrorRate: 'JS Error Rate',
               jsErrorRateDescription: 'JavaScript errors per minute',
             },
             values: {
               offline: 'Offline',
-              noErrors: 'No errors',
+              noErrors: 'No Errors',
               errorsPerMinute: 'errors/min',
               milliseconds: 'ms',
             },
@@ -166,7 +170,7 @@ export class TranslationService {
         auth: {
           // Page titles and headers
           signIn: 'Sign In',
-          signInSubtitle: 'Welcome back! Please sign in to your account.',
+          signInSubtitle: 'Welcome back! Sign in to your account.',
           createAccount: 'Create Account',
           createAccountSubtitle: 'Create your account to get started!',
           resetPassword: 'Reset Password',
@@ -178,8 +182,7 @@ export class TranslationService {
 
           // Form labels
           username: 'Username',
-          email: 'Email',
-          emailAddress: 'Email Address',
+          email: 'Email Address',
           password: 'Password',
           confirmPassword: 'Confirm Password',
           verificationCode: 'Verification Code',
@@ -193,20 +196,20 @@ export class TranslationService {
 
           // Button labels
           signInButton: 'Sign In',
-          signingIn: 'Signing in...',
+          signingIn: 'Signing In…',
           createAccountButton: 'Create Account',
-          creatingAccount: 'Creating account...',
+          creatingAccount: 'Creating Account…',
           resetPasswordButton: 'Reset Password',
-          sending: 'Sending...',
+          sending: 'Sending…',
           verifyEmailButton: 'Verify Email',
-          verifying: 'Verifying...',
+          verifying: 'Verifying…',
           resendCode: 'Resend Code',
-          resendingCode: 'Sending...',
+          resendingCode: 'Resending…',
           resendInTime: 'Resend in {{time}}',
-          backToLogin: 'Back to Login',
+          backToLogin: 'Back to Sign In',
           updateAccount: 'Update Account',
           updateAccountButton: 'Update Account',
-          updatingAccount: 'Updating...',
+          updatingAccount: 'Updating…',
           deleteAccount: 'Delete Account',
 
           // Links and navigation
@@ -231,9 +234,9 @@ export class TranslationService {
           role: 'Role',
           sessionStatus: 'Session Status',
           sessionExpiresIn: 'Session Expires In',
-          sessionExpired: 'Session expired',
-          noSession: 'No session',
-          invalidSession: 'Invalid session',
+          sessionExpired: 'Session Expired',
+          noSession: 'No Session',
+          invalidSession: 'Invalid Session',
           preferences: 'Preferences',
           darkMode: 'Dark Mode',
           darkModeDescription: 'Switch between light and dark themes',
@@ -294,7 +297,7 @@ export class TranslationService {
             title: 'Build your vocabulary with',
             titleHighlight: 'AI-powered community learning',
             subtitle:
-              'Create personalized vocabulary lists from our community database, or watch our AI Agents generate new words in real-time. Master any combination of English, Spanish, and German through interactive quizzes and collaborative learning.',
+              'Create personalized vocabulary lists from our community database, or watch our AI Agents generate new words in real time with audio, images, and examples. Master any combination of English, Spanish, and German through interactive quizzes and collaborative learning.',
             ctaButton: 'Start Building Vocabulary',
             stats: {
               wordsCreated: 'Words Created',
@@ -308,26 +311,26 @@ export class TranslationService {
             step1: {
               title: 'Create Your Lists',
               description:
-                'Build private or public vocabulary lists using words from our community database. Choose any source-target language combination between English, Spanish, and German.',
+                'Build private or public vocabulary lists using words from our community database. Choose any source–target language combination between English, Spanish, and German.',
             },
             step2: {
               title: 'AI Creates Missing Words',
               description:
-                "Need a word that doesn't exist yet? Watch our AI Agents generate comprehensive vocabulary cards in real-time with audio, images, and examples. Provide feedback to help improve the results.",
+                "Need a word that doesn't exist yet? Watch our AI Agents generate comprehensive vocabulary cards in real time with audio, contextual images, and usage examples. Provide feedback to improve the results.",
             },
             step3: {
               title: 'Learn with Quizzes',
               description:
-                'Test your knowledge with multiple choice quizzes based on your personal vocabulary lists. Track your progress and master new languages effectively.',
+                'Test your knowledge with multiple-choice quizzes based on your personal vocabulary lists. Track your progress and master new languages effectively.',
             },
           },
           features: {
-            title: 'Everything you need to master vocabulary',
+            title: 'Everything You Need to Master Vocabulary',
             subtitle: 'Powerful features for collaborative language learning',
             personalLists: {
               title: 'Personal & Public Lists',
               description:
-                'Create private vocabulary lists for personal study or share public lists with the community. Organize words by themes, difficulty, or learning goals.',
+                'Create private vocabulary lists for personal study or share public lists with the community. Organize words by theme, difficulty, or learning goal.',
             },
             communityDatabase: {
               title: 'Community Database',
@@ -351,17 +354,17 @@ export class TranslationService {
           language: 'Sprache',
           lightMode: 'Heller Modus',
           darkMode: 'Dunkler Modus',
-          healthDashboard: 'Gesundheits-Dashboard',
-          signOut: 'Abmelden',
+          healthDashboard: 'Health-Dashboard',
           signIn: 'Anmelden',
+          signOut: 'Abmelden',
           register: 'Registrieren',
-          guestUser: 'Gast-Benutzer',
+          guestUser: 'Gast',
           notSignedIn: 'Nicht angemeldet',
         },
         common: {
           welcome: 'Willkommen',
           home: 'Startseite',
-          loading: 'Wird geladen...',
+          loading: 'Lädt…',
           error: 'Fehler',
           success: 'Erfolgreich',
           cancel: 'Abbrechen',
@@ -372,41 +375,36 @@ export class TranslationService {
           close: 'Schließen',
         },
         messages: {
-          // Error messages
           unknownError:
-            'Ein unbekannter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.',
+            'Da ist etwas schiefgelaufen. Bitte versuche es erneut.',
           loginCredentialsIncorrect:
-            'Ungültiger Benutzername oder Passwort. Bitte überprüfen Sie Ihre Anmeldedaten und versuchen Sie es erneut.',
+            'Ungültiger Benutzername oder Passwort. Bitte prüfe deine Daten und probiere es noch einmal.',
           networkError:
-            'Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.',
-          serverError: 'Serverfehler. Bitte versuchen Sie es später erneut.',
-
-          // Warning messages
-          loginFirst:
-            'Bitte melden Sie sich zuerst an, um auf diese Seite zuzugreifen.',
+            'Netzwerkfehler. Bitte überprüfe deine Verbindung und versuche es erneut.',
+          serverError: 'Serverfehler. Bitte später noch einmal versuchen.',
+          loginFirst: 'Bitte melde dich zuerst an, um weiterzumachen.',
           sessionExpired:
-            'Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.',
+            'Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.',
         },
         health: {
           dashboard: {
-            title: 'Gesundheits-Dashboard',
+            title: 'Health-Dashboard',
             refresh: 'Aktualisieren',
             lastUpdated: 'Zuletzt aktualisiert',
             status: {
               excellent: 'Sehr gut',
               good: 'Gut',
-              poor: 'Schlecht',
+              poor: 'Schwach',
             },
             tiles: {
               backendHealth: 'Backend-Status',
-              backendHealthDescription: 'Backend API-Antwortzeit',
-              backendResponseTime: 'Backend-Antwortzeit',
-              backendResponseTimeDescription:
-                'Durchschnittliche API-Antwortzeit',
-              backendErrorRate: 'Backend-Fehlerquote',
-              backendErrorRateDescription: 'Backend-Fehler pro Minute',
+              backendHealthDescription: 'Uptime & Fehler des Backends',
+              backendResponseTime: 'Antwortzeit',
+              backendResponseTimeDescription: 'Durchschnittliche API-Latenz',
+              backendErrorRate: 'Fehlerquote',
+              backendErrorRateDescription: 'Fehler pro Minute',
               jsErrorRate: 'JS-Fehlerquote',
-              jsErrorRateDescription: 'JavaScript-Fehler pro Minute',
+              jsErrorRateDescription: 'JS-Fehler pro Minute',
             },
             values: {
               offline: 'Offline',
@@ -417,21 +415,18 @@ export class TranslationService {
           },
         },
         auth: {
-          // Page titles and headers
           signIn: 'Anmelden',
-          signInSubtitle:
-            'Willkommen zurück! Bitte melden Sie sich in Ihrem Konto an.',
+          signInSubtitle: 'Schön, dass du da bist! Melde dich an.',
           createAccount: 'Konto erstellen',
-          createAccountSubtitle: 'Erstellen Sie Ihr Konto, um zu beginnen!',
+          createAccountSubtitle: 'Lege jetzt dein Konto an!',
           resetPassword: 'Passwort zurücksetzen',
           resetPasswordSubtitle:
-            'Geben Sie Ihre E-Mail-Adresse ein, um Ihr Passwort zurückzusetzen.',
-          verifyEmail: 'E-Mail verifizieren',
+            'Gib deine E-Mail ein, um dein Passwort zurückzusetzen.',
+          verifyEmail: 'E-Mail bestätigen',
           verifyEmailSubtitle:
-            'Wir haben einen Verifizierungscode an {{email}} gesendet',
-          userProfile: 'Benutzerprofil',
+            'Wir haben dir einen Code an {{email}} geschickt.',
+          userProfile: 'Profil',
 
-          // Form labels
           username: 'Benutzername',
           email: 'E-Mail',
           emailAddress: 'E-Mail-Adresse',
@@ -439,195 +434,169 @@ export class TranslationService {
           confirmPassword: 'Passwort bestätigen',
           verificationCode: 'Verifizierungscode',
 
-          // Placeholders
-          enterEmail: 'Geben Sie Ihre E-Mail-Adresse ein',
-          enterPassword: 'Geben Sie Ihr Passwort ein',
-          enterUsername: 'Geben Sie Ihren Benutzernamen ein',
-          confirmYourPassword: 'Bestätigen Sie Ihr Passwort',
+          enterEmail: 'E-Mail eingeben',
+          enterPassword: 'Passwort eingeben',
+          enterUsername: 'Benutzernamen eingeben',
+          confirmYourPassword: 'Passwort noch einmal eingeben',
           enterVerificationCode: '6-stelligen Code eingeben',
 
-          // Button labels
           signInButton: 'Anmelden',
-          signingIn: 'Anmeldung...',
+          signingIn: 'Anmeldung…',
           createAccountButton: 'Konto erstellen',
-          creatingAccount: 'Konto wird erstellt...',
-          resetPasswordButton: 'Passwort zurücksetzen',
-          sending: 'Senden...',
-          verifyEmailButton: 'E-Mail verifizieren',
-          verifying: 'Verifizierung...',
+          creatingAccount: 'Erstelle Konto…',
+          resetPasswordButton: 'Link senden',
+          sending: 'Senden…',
+          verifyEmailButton: 'Bestätigen',
+          verifying: 'Bestätige…',
           resendCode: 'Code erneut senden',
-          resendingCode: 'Senden...',
+          resendingCode: 'Erneut senden…',
           resendInTime: 'Erneut senden in {{time}}',
-          backToLogin: 'Zurück zur Anmeldung',
+          backToLogin: 'Zur Anmeldung',
           updateAccount: 'Konto aktualisieren',
-          updateAccountButton: 'Konto aktualisieren',
-          updatingAccount: 'Aktualisierung...',
+          updateAccountButton: 'Aktualisieren',
+          updatingAccount: 'Aktualisiere…',
           deleteAccount: 'Konto löschen',
 
-          // Links and navigation
-          dontHaveAccount: 'Haben Sie noch kein Konto?',
+          dontHaveAccount: 'Noch kein Konto?',
           createAccountLink: 'Konto erstellen',
-          alreadyHaveAccount: 'Haben Sie bereits ein Konto?',
+          alreadyHaveAccount: 'Schon dabei?',
           signInLink: 'Anmelden',
           forgotPasswordLink: 'Passwort vergessen?',
           didntReceiveCode: 'Code nicht erhalten?',
 
-          // Google OAuth
           continueWithGoogle: 'Mit Google fortfahren',
           or: 'oder',
 
-          // Profile page
-          manageAccount:
-            'Verwalten Sie Ihre Kontoeinstellungen und -präferenzen',
-          accountInformation: 'Kontoinformationen',
+          manageAccount: 'Verwalte deine Einstellungen',
+          accountInformation: 'Kontoinfos',
           notAvailable: 'Nicht verfügbar',
           emailStatus: 'E-Mail-Status',
-          verified: 'Verifiziert',
-          notVerified: 'Nicht verifiziert',
+          verified: 'Bestätigt',
+          notVerified: 'Noch nicht bestätigt',
           role: 'Rolle',
-          sessionStatus: 'Sitzungsstatus',
-          sessionExpiresIn: 'Sitzung läuft ab in',
-          sessionExpired: 'Sitzung abgelaufen',
+          sessionStatus: 'Sitzung',
+          sessionExpiresIn: 'Läuft ab in',
+          sessionExpired: 'Abgelaufen',
           noSession: 'Keine Sitzung',
           invalidSession: 'Ungültige Sitzung',
           preferences: 'Einstellungen',
           darkMode: 'Dunkler Modus',
-          darkModeDescription: 'Zwischen hellem und dunklem Design wechseln',
-          accountActions: 'Konto-Aktionen',
+          darkModeDescription: 'Wechsle zwischen hell und dunkel',
+          accountActions: 'Aktionen',
           signOut: 'Abmelden',
 
-          // Success states
           emailSentSuccessfully: 'E-Mail erfolgreich gesendet!',
-          checkYourEmail: 'Überprüfen Sie Ihre E-Mail!',
-          newPasswordSent: 'Wir haben Ihnen ein neues Passwort gesendet.',
+          checkYourEmail: 'Schau in dein Postfach!',
+          newPasswordSent: 'Neues Passwort geschickt.',
           emailSentIfExists:
-            'Falls ein Konto mit dieser E-Mail existiert, erhalten Sie in Kürze Anweisungen zum Zurücksetzen des Passworts.',
+            'Falls du ein Konto hast, bekommst du gleich Anweisungen.',
 
-          // Success messages
-          loginSuccessful: 'Anmeldung erfolgreich!',
+          loginSuccessful: 'Angemeldet!',
           registrationSuccessful:
-            'Registrierung erfolgreich! Bitte überprüfen Sie Ihre E-Mail für den Verifizierungscode.',
-          emailVerifiedSuccessfully: 'E-Mail erfolgreich verifiziert!',
-          verificationCodeResent: 'Verifizierungscode an Ihre E-Mail gesendet.',
-          logoutSuccessful: 'Abmeldung erfolgreich!',
-          accountDeletedSuccessfully: 'Konto erfolgreich gelöscht!',
-          updateAccountSuccess: 'Konto erfolgreich aktualisiert!',
+            'Registrierung erfolgreich! Check deine E-Mail.',
+          emailVerifiedSuccessfully: 'E-Mail bestätigt!',
+          verificationCodeResent: 'Code erneut gesendet.',
+          logoutSuccessful: 'Abgemeldet!',
+          accountDeletedSuccessfully: 'Konto gelöscht!',
+          updateAccountSuccess: 'Aktualisiert!',
 
-          // Error messages
-          invalidCredentials:
-            'Ungültige Anmeldedaten. Bitte versuchen Sie es erneut.',
-          loginFailed:
-            'Anmeldung fehlgeschlagen. Bitte versuchen Sie es erneut.',
-          unexpectedError:
-            'Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.',
-          emailNotVerified:
-            'Bitte verifizieren Sie Ihre E-Mail-Adresse vor der Anmeldung.',
-          googleLoginFailed:
-            'Google-Anmeldung konnte nicht initiiert werden. Bitte versuchen Sie es erneut.',
-          registrationFailed:
-            'Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.',
-          usernameOrEmailExists:
-            'Benutzername oder E-Mail existiert bereits. Bitte verwenden Sie andere Anmeldedaten.',
-          resetEmailFailed:
-            'E-Mail zum Zurücksetzen konnte nicht gesendet werden. Bitte versuchen Sie es erneut.',
-          verificationFailed:
-            'Verifizierung fehlgeschlagen. Bitte versuchen Sie es erneut.',
-          invalidVerificationCode:
-            'Ungültiger Verifizierungscode. Bitte versuchen Sie es erneut.',
-          resendCodeFailed:
-            'Code konnte nicht erneut gesendet werden. Bitte versuchen Sie es erneut.',
-          logoutFailed: 'Abmeldung fehlgeschlagen!',
-          accountDeletionFailed:
-            'Kontolöschung fehlgeschlagen. Bitte versuchen Sie es erneut.',
-          updateAccountFailed:
-            'Konto konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.',
+          invalidCredentials: 'Ungültige Daten. Versuch’s noch mal.',
+          loginFailed: 'Anmeldung fehlgeschlagen. Versuch’s erneut.',
+          unexpectedError: 'Unerwarteter Fehler. Versuch’s erneut.',
+          emailNotVerified: 'Bitte bestätige zuerst deine E-Mail.',
+          googleLoginFailed: 'Google-Login fehlgeschlagen.',
+          registrationFailed: 'Registrierung fehlgeschlagen.',
+          usernameOrEmailExists: 'Benutzername oder E-Mail schon vergeben.',
+          resetEmailFailed: 'Link konnte nicht gesendet werden.',
+          verificationFailed: 'Bestätigung fehlgeschlagen.',
+          invalidVerificationCode: 'Ungültiger Code.',
+          resendCodeFailed: 'Code konnte nicht gesendet werden.',
+          logoutFailed: 'Abmeldung fehlgeschlagen.',
+          accountDeletionFailed: 'Löschen fehlgeschlagen.',
+          updateAccountFailed: 'Update fehlgeschlagen.',
 
-          // Confirmation dialogs
           deleteAccountConfirm:
-            'Sind Sie sicher, dass Sie Ihr Konto löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.',
+            'Willst du dein Konto wirklich löschen? Das kann nicht rückgängig gemacht werden.',
 
-          // Accessibility labels
           showPassword: 'Passwort anzeigen',
           hidePassword: 'Passwort verbergen',
           resendVerificationCode: 'Verifizierungscode erneut senden',
-
-          // Optional field labels
           passwordOptional: 'Passwort (optional)',
         },
         home: {
           hero: {
-            title: 'Erweitern Sie Ihren Wortschatz mit',
-            titleHighlight: 'KI-gestütztem Gemeinschaftslernen',
+            title: 'Erweitere deinen Wortschatz mit',
+            titleHighlight: 'KI-gestütztem Community-Lernen',
             subtitle:
-              'Erstellen Sie personalisierte Vokabellisten aus unserer Community-Datenbank oder schauen Sie zu, wie unsere KI-Agenten neue Wörter in Echtzeit generieren. Meistern Sie jede Kombination aus Englisch, Spanisch und Deutsch durch interaktive Quiz und kollaboratives Lernen.',
-            ctaButton: 'Vokabeln lernen starten',
+              'Erstelle individuelle Vokabellisten aus unserer Community-Datenbank oder sieh zu, wie unsere KI-Agenten in Echtzeit neue Wörter mit Audio, Bildern und Beispielen erzeugen. Meistere Englisch, Spanisch und Deutsch dank interaktiver Quizze und gemeinsamer Lernerfahrung.',
+            ctaButton: 'Jetzt loslegen',
             stats: {
               wordsCreated: 'Wörter erstellt',
               publicLists: 'Öffentliche Listen',
-              activeUsers: 'Aktive Benutzer',
+              activeUsers: 'Aktive Nutzer',
             },
           },
           howItWorks: {
-            title: 'Wie WordWeave funktioniert',
-            subtitle:
-              'Community-gesteuertes Vokabellernen in 3 einfachen Schritten',
+            title: 'So funktioniert WordWeave',
+            subtitle: 'Community-basiertes Vokabellernen in 3 Schritten',
             step1: {
-              title: 'Erstellen Sie Ihre Listen',
+              title: 'Deine Listen erstellen',
               description:
-                'Erstellen Sie private oder öffentliche Vokabellisten mit Wörtern aus unserer Community-Datenbank. Wählen Sie jede beliebige Quell-Ziel-Sprachkombination zwischen Englisch, Spanisch und Deutsch.',
+                'Erstelle private oder öffentliche Vokabellisten mit Wörtern unserer Community. Kombiniere beliebige Sprachpaare: Englisch, Spanisch und Deutsch.',
             },
             step2: {
-              title: 'KI erstellt fehlende Wörter',
+              title: 'KI ergänzt Wörter',
               description:
-                'Brauchen Sie ein Wort, das noch nicht existiert? Schauen Sie zu, wie unsere KI-Agenten umfassende Vokabelkarten in Echtzeit mit Audio, Bildern und Beispielen erstellen. Geben Sie Feedback, um die Ergebnisse zu verbessern.',
+                'Fehlt ein Wort? Unsere KI-Agenten erstellen in Echtzeit umfassende Vokabelkarten mit Aussprache, Bildern und Beispielen. Gib Feedback zur Verbesserung.',
             },
             step3: {
-              title: 'Lernen mit Quiz',
+              title: 'Mit Quiz lernen',
               description:
-                'Testen Sie Ihr Wissen mit Multiple-Choice-Quiz basierend auf Ihren persönlichen Vokabellisten. Verfolgen Sie Ihren Fortschritt und meistern Sie neue Sprachen effektiv.',
+                'Teste dich mit Multiple-Choice-Quizzen basierend auf deinen Listen. Verfolge deinen Fortschritt und lerne effektiv.',
             },
           },
           features: {
-            title: 'Alles was Sie brauchen, um Vokabeln zu meistern',
-            subtitle: 'Mächtige Funktionen für kollaboratives Sprachenlernen',
+            title: 'Alles, was du zum Vokabelnlernen brauchst',
+            subtitle: 'Starke Features für gemeinsames Lernen',
             personalLists: {
-              title: 'Persönliche & Öffentliche Listen',
+              title: 'Private & Öffentliche Listen',
               description:
-                'Erstellen Sie private Vokabellisten für das persönliche Studium oder teilen Sie öffentliche Listen mit der Community. Organisieren Sie Wörter nach Themen, Schwierigkeit oder Lernzielen.',
+                'Pflege eigene Listen oder teile sie mit der Community. Sortiere nach Themen, Schwierigkeit oder Ziel.',
             },
             communityDatabase: {
               title: 'Community-Datenbank',
               description:
-                'Jedes von unseren KI-Agenten generierte Wort wird allen Benutzern zur Verfügung gestellt. Bauen Sie auf der Arbeit anderer auf und tragen Sie zu einer wachsenden gemeinsamen Vokabel-Ressource bei.',
+                'Jedes KI-generierte Wort steht allen zur Verfügung. Baue auf den Listen anderer auf und erweitere den gemeinsamen Wortschatz.',
             },
             aiGeneration: {
-              title: 'Echtzeit-KI-Generierung',
+              title: 'Echtzeit-KI',
               description:
-                'Schauen Sie zu, wie unsere KI-Agenten live Vokabelkarten mit Audioaussprache, kontextuellen Bildern und Verwendungsbeispielen erstellen. Geben Sie Feedback, um jedes Wort zu perfektionieren.',
+                'Erlebe live, wie KI-Agenten Vokabelkarten erstellen – mit Audio, Bildern und Beispielen. Gib Feedback, um jedes Wort zu perfektionieren.',
             },
           },
         },
       },
       es: {
+        // informal "tú"
         header: {
           search: 'Buscar',
           notifications: 'Notificaciones',
           account: 'Cuenta',
           profile: 'Perfil',
           language: 'Idioma',
-          lightMode: 'Modo Claro',
-          darkMode: 'Modo Oscuro',
-          healthDashboard: 'Panel de Salud',
-          signOut: 'Cerrar sesión',
+          lightMode: 'Modo claro',
+          darkMode: 'Modo oscuro',
+          healthDashboard: 'Panel de salud',
           signIn: 'Iniciar sesión',
+          signOut: 'Cerrar sesión',
           register: 'Registrarse',
-          guestUser: 'Usuario Invitado',
-          notSignedIn: 'No ha iniciado sesión',
+          guestUser: 'Invitado',
+          notSignedIn: 'No has iniciado sesión',
         },
         common: {
-          welcome: 'Bienvenido',
+          welcome: '¡Bienvenido!',
           home: 'Inicio',
-          loading: 'Cargando...',
+          loading: 'Cargando…',
           error: 'Error',
           success: 'Éxito',
           cancel: 'Cancelar',
@@ -638,45 +607,37 @@ export class TranslationService {
           close: 'Cerrar',
         },
         messages: {
-          // Error messages
-          unknownError:
-            'Ocurrió un error desconocido. Por favor, inténtalo de nuevo.',
+          unknownError: 'Algo falló. Por favor, inténtalo de nuevo.',
           loginCredentialsIncorrect:
-            'Nombre de usuario o contraseña inválidos. Por favor, verifica tus credenciales e inténtalo de nuevo.',
+            'Usuario o contraseña inválidos. Revisa y prueba otra vez.',
           networkError:
-            'Error de red. Por favor, verifica tu conexión e inténtalo de nuevo.',
-          serverError: 'Error del servidor. Por favor, inténtalo más tarde.',
-
-          // Warning messages
-          loginFirst:
-            'Por favor, inicia sesión primero para acceder a esta página.',
-          sessionExpired:
-            'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.',
+            'Error de red. Verifica tu conexión e inténtalo de nuevo.',
+          serverError: 'Error del servidor. Inténtalo más tarde.',
+          loginFirst: 'Debes iniciar sesión para acceder.',
+          sessionExpired: 'Tu sesión expiró. Inicia sesión otra vez.',
         },
         health: {
           dashboard: {
-            title: 'Panel de Salud',
+            title: 'Panel de salud',
             refresh: 'Actualizar',
-            lastUpdated: 'Actualizado',
+            lastUpdated: 'Última actualización',
             status: {
               excellent: 'Excelente',
               good: 'Bueno',
               poor: 'Malo',
             },
             tiles: {
-              backendHealth: 'Estado del Backend',
-              backendHealthDescription:
-                'Tiempo de respuesta del API del backend',
-              backendResponseTime: 'Tiempo de respuesta del backend',
-              backendResponseTimeDescription:
-                'Tiempo promedio de respuesta del API',
-              backendErrorRate: 'Tasa de errores del backend',
-              backendErrorRateDescription: 'Errores del backend por minuto',
-              jsErrorRate: 'Tasa de errores de JS',
+              backendHealth: 'Estado backend',
+              backendHealthDescription: 'Uptime y errores del backend',
+              backendResponseTime: 'Latencia',
+              backendResponseTimeDescription: 'Latencia promedio del API',
+              backendErrorRate: 'Tasa de errores',
+              backendErrorRateDescription: 'Errores por minuto',
+              jsErrorRate: 'Errores JS',
               jsErrorRateDescription: 'Errores de JavaScript por minuto',
             },
             values: {
-              offline: 'Offline',
+              offline: 'Sin conexión',
               noErrors: 'Sin errores',
               errorsPerMinute: 'errores/min',
               milliseconds: 'ms',
@@ -684,143 +645,119 @@ export class TranslationService {
           },
         },
         auth: {
-          // Page titles and headers
-          signIn: 'Iniciar Sesión',
-          signInSubtitle:
-            '¡Bienvenido de vuelta! Por favor, inicia sesión en tu cuenta.',
-          createAccount: 'Crear Cuenta',
-          createAccountSubtitle: '¡Crea tu cuenta para comenzar!',
-          resetPassword: 'Restablecer Contraseña',
+          // títulos y encabezados
+          signIn: 'Iniciar sesión',
+          signInSubtitle: '¡Bienvenido de nuevo! Ingresa a tu cuenta.',
+          createAccount: 'Crear cuenta',
+          createAccountSubtitle: '¡Regístrate y empieza ya!',
+          resetPassword: 'Restablecer contraseña',
           resetPasswordSubtitle:
-            'Ingresa tu correo electrónico para restablecer tu contraseña.',
-          verifyEmail: 'Verificar Correo Electrónico',
-          verifyEmailSubtitle:
-            'Hemos enviado un código de verificación a {{email}}',
-          userProfile: 'Perfil de Usuario',
+            'Ingresa tu correo para cambiar tu contraseña.',
+          verifyEmail: 'Verificar correo',
+          verifyEmailSubtitle: 'Te enviamos un código a {{email}}.',
+          userProfile: 'Tu perfil',
 
-          // Form labels
-          username: 'Nombre de usuario',
+          // campos
+          username: 'Usuario',
           email: 'Correo electrónico',
-          emailAddress: 'Correo electrónico',
           password: 'Contraseña',
           confirmPassword: 'Confirmar contraseña',
           verificationCode: 'Código de verificación',
 
-          // Placeholders
-          enterEmail: 'Ingresa tu correo electrónico',
+          // placeholders
+          enterUsername: 'Ingresa tu usuario',
+          enterEmail: 'Ingresa tu correo',
           enterPassword: 'Ingresa tu contraseña',
-          enterUsername: 'Ingresa tu nombre de usuario',
           confirmYourPassword: 'Confirma tu contraseña',
-          enterVerificationCode: 'Ingresa el código de 6 dígitos',
+          enterVerificationCode: 'Código de 6 dígitos',
 
-          // Button labels
-          signInButton: 'Iniciar Sesión',
-          signingIn: 'Iniciando sesión...',
-          createAccountButton: 'Crear Cuenta',
-          creatingAccount: 'Creando cuenta...',
-          resetPasswordButton: 'Restablecer Contraseña',
-          sending: 'Enviando...',
-          verifyEmailButton: 'Verificar Correo Electrónico',
-          verifying: 'Verificando...',
-          resendCode: 'Reenviar Código',
-          resendingCode: 'Enviando...',
+          // botones
+          signInButton: 'Entrar',
+          signingIn: 'Ingresando…',
+          createAccountButton: 'Crear cuenta',
+          creatingAccount: 'Creando cuenta…',
+          resetPasswordButton: 'Enviar enlace',
+          sending: 'Enviando…',
+          verifyEmailButton: 'Verificar',
+          verifying: 'Verificando…',
+          resendCode: 'Reenviar código',
+          resendingCode: 'Reenviando…',
           resendInTime: 'Reenviar en {{time}}',
-          backToLogin: 'Volver al Inicio de Sesión',
-          updateAccount: 'Actualizar Cuenta',
-          updateAccountButton: 'Actualizar Cuenta',
-          updatingAccount: 'Actualizando...',
-          deleteAccount: 'Eliminar Cuenta',
+          backToLogin: 'Volver a iniciar sesión',
+          updateAccount: 'Actualizar cuenta',
+          updateAccountButton: 'Actualizar',
+          updatingAccount: 'Actualizando…',
+          deleteAccount: 'Eliminar cuenta',
 
-          // Links and navigation
-          dontHaveAccount: '¿No tienes una cuenta?',
-          createAccountLink: 'Crear cuenta',
-          alreadyHaveAccount: '¿Ya tienes una cuenta?',
+          // links
+          dontHaveAccount: '¿No tienes cuenta?',
+          createAccountLink: 'Regístrate',
+          alreadyHaveAccount: '¿Ya tienes cuenta?',
           signInLink: 'Iniciar sesión',
           forgotPasswordLink: '¿Olvidaste tu contraseña?',
-          didntReceiveCode: '¿No recibiste el código?',
+          didntReceiveCode: '¿No llegó el código?',
 
-          // Google OAuth
+          // OAuth
           continueWithGoogle: 'Continuar con Google',
           or: 'o',
 
-          // Profile page
-          manageAccount:
-            'Administra la configuración y preferencias de tu cuenta',
-          accountInformation: 'Información de la Cuenta',
+          // perfil
+          manageAccount: 'Administra tu configuración y preferencias',
+          accountInformation: 'Info de la cuenta',
           notAvailable: 'No disponible',
-          emailStatus: 'Estado del Correo Electrónico',
+          emailStatus: 'Estado del correo',
           verified: 'Verificado',
-          notVerified: 'No Verificado',
+          notVerified: 'No verificado',
           role: 'Rol',
-          sessionStatus: 'Estado de la Sesión',
-          sessionExpiresIn: 'La Sesión Expira En',
+          sessionStatus: 'Sesión',
+          sessionExpiresIn: 'Expira en',
           sessionExpired: 'Sesión expirada',
           noSession: 'Sin sesión',
           invalidSession: 'Sesión inválida',
           preferences: 'Preferencias',
-          darkMode: 'Modo Oscuro',
-          darkModeDescription: 'Cambiar entre temas claro y oscuro',
-          accountActions: 'Acciones de la Cuenta',
-          signOut: 'Cerrar Sesión',
+          darkMode: 'Modo oscuro',
+          darkModeDescription: 'Cambia entre claro y oscuro',
+          accountActions: 'Acciones',
+          signOut: 'Cerrar sesión',
 
-          // Success states
-          emailSentSuccessfully: '¡Correo Electrónico Enviado Exitosamente!',
-          checkYourEmail: '¡Revisa tu correo electrónico!',
-          newPasswordSent: 'Te hemos enviado una nueva contraseña.',
+          // estados de éxito
+          emailSentSuccessfully: '¡Correo enviado con éxito!',
+          checkYourEmail: '¡Revisa tu correo!',
+          newPasswordSent: 'Te mandamos la nueva contraseña.',
           emailSentIfExists:
-            'Si existe una cuenta con ese correo electrónico, recibirás instrucciones para restablecer la contraseña en breve.',
+            'Si tienes cuenta, recibirás instrucciones pronto.',
+          loginSuccessful: '¡Ingresaste correctamente!',
+          registrationSuccessful: '¡Registro exitoso! Revisa tu correo.',
+          emailVerifiedSuccessfully: '¡Correo verificado!',
+          verificationCodeResent: 'Código reenviado.',
+          logoutSuccessful: '¡Sesión cerrada!',
+          accountDeletedSuccessfully: '¡Cuenta eliminada!',
+          updateAccountSuccess: '¡Cuenta actualizada!',
 
-          // Success messages
-          loginSuccessful: '¡Inicio de sesión exitoso!',
-          registrationSuccessful:
-            '¡Registro exitoso! Por favor, revisa tu correo electrónico para el código de verificación.',
-          emailVerifiedSuccessfully:
-            '¡Correo electrónico verificado exitosamente!',
-          verificationCodeResent:
-            'Código de verificación reenviado a tu correo electrónico.',
-          logoutSuccessful: '¡Cierre de sesión exitoso!',
-          accountDeletedSuccessfully: '¡Cuenta eliminada exitosamente!',
-          updateAccountSuccess: '¡Cuenta actualizada exitosamente!',
+          // errores
+          invalidCredentials: 'Datos inválidos. Intenta de nuevo.',
+          loginFailed: 'Error al ingresar. Intenta otra vez.',
+          unexpectedError: 'Error inesperado. Intenta más tarde.',
+          emailNotVerified: 'Verifica tu correo antes de entrar.',
+          googleLoginFailed: 'Error con inicio de Google.',
+          registrationFailed: 'No se pudo registrar.',
+          usernameOrEmailExists: 'Usuario o correo ya existe.',
+          resetEmailFailed: 'No se envió el correo.',
+          verificationFailed: 'Verificación fallida.',
+          invalidVerificationCode: 'Código inválido.',
+          resendCodeFailed: 'No se pudo reenviar código.',
+          logoutFailed: 'Error al cerrar sesión.',
+          accountDeletionFailed: 'No se pudo eliminar cuenta.',
+          updateAccountFailed: 'No se pudo actualizar cuenta.',
 
-          // Error messages
-          invalidCredentials:
-            'Credenciales inválidas. Por favor, inténtalo de nuevo.',
-          loginFailed:
-            'Error al iniciar sesión. Por favor, inténtalo de nuevo.',
-          unexpectedError:
-            'Ocurrió un error inesperado. Por favor, inténtalo de nuevo.',
-          emailNotVerified:
-            'Por favor, verifica tu correo electrónico antes de iniciar sesión.',
-          googleLoginFailed:
-            'Error al iniciar el inicio de sesión con Google. Por favor, inténtalo de nuevo.',
-          registrationFailed:
-            'Error en el registro. Por favor, inténtalo de nuevo.',
-          usernameOrEmailExists:
-            'El nombre de usuario o correo electrónico ya existe. Por favor, usa credenciales diferentes.',
-          resetEmailFailed:
-            'Error al enviar el correo de restablecimiento. Por favor, inténtalo de nuevo.',
-          verificationFailed:
-            'Error en la verificación. Por favor, inténtalo de nuevo.',
-          invalidVerificationCode:
-            'Código de verificación inválido. Por favor, inténtalo de nuevo.',
-          resendCodeFailed:
-            'Error al reenviar el código. Por favor, inténtalo de nuevo.',
-          logoutFailed: '¡Error al cerrar sesión!',
-          accountDeletionFailed:
-            'Error al eliminar la cuenta. Por favor, inténtalo de nuevo.',
-          updateAccountFailed:
-            'Error al actualizar la cuenta. Por favor, inténtalo de nuevo.',
-
-          // Confirmation dialogs
+          // confirmaciones
           deleteAccountConfirm:
-            '¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.',
+            '¿Seguro quieres eliminar tu cuenta? No podrás recuperar nada.',
 
-          // Accessibility labels
+          // accesibilidad
           showPassword: 'Mostrar contraseña',
           hidePassword: 'Ocultar contraseña',
           resendVerificationCode: 'Reenviar código de verificación',
-
-          // Optional field labels
           passwordOptional: 'Contraseña (opcional)',
         },
         home: {
@@ -828,8 +765,8 @@ export class TranslationService {
             title: 'Construye tu vocabulario con',
             titleHighlight: 'aprendizaje comunitario impulsado por IA',
             subtitle:
-              'Crea listas de vocabulario personalizadas desde nuestra base de datos comunitaria, o mira cómo nuestros Agentes de IA generan nuevas palabras en tiempo real. Domina cualquier combinación de inglés, español y alemán a través de cuestionarios interactivos y aprendizaje colaborativo.',
-            ctaButton: 'Comenzar a construir vocabulario',
+              'Crea listas personalizadas o mira cómo nuestros agentes de IA generan nuevas palabras en tiempo real con audio, imágenes y ejemplos. Domina inglés, español y alemán con cuestionarios interactivos y aprendizaje colaborativo.',
+            ctaButton: 'Empieza ahora',
             stats: {
               wordsCreated: 'Palabras creadas',
               publicLists: 'Listas públicas',
@@ -838,42 +775,40 @@ export class TranslationService {
           },
           howItWorks: {
             title: 'Cómo funciona WordWeave',
-            subtitle:
-              'Aprendizaje de vocabulario impulsado por la comunidad en 3 simples pasos',
+            subtitle: 'Aprendizaje comunitario de vocabulario en 3 pasos',
             step1: {
               title: 'Crea tus listas',
               description:
-                'Construye listas de vocabulario privadas o públicas usando palabras de nuestra base de datos comunitaria. Elige cualquier combinación de idioma origen-destino entre inglés, español y alemán.',
+                'Genera listas privadas o públicas usando palabras de nuestra base comunitaria. Elige cualquier combinación: inglés, español o alemán.',
             },
             step2: {
-              title: 'La IA crea palabras faltantes',
+              title: 'La IA completa palabras',
               description:
-                '¿Necesitas una palabra que aún no existe? Mira cómo nuestros Agentes de IA generan tarjetas de vocabulario completas en tiempo real con audio, imágenes y ejemplos. Proporciona comentarios para ayudar a mejorar los resultados.',
+                '¿Falta una palabra? Nuestros agentes de IA crean tarjetas con pronunciación, imágenes y ejemplos al instante. Danos tu feedback para mejorar.',
             },
             step3: {
-              title: 'Aprende con cuestionarios',
+              title: 'Aprende con quizzes',
               description:
-                'Pon a prueba tu conocimiento con cuestionarios de opción múltiple basados en tus listas de vocabulario personales. Rastrea tu progreso y domina nuevos idiomas de manera efectiva.',
+                'Pon a prueba tu vocabulario con quizzes de opción múltiple basados en tus listas. Lleva el registro de tu progreso.',
             },
           },
           features: {
-            title: 'Todo lo que necesitas para dominar el vocabulario',
-            subtitle:
-              'Características poderosas para el aprendizaje colaborativo de idiomas',
+            title: 'Todo lo que necesitas para dominar vocabulario',
+            subtitle: 'Funciones potentes para aprender en comunidad',
             personalLists: {
-              title: 'Listas personales y públicas',
+              title: 'Listas privadas y públicas',
               description:
-                'Crea listas de vocabulario privadas para estudio personal o comparte listas públicas con la comunidad. Organiza palabras por temas, dificultad u objetivos de aprendizaje.',
+                'Organiza tus propias listas o comparte con todos. Filtra por tema, nivel u objetivo.',
             },
             communityDatabase: {
-              title: 'Base de datos comunitaria',
+              title: 'Base comunitaria',
               description:
-                'Cada palabra generada por nuestros Agentes de IA se vuelve disponible para todos los usuarios. Construye sobre el trabajo de otros y contribuye a un recurso de vocabulario compartido en crecimiento.',
+                'Cada palabra IA-generada se añade para todos. Aprovecha el trabajo de la comunidad y crece junto a ella.',
             },
             aiGeneration: {
-              title: 'Generación de IA en tiempo real',
+              title: 'IA en tiempo real',
               description:
-                'Mira cómo nuestros Agentes de IA crean tarjetas de vocabulario en vivo con pronunciación de audio, imágenes contextuales y ejemplos de uso. Proporciona comentarios para perfeccionar cada palabra.',
+                'Ve en vivo cómo la IA crea tarjetas de vocabulario con audio, imágenes y ejemplos. Tu feedback las perfecciona.',
             },
           },
         },

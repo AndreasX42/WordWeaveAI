@@ -1,6 +1,5 @@
-import { Injectable, DestroyRef, inject } from '@angular/core';
+import { Injectable, DestroyRef, inject, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Configs } from '../shared/config';
 import { TranslationService } from './translation.service';
 
@@ -18,7 +17,7 @@ export interface HealthTile {
 @Injectable({
   providedIn: 'root',
 })
-export class HealthMonitorService {
+export class HealthMonitorService implements OnDestroy {
   private readonly STORAGE_KEY = 'health_metrics';
   private readonly MAX_RESPONSE_TIMES = 50; // Limit response times array
   private readonly MAX_STORAGE_ENTRIES = 100; // Limit localStorage entries
@@ -119,7 +118,7 @@ export class HealthMonitorService {
         responseTime,
         this.getBackendStatus(responseTime)
       );
-    } catch (error) {
+    } catch {
       // Backend is down - set to poor status with -1 to indicate offline
       this.updateTile('backend', -1, 'poor');
       // Also track this as an API error since health check failed

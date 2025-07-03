@@ -61,6 +61,7 @@ function strictEmailValidator(control: AbstractControl) {
           <input
             matInput
             formControlName="username"
+            id="update-username"
             (blur)="updateUsernameErrorMessage()"
             (input)="clearUsernameError()"
           />
@@ -85,6 +86,7 @@ function strictEmailValidator(control: AbstractControl) {
           <input
             matInput
             formControlName="email"
+            id="update-email"
             type="email"
             (blur)="updateEmailErrorMessage()"
             (input)="clearEmailError()"
@@ -110,6 +112,7 @@ function strictEmailValidator(control: AbstractControl) {
           <input
             matInput
             formControlName="password"
+            id="update-password"
             [type]="hidePassword() ? 'password' : 'text'"
             (blur)="updatePasswordErrorMessage()"
           />

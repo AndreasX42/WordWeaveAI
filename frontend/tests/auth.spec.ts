@@ -16,10 +16,17 @@ test.describe('Authentication Flows', () => {
     // Navigate to the forgot password page
     await page.goto('/forgot-password');
 
-    // Fill in the email address
-    await page.getByLabel('Email Address').fill('test-user@example.com');
+    // Wait for the page to load and form to be ready
+    await page.waitForSelector('form');
+    await page.waitForSelector('#email');
 
-    // Click the "Reset Password" button
+    // Wait for translations to load
+    await page.waitForTimeout(1000);
+
+    // Fill in the email address using ID selector
+    await page.locator('#email').fill('test-user@example.com');
+
+    // Click the "Reset Password" button using the translated text
     await page.getByRole('button', { name: 'Reset Password' }).click();
 
     // Assert that the success message is visible
@@ -53,17 +60,23 @@ test.describe('Authentication Flows', () => {
     // Navigate to the register page
     await page.goto('/register');
 
-    // Fill in the registration form with unique data
-    await page.getByLabel('Username').fill(username);
-    await page.getByLabel('Email address').fill(email);
-    await page
-      .getByRole('textbox', { name: 'Password', exact: true })
-      .fill('Password123!');
-    await page
-      .getByRole('textbox', { name: 'Confirm password', exact: true })
-      .fill('Password123!');
+    // Wait for the page to load and form to be ready
+    await page.waitForSelector('form');
+    await page.waitForSelector('#username');
+    await page.waitForSelector('#email');
+    await page.waitForSelector('#password');
+    await page.waitForSelector('#confirmPassword');
 
-    // Click the "Create Account" button
+    // Wait for translations to load
+    await page.waitForTimeout(1000);
+
+    // Fill in the registration form with unique data using ID selectors
+    await page.locator('#username').fill(username);
+    await page.locator('#email').fill(email);
+    await page.locator('#password').fill('Password123!');
+    await page.locator('#confirmPassword').fill('Password123!');
+
+    // Click the "Create Account" button using translated text
     await page.getByRole('button', { name: 'Create Account' }).click();
 
     // Assert that the user is redirected to the verify page, ignoring query parameters
@@ -75,7 +88,12 @@ test.describe('Authentication Flows', () => {
 
   test('should show validation error for short username', async ({ page }) => {
     await page.goto('/register');
-    const usernameInput = page.getByLabel('Username');
+
+    // Wait for the page to load
+    await page.waitForSelector('form');
+    await page.waitForSelector('#username');
+
+    const usernameInput = page.locator('#username');
     await usernameInput.fill('us');
     await usernameInput.blur();
     await expect(page.getByText('Must be at least 3 characters')).toBeVisible();
@@ -83,7 +101,12 @@ test.describe('Authentication Flows', () => {
 
   test('should show validation error for invalid email', async ({ page }) => {
     await page.goto('/register');
-    const emailInput = page.getByLabel('Email address');
+
+    // Wait for the page to load
+    await page.waitForSelector('form');
+    await page.waitForSelector('#email');
+
+    const emailInput = page.locator('#email');
     await emailInput.fill('invalid-email');
     await emailInput.blur();
     await expect(
@@ -93,10 +116,12 @@ test.describe('Authentication Flows', () => {
 
   test('should show validation error for short password', async ({ page }) => {
     await page.goto('/register');
-    const passwordInput = page.getByRole('textbox', {
-      name: 'Password',
-      exact: true,
-    });
+
+    // Wait for the page to load
+    await page.waitForSelector('form');
+    await page.waitForSelector('#password');
+
+    const passwordInput = page.locator('#password');
     await passwordInput.fill('pass');
     await passwordInput.blur();
     await expect(page.getByText('Must be at least 8 characters')).toBeVisible();
@@ -108,7 +133,15 @@ test.describe('Login Flow', () => {
     page,
   }) => {
     await page.goto('/login');
-    const emailInput = page.getByLabel('Email Address');
+
+    // Wait for the page to load
+    await page.waitForSelector('form');
+    await page.waitForSelector('#email');
+
+    // Wait for translations to load
+    await page.waitForTimeout(1000);
+
+    const emailInput = page.locator('#email');
     await emailInput.fill('not-an-email');
     await emailInput.blur();
     await expect(
@@ -120,10 +153,15 @@ test.describe('Login Flow', () => {
     page,
   }) => {
     await page.goto('/login');
-    const passwordInput = page.getByRole('textbox', {
-      name: 'Password',
-      exact: true,
-    });
+
+    // Wait for the page to load
+    await page.waitForSelector('form');
+    await page.waitForSelector('#password');
+
+    // Wait for translations to load
+    await page.waitForTimeout(1000);
+
+    const passwordInput = page.locator('#password');
     await passwordInput.fill('short');
     await passwordInput.blur();
     await expect(page.getByText('Must be at least 8 characters')).toBeVisible();
@@ -142,10 +180,17 @@ test.describe('Login Flow', () => {
     });
 
     await page.goto('/login');
-    await page.getByLabel('Email Address').fill('wrong@example.com');
-    await page
-      .getByRole('textbox', { name: 'Password', exact: true })
-      .fill('wrongpassword');
+
+    // Wait for the page to load
+    await page.waitForSelector('form');
+    await page.waitForSelector('#email');
+    await page.waitForSelector('#password');
+
+    // Wait for translations to load
+    await page.waitForTimeout(1000);
+
+    await page.locator('#email').fill('wrong@example.com');
+    await page.locator('#password').fill('wrongpassword');
     await page.getByRole('button', { name: 'Sign In' }).click();
 
     await expect(

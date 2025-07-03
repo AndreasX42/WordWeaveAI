@@ -37,7 +37,7 @@ export class AuthInterceptor implements HttpInterceptor {
     const authRequest = this.addAuthHeader(request);
 
     return next.handle(authRequest).pipe(
-      tap((event: HttpEvent<any>) => {
+      tap((event: HttpEvent<unknown>) => {
         // Track API response time for successful responses
         if (event instanceof HttpResponse) {
           const responseTime = performance.now() - startTime;
