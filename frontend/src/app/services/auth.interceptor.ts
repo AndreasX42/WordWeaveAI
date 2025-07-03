@@ -5,11 +5,13 @@ import {
   HttpEvent,
   HttpInterceptor,
   HttpErrorResponse,
+  HttpResponse,
 } from '@angular/common/http';
 import { Observable, throwError, BehaviorSubject, from } from 'rxjs';
-import { catchError, switchMap, filter, take } from 'rxjs/operators';
+import { catchError, switchMap, filter, take, tap } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { MessageService } from './message.service';
+import { HealthMonitorService } from './health-monitor.service';
 import { Configs } from '../shared/config';
 import { Router } from '@angular/router';
 
@@ -17,6 +19,7 @@ import { Router } from '@angular/router';
 export class AuthInterceptor implements HttpInterceptor {
   private authService = inject(AuthService);
   private messageService = inject(MessageService);
+  private healthService = inject(HealthMonitorService);
   private router = inject(Router);
 
   private isRefreshing = false;
@@ -27,11 +30,45 @@ export class AuthInterceptor implements HttpInterceptor {
     request: HttpRequest<unknown>,
     next: HttpHandler
   ): Observable<HttpEvent<unknown>> {
+    // Track request start time
+    const startTime = performance.now();
+
     // Add auth header for token-based authentication
     const authRequest = this.addAuthHeader(request);
 
     return next.handle(authRequest).pipe(
+      tap((event: HttpEvent<any>) => {
+        // Track API response time for successful responses
+        if (event instanceof HttpResponse) {
+          const responseTime = performance.now() - startTime;
+          // Only track API calls to our backend, exclude external URLs
+          if (request.url.includes(Configs.BASE_URL)) {
+            this.healthService.trackApiResponseTime(responseTime);
+          }
+        }
+      }),
       catchError((error: HttpErrorResponse) => {
+        // Track API response time even for errors
+        if (error.status !== 0) {
+          // Exclude network errors (status 0)
+          const responseTime = performance.now() - startTime;
+          if (request.url.includes(Configs.BASE_URL)) {
+            this.healthService.trackApiResponseTime(responseTime);
+          }
+        }
+
+        // Track API errors for our backend endpoints
+        if (request.url.includes(Configs.BASE_URL)) {
+          // Track HTTP errors (4xx, 5xx status codes)
+          if (error.status >= 400 && error.status < 600) {
+            this.healthService.trackApiError();
+          }
+          // Also track network errors as API errors
+          else if (error.status === 0) {
+            this.healthService.trackApiError();
+          }
+        }
+
         if (error.status === 401 && this.shouldAttemptRefresh(request)) {
           return this.handle401Error(authRequest, next);
         }

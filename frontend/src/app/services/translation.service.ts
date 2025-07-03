@@ -14,6 +14,8 @@ export interface Language {
 export class TranslationService {
   private http = inject(HttpClient);
 
+  private readonly LANGUAGE_STORAGE_KEY = 'language';
+
   // Available languages
   readonly languages: Language[] = [
     { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -29,7 +31,7 @@ export class TranslationService {
 
   constructor() {
     // Load saved language preference
-    const savedLanguage = localStorage.getItem('selectedLanguage');
+    const savedLanguage = localStorage.getItem(this.LANGUAGE_STORAGE_KEY);
     if (savedLanguage) {
       const language = this.languages.find((l) => l.code === savedLanguage);
       if (language) {
@@ -51,7 +53,7 @@ export class TranslationService {
     const language = this.languages.find((l) => l.code === languageCode);
     if (language) {
       this.currentLanguageSignal.set(language);
-      localStorage.setItem('selectedLanguage', languageCode);
+      localStorage.setItem(this.LANGUAGE_STORAGE_KEY, languageCode);
       this.loadTranslations(languageCode);
     }
   }
@@ -132,6 +134,34 @@ export class TranslationService {
           // Warning messages
           loginFirst: 'Please login first to access this page.',
           sessionExpired: 'Your session has expired. Please login again.',
+        },
+        health: {
+          dashboard: {
+            title: 'Health Dashboard',
+            refresh: 'Refresh',
+            lastUpdated: 'Last updated',
+            status: {
+              excellent: 'Excellent',
+              good: 'Good',
+              poor: 'Poor',
+            },
+            tiles: {
+              backendHealth: 'Backend Health',
+              backendHealthDescription: 'Backend API response time',
+              backendResponseTime: 'Backend Response Time',
+              backendResponseTimeDescription: 'Average API response time',
+              backendErrorRate: 'Backend Error Rate',
+              backendErrorRateDescription: 'Backend errors per minute',
+              jsErrorRate: 'JS Error Rate',
+              jsErrorRateDescription: 'JavaScript errors per minute',
+            },
+            values: {
+              offline: 'Offline',
+              noErrors: 'No errors',
+              errorsPerMinute: 'errors/min',
+              milliseconds: 'ms',
+            },
+          },
         },
         auth: {
           // Page titles and headers
@@ -356,6 +386,35 @@ export class TranslationService {
             'Bitte melden Sie sich zuerst an, um auf diese Seite zuzugreifen.',
           sessionExpired:
             'Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.',
+        },
+        health: {
+          dashboard: {
+            title: 'Gesundheits-Dashboard',
+            refresh: 'Aktualisieren',
+            lastUpdated: 'Zuletzt aktualisiert',
+            status: {
+              excellent: 'Sehr gut',
+              good: 'Gut',
+              poor: 'Schlecht',
+            },
+            tiles: {
+              backendHealth: 'Backend-Status',
+              backendHealthDescription: 'Backend API-Antwortzeit',
+              backendResponseTime: 'Backend-Antwortzeit',
+              backendResponseTimeDescription:
+                'Durchschnittliche API-Antwortzeit',
+              backendErrorRate: 'Backend-Fehlerquote',
+              backendErrorRateDescription: 'Backend-Fehler pro Minute',
+              jsErrorRate: 'JS-Fehlerquote',
+              jsErrorRateDescription: 'JavaScript-Fehler pro Minute',
+            },
+            values: {
+              offline: 'Offline',
+              noErrors: 'Keine Fehler',
+              errorsPerMinute: 'Fehler/min',
+              milliseconds: 'ms',
+            },
+          },
         },
         auth: {
           // Page titles and headers
@@ -593,6 +652,36 @@ export class TranslationService {
             'Por favor, inicia sesión primero para acceder a esta página.',
           sessionExpired:
             'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.',
+        },
+        health: {
+          dashboard: {
+            title: 'Panel de Salud',
+            refresh: 'Actualizar',
+            lastUpdated: 'Actualizado',
+            status: {
+              excellent: 'Excelente',
+              good: 'Bueno',
+              poor: 'Malo',
+            },
+            tiles: {
+              backendHealth: 'Estado del Backend',
+              backendHealthDescription:
+                'Tiempo de respuesta del API del backend',
+              backendResponseTime: 'Tiempo de respuesta del backend',
+              backendResponseTimeDescription:
+                'Tiempo promedio de respuesta del API',
+              backendErrorRate: 'Tasa de errores del backend',
+              backendErrorRateDescription: 'Errores del backend por minuto',
+              jsErrorRate: 'Tasa de errores de JS',
+              jsErrorRateDescription: 'Errores de JavaScript por minuto',
+            },
+            values: {
+              offline: 'Offline',
+              noErrors: 'Sin errores',
+              errorsPerMinute: 'errores/min',
+              milliseconds: 'ms',
+            },
+          },
         },
         auth: {
           // Page titles and headers

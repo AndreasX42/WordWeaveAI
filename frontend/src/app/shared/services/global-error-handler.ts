@@ -2,7 +2,6 @@ import { Injectable, ErrorHandler, inject, NgZone } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MessageService } from '../../services/message.service';
 import { Configs } from '../config';
-import { PoorHealthError } from '../../models/errors.model';
 
 @Injectable({
   providedIn: 'root',
@@ -347,11 +346,6 @@ export class GlobalErrorHandler implements ErrorHandler {
       userId: this.getCurrentUserId(),
       sessionId: this.getSessionId(),
     };
-
-    // If it's a health error, add metrics to the context for rich logging.
-    if (error instanceof PoorHealthError) {
-      context['healthMetrics'] = error.metrics;
-    }
 
     // Enhanced error data for monitoring
     const errorData = {

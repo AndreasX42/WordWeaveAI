@@ -1,6 +1,9 @@
 export class Configs {
   static readonly BASE_URL = 'http://localhost:8080/api';
 
+  // health
+  static readonly HEALTH_URL = '/health';
+
   // auth
   static readonly REGISTER_URL = '/auth/register';
   static readonly CONFIRM_EMAIL_URL = '/auth/confirm-email';
