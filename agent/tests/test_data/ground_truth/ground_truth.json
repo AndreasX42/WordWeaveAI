@@ -1,69 +1,69 @@
 {
   "basic_translation_01": {
-    "source_word": "edificio",
-    "target_language": "German",
+    "source_word": "defraud",
+    "target_language": "Spanish",
     "validation_passed": true,
-    "source_language": "Spanish",
+    "source_language": "English",
     "source_definition": [
-      "Construcci\u00f3n destinada a servir de vivienda, oficina, escuela, etc.",
-      "Estructura arquitect\u00f3nica con paredes y techo"
+      "to illegally obtain money from someone by deception",
+      "to cheat or trick someone to gain something"
     ],
-    "source_part_of_speech": "masculine noun",
-    "source_article": "el",
+    "source_part_of_speech": "verb",
+    "source_article": null,
     "source_additional_info": null,
-    "target_word": "Geb\u00e4ude",
-    "target_part_of_speech": "neuter noun",
-    "target_article": "das",
+    "target_word": "defraudar",
+    "target_part_of_speech": "verb",
+    "target_article": null,
     "target_syllables": [
-      "Ge",
-      "b\u00e4u",
-      "de"
+      "de",
+      "frau",
+      "dar"
     ],
-    "target_phonetic_guide": "\u02c8\u0261e\u02d0.b\u0254\u028f.d\u0259",
-    "target_additional_info": null,
-    "english_word": "building",
+    "target_phonetic_guide": "de\u02c8f\u027eau\u032fdar",
+    "target_additional_info": "Commonly used in legal and financial contexts.",
+    "english_word": "to defraud",
     "search_query": [
-      "building",
-      "architecture",
-      "structure"
+      "fraud",
+      "deception",
+      "scam"
     ],
     "synonyms": [
       {
-        "synonym": "Bauwerk",
-        "explanation": "Ein von Menschen errichtetes, dauerhaftes Konstrukt, das als Geb\u00e4ude dient."
+        "synonym": "estafar",
+        "explanation": "Enga\u00f1ar a alguien para obtener un beneficio econ\u00f3mico de manera il\u00edcita."
       },
       {
-        "synonym": "Immobilie",
-        "explanation": "Ein unbewegliches Sachgut, meist ein Geb\u00e4ude oder Grundst\u00fcck."
+        "synonym": "timar",
+        "explanation": "Enga\u00f1ar o embaucar a alguien, generalmente para quitarle dinero."
       },
       {
-        "synonym": "Anlage",
-        "explanation": "Ein Komplex von Geb\u00e4uden oder Einrichtungen, die zusammen eine funktionale Einheit bilden."
+        "synonym": "enga\u00f1ar",
+        "explanation": "Hacer que alguien crea algo falso con la intenci\u00f3n de obtener un beneficio o causar perjuicio."
       }
     ],
     "examples": [
       {
-        "original": "El edificio en la esquina fue construido hace m\u00e1s de cien a\u00f1os y tiene un estilo arquitect\u00f3nico muy antiguo.",
-        "translation": "Das Geb\u00e4ude an der Ecke wurde vor \u00fcber hundert Jahren gebaut und hat einen sehr alten architektonischen Stil.",
-        "context": "Descripci\u00f3n hist\u00f3rica de un edificio en una conversaci\u00f3n casual."
+        "original": "The company was found guilty of attempting to defraud its investors by falsifying financial records.",
+        "translation": "La empresa fue declarada culpable de intentar defraudar a sus inversores falsificando los registros financieros.",
+        "context": "Legal context involving financial fraud."
       },
       {
-        "original": "Para llegar a la oficina, primero debes entrar al edificio principal y luego tomar el ascensor hasta el tercer piso.",
-        "translation": "Um zum B\u00fcro zu gelangen, musst du zuerst das Hauptgeb\u00e4ude betreten und dann den Aufzug in den dritten Stock nehmen.",
-        "context": "Indicaciones para llegar a un lugar dentro de un edificio."
+        "original": "He tried to defraud the government by submitting fake tax returns.",
+        "translation": "Intent\u00f3 defraudar al gobierno presentando declaraciones de impuestos falsas.",
+        "context": "Criminal act related to tax evasion."
       },
       {
-        "original": "El nuevo edificio de apartamentos tiene muchas comodidades, como gimnasio, piscina y \u00e1reas verdes para los residentes.",
-        "translation": "Das neue Wohngeb\u00e4ude verf\u00fcgt \u00fcber viele Annehmlichkeiten wie ein Fitnessstudio, einen Pool und Gr\u00fcnfl\u00e4chen f\u00fcr die Bewohner.",
-        "context": "Descripci\u00f3n de las caracter\u00edsticas de un edificio residencial moderno."
+        "original": "Many people fall victim to schemes designed to defraud them out of their savings.",
+        "translation": "Muchas personas caen v\u00edctimas de esquemas dise\u00f1ados para defraudarlas de sus ahorros.",
+        "context": "General warning about fraudulent schemes."
       },
       {
-        "original": "Durante la visita guiada, el gu\u00eda explic\u00f3 que el edificio fue renovado para mejorar su eficiencia energ\u00e9tica.",
-        "translation": "W\u00e4hrend der F\u00fchrung erkl\u00e4rte der Guide, dass das Geb\u00e4ude renoviert wurde, um seine Energieeffizienz zu verbessern.",
-        "context": "Explicaci\u00f3n durante una visita tur\u00edstica o educativa."
+        "original": "The charity was accused of defrauding donors by misusing the funds collected.",
+        "translation": "La organizaci\u00f3n ben\u00e9fica fue acusada de defraudar a los donantes al malversar los fondos recaudados.",
+        "context": "Fraud in the context of charitable organizations."
       }
     ],
-    "conjugation": null,
+    "conjugation": "{\n  \"formas_no_personales\": {\n    \"infinitivo\": \"defraudar\",\n    \"participio\": \"defraudado\",\n    \"gerundio\": \"defraudando\"\n  },\n  \"indicativo\": {\n    \"presente\": {\n      \"yo\": \"defraudo\",\n      \"tu\": \"defraudas\",\n      \"el_ella_usted\": \"defrauda\",\n      \"nosotros_nosotras\": \"defraudamos\",\n      \"vosotros_vosotras\": \"defraud\u00e1is\",\n      \"ellos_ellas_ustedes\": \"defraudan\"\n    },\n    \"preterito_perfecto_simple\": {\n      \"yo\": \"defraud\u00e9\",\n      \"tu\": \"defraudaste\",\n      \"el_ella_usted\": \"defraud\u00f3\",\n      \"nosotros_nosotras\": \"defraudamos\",\n      \"vosotros_vosotras\": \"defraudasteis\",\n      \"ellos_ellas_ustedes\": \"defraudaron\"\n    },\n    \"preterito_imperfecto\": {\n      \"yo\": \"defraudaba\",\n      \"tu\": \"defraudabas\",\n      \"el_ella_usted\": \"defraudaba\",\n      \"nosotros_nosotras\": \"defraud\u00e1bamos\",\n      \"vosotros_vosotras\": \"defraudabais\",\n      \"ellos_ellas_ustedes\": \"defraudaban\"\n    },\n    \"preterito_perfecto_compuesto\": {\n      \"yo\": \"he defraudado\",\n      \"tu\": \"has defraudado\",\n      \"el_ella_usted\": \"ha defraudado\",\n      \"nosotros_nosotras\": \"hemos defraudado\",\n      \"vosotros_vosotras\": \"hab\u00e9is defraudado\",\n      \"ellos_ellas_ustedes\": \"han defraudado\"\n    },\n    \"preterito_pluscuamperfecto\": {\n      \"yo\": \"hab\u00eda defraudado\",\n      \"tu\": \"hab\u00edas defraudado\",\n      \"el_ella_usted\": \"hab\u00eda defraudado\",\n      \"nosotros_nosotras\": \"hab\u00edamos defraudado\",\n      \"vosotros_vosotras\": \"hab\u00edais defraudado\",\n      \"ellos_ellas_ustedes\": \"hab\u00edan defraudado\"\n    },\n    \"futuro\": {\n      \"yo\": \"defraudar\u00e9\",\n      \"tu\": \"defraudar\u00e1s\",\n      \"el_ella_usted\": \"defraudar\u00e1\",\n      \"nosotros_nosotras\": \"defraudaremos\",\n      \"vosotros_vosotras\": \"defraudar\u00e9is\",\n      \"ellos_ellas_ustedes\": \"defraudar\u00e1n\"\n    },\n    \"futuro_perfecto\": {\n      \"yo\": \"habr\u00e9 defraudado\",\n      \"tu\": \"habr\u00e1s defraudado\",\n      \"el_ella_usted\": \"habr\u00e1 defraudado\",\n      \"nosotros_nosotras\": \"habremos defraudado\",\n      \"vosotros_vosotras\": \"habr\u00e9is defraudado\",\n      \"ellos_ellas_ustedes\": \"habr\u00e1n defraudado\"\n    },\n    \"condicional\": {\n      \"yo\": \"defraudar\u00eda\",\n      \"tu\": \"defraudar\u00edas\",\n      \"el_ella_usted\": \"defraudar\u00eda\",\n      \"nosotros_nosotras\": \"defraudar\u00edamos\",\n      \"vosotros_vosotras\": \"defraudar\u00edais\",\n      \"ellos_ellas_ustedes\": \"defraudar\u00edan\"\n    },\n    \"condicional_perfecto\": {\n      \"yo\": \"habr\u00eda defraudado\",\n      \"tu\": \"habr\u00edas defraudado\",\n      \"el_ella_usted\": \"habr\u00eda defraudado\",\n      \"nosotros_nosotras\": \"habr\u00edamos defraudado\",\n      \"vosotros_vosotras\": \"habr\u00edais defraudado\",\n      \"ellos_ellas_ustedes\": \"habr\u00edan defraudado\"\n    }\n  },\n  \"subjuntivo\": {\n    \"presente\": {\n      \"yo\": \"defraude\",\n      \"tu\": \"defraudes\",\n      \"el_ella_usted\": \"defraude\",\n      \"nosotros_nosotras\": \"defraudemos\",\n      \"vosotros_vosotras\": \"defraud\u00e9is\",\n      \"ellos_ellas_ustedes\": \"defrauden\"\n    },\n    \"preterito_imperfecto\": {\n      \"yo\": \"defraudara\",\n      \"tu\": \"defraudaras\",\n      \"el_ella_usted\": \"defraudara\",\n      \"nosotros_nosotras\": \"defraud\u00e1ramos\",\n      \"vosotros_vosotras\": \"defraudarais\",\n      \"ellos_ellas_ustedes\": \"defraudaran\"\n    },\n    \"preterito_perfecto_compuesto\": {\n      \"yo\": \"haya defraudado\",\n      \"tu\": \"hayas defraudado\",\n      \"el_ella_usted\": \"haya defraudado\",\n      \"nosotros_nosotras\": \"hayamos defraudado\",\n      \"vosotros_vosotras\": \"hay\u00e1is defraudado\",\n      \"ellos_ellas_ustedes\": \"hayan defraudado\"\n    },\n    \"preterito_pluscuamperfecto\": {\n      \"yo\": \"hubiera defraudado\",\n      \"tu\": \"hubieras defraudado\",\n      \"el_ella_usted\": \"hubiera defraudado\",\n      \"nosotros_nosotras\": \"hubi\u00e9ramos defraudado\",\n      \"vosotros_vosotras\": \"hubierais defraudado\",\n      \"ellos_ellas_ustedes\": \"hubieran defraudado\"\n    },\n    \"futuro\": {\n      \"yo\": \"defraudare\",\n      \"tu\": \"defraudares\",\n      \"el_ella_usted\": \"defraudare\",\n      \"nosotros_nosotras\": \"defraud\u00e1remos\",\n      \"vosotros_vosotras\": \"defraudareis\",\n      \"ellos_ellas_ustedes\": \"defraudaren\"\n    }\n  }\n}",
     "validation_quality_approved": true,
     "classification_quality_approved": true,
     "translation_quality_approved": true,
@@ -75,15 +75,15 @@
     "conjugation_quality_approved": true,
     "validation_quality_score": 10.0,
     "classification_quality_score": 9.0,
-    "translation_quality_score": 10.0,
-    "media_quality_score": 9.0,
-    "examples_quality_score": 9.0,
+    "translation_quality_score": 9.0,
+    "media_quality_score": 8.5,
+    "examples_quality_score": 9.5,
     "synonyms_quality_score": 9.0,
-    "syllables_quality_score": 9.0,
+    "syllables_quality_score": 8.0,
     "pronunciation_quality_score": 10.0,
-    "conjugation_quality_score": 10.0,
+    "conjugation_quality_score": 9.5,
     "sequential_quality_passed": true,
-    "overall_quality_score": 9.444444444444445,
+    "overall_quality_score": 9.166666666666666,
     "quality_checks_passed": 9,
     "quality_checks_failed": 0
   }

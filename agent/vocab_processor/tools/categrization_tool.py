@@ -33,7 +33,7 @@ class WordCategorization(BaseModel):
     )
     source_additional_info: str | None = Field(
         None,
-        description="Additional information about the word in the source language if needed. For example if the word is only common in a specific country or region, in what context the word is used, if it is colloquial or vulgar, etc.",
+        description="Additional information in the source language about the word in the source language if needed. For example if the word is only common in a specific country or region, in what context the word is used, if it is colloquial or vulgar, etc.",
     )
 
 
@@ -47,21 +47,18 @@ async def get_classification(
     """Categorize part of speech and language."""
 
     # Base prompt
-    prompt = f"Classify '{source_word}' ({source_language}): provide part of speech from {', '.join(PartOfSpeech.all_values())} and up to 2 clear definitions in {source_language}. If the word is a noun, provide the article. Also provide the base word in the source_word field, for example if the input is 'to build', the source_word should be 'build'."
+    prompt = f"Classify '{source_word}' ({source_language}): part of speech ({', '.join(PartOfSpeech.all_values())}), 1-2 {source_language} definitions. For nouns: add article. For inputs like 'to build' or 'la casa', extract base word (build, casa)."
 
     # Quality requirements for classification
     quality_requirements = [
-        "Correctly extract the base word from inputs with articles/prefixes (to build → build, la casa → casa)",
-        "Return the extracted base word in the source_word field (not the original input)",
-        f"Provide exactly 1-2 definitions maximum - NEVER exceed 2 definitions",
-        f"Definitions are clear, accurate, and natural for native {source_language} speakers",
-        "Each definition must represent a DISTINCTLY DIFFERENT meaning or usage context - avoid repetitive synonyms",
-        "For basic words with one main meaning, provide only ONE definition rather than multiple similar ones",
-        "Provide the most common, essential meanings (not obscure ones)",
-        "Part of speech should be pedagogically useful",
-        "If the word is informal/slang, make this clear in the definitions",
-        f"Include appropriate articles for nouns in {source_language}",
-        "Do not create artificial variations of the same concept",
+        "Extract base word correctly (to build → build)",
+        "Return base word in source_word field",
+        "1-2 definitions max - distinct meanings only",
+        f"Clear, natural {source_language} definitions",
+        "Most common meanings only",
+        "Pedagogically useful part of speech",
+        f"Include articles for {source_language} nouns",
+        f"Note informal/slang usage and other important information in source_additional_info in {source_language}",
     ]
 
     # Add quality feedback if provided

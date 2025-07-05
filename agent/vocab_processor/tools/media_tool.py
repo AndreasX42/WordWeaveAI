@@ -153,7 +153,7 @@ async def get_media(
 
     try:
         # First, translate target word to English and get search criteria
-        translation_prompt = f"For '{target_word}' ({target_language}): provide english_word + search_query (2-3 descriptive English terms for Pexels)."
+        translation_prompt = f"For '{target_word}' ({target_language}): provide english_word + 2-3 descriptive English search terms."
 
         translation_result = await create_llm_response(
             response_model=TranslationResult,
@@ -325,11 +325,11 @@ async def _select_best_photo(
 
     # Quality requirements for media selection
     quality_requirements = [
-        "Choose the most relevant and clear photo",
-        f"Provide accurate translations in {source_language}",
-        "Create helpful memory tips that connect the image to the word",
-        "Write clear, natural explanations",
-        "Use culturally appropriate descriptions",
+        "Choose relevant, clear photo",
+        f"Accurate {source_language} translations",
+        "Connect image to word in memory tip",
+        "Clear explanations",
+        "Culturally appropriate",
     ]
 
     # Add quality feedback if provided

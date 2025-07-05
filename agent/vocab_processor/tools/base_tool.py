@@ -15,13 +15,9 @@ T = TypeVar("T", bound=BaseModel)
 class SystemMessages:
     """Standard system messages for different tool types."""
 
-    LINGUISTIC_SPECIALIST = (
-        "You are a linguistic specialist. Provide accurate, natural responses."
-    )
-    VALIDATION_SPECIALIST = "You are an expert vocabulary validation assistant. Follow instructions exactly and return only valid JSON responses."
-    MEDIA_SPECIALIST = (
-        "You are a linguistic specialist. Select and adapt media accurately."
-    )
+    LINGUISTIC_SPECIALIST = "You are a linguistic expert. Be accurate and natural."
+    VALIDATION_SPECIALIST = "You are a vocabulary validation expert. Follow instructions exactly. Return valid JSON only."
+    MEDIA_SPECIALIST = "You are a linguistic expert. Select and adapt media accurately."
 
 
 def add_quality_feedback_to_prompt(
@@ -36,16 +32,10 @@ def add_quality_feedback_to_prompt(
 
     issues_text = "\n".join(f"- {issue}" for issue in previous_issues)
 
-    quality_section = f"""
-
-IMPORTANT: Previous attempts had these issues:
-{issues_text}
-
-Please ensure:"""
+    quality_section = f"\n\nPrevious issues:\n{issues_text}\n\nRequirements:"
 
     if quality_requirements:
-        for i, req in enumerate(quality_requirements, 1):
-            quality_section += f"\n{i}. {req}"
+        quality_section += "\n" + "\n".join(f"- {req}" for req in quality_requirements)
 
     return base_prompt + quality_section
 

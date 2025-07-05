@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from enum import Enum
-from typing import Any, Dict, List, Optional, Type
+from typing import Any
 
 from aws_lambda_powertools import Logger
 from pydantic import BaseModel, Field
@@ -41,8 +41,8 @@ class ToolValidationResult(BaseModel):
     """Result of tool output validation."""
 
     score: float = Field(..., ge=0.0, le=10.0, description="Quality score from 0-10")
-    issues: List[str] = Field(default=[], description="List of identified issues")
-    suggestions: List[str] = Field(default=[], description="Improvement suggestions")
+    issues: list[str] = Field(default=[], description="List of identified issues")
+    suggestions: list[str] = Field(default=[], description="Improvement suggestions")
 
 
 class RetryStrategy(BaseModel):
@@ -50,7 +50,7 @@ class RetryStrategy(BaseModel):
 
     should_retry: bool = Field(...)
     retry_reason: str = Field(...)
-    adjusted_inputs: Dict[str, Any] = Field(default={})
+    adjusted_inputs: dict[str, Any] = Field(default={})
     use_stronger_model: bool = Field(default=False)
 
 
@@ -76,17 +76,15 @@ class LLMRouter:
             TaskType.SYNONYMS,
             TaskType.SYLLABLES,
             TaskType.CONJUGATION,
+            TaskType.MEDIA_SELECTION,
+            TaskType.CLASSIFICATION,
         ]:
             return LLMVariant.GPT41 if is_retry else LLMVariant.GPT41M
-
-        # Use powerful model for creative/complex tasks
-        if task_type in [TaskType.MEDIA_SELECTION, TaskType.CLASSIFICATION]:
-            return LLMVariant.GPT41
 
         return LLMVariant.GPT41M
 
 
-def get_schema_specification(model_class: Type[BaseModel]) -> str:
+def get_schema_specification(model_class: BaseModel) -> str:
     """Extract schema specification from Pydantic model."""
     schema = model_class.model_json_schema()
 
@@ -490,37 +488,46 @@ class VocabSupervisor:
             validation_prompt = f"""
             {learning_context}
             
-            **TOOL: {tool_name}**
-            Validate this {tool_name} output against its expected format:
+            Tool: {tool_name}
+            Validate output format and quality:
             
-            **Actual Result:**
+            Result:
             {result}
             
-            **Context:**
+            Context:
             - Source: {state.source_word} ({state.source_language})
             - Target: {state.target_word} ({state.target_language})
             
-            **Basic Validation:**
-            1. Output structure looks reasonable
-            2. Required fields appear to be present
-            3. Data types seem appropriate
-            4. Content is relevant and accurate
+            Check:
+            1. Valid structure
+            2. Required fields present
+            3. Correct data types
+            4. Content relevance
             
-            **LEARNING QUALITY CHECK:**
-            - Does the output contribute to effective vocabulary learning?
-            - Is content natural and appropriate for language learners?
-            - Would this help learners acquire and use the target word?
+            Learning value:
+            - Effective for vocabulary learning?
+            - Natural for learners?
             
-            Rate 1-10 based on general quality, structure, and learning value.
+            Rate 1-10 on quality and learning value.
+            If score >= 8, return score only without issues/suggestions.
+            If score < 8, include specific issues and improvement suggestions.
             """
 
         try:
-            return await create_llm_response(
+            validation_result = await create_llm_response(
                 response_model=ToolValidationResult,
                 user_prompt=validation_prompt,
                 system_message=SystemMessages.VALIDATION_SPECIALIST,
                 llm_provider=self.router.get_model_for_task(TaskType.QUALITY_CHECK),
             )
+
+            # For high scores, clear issues and suggestions
+            if validation_result.score >= 8.0:
+                validation_result.issues = []
+                validation_result.suggestions = []
+
+            return validation_result
+
         except Exception as e:
             logger.error(f"Quality validation failed for {tool_name}: {e}")
             # Return default acceptable result to avoid blocking pipeline
@@ -536,6 +543,15 @@ class VocabSupervisor:
         """Determine retry strategy based on validation results."""
 
         retry_count = getattr(state, f"{tool_name}_retry_count", 0)
+
+        # Don't retry if score is high enough
+        if validation_result.score >= 8.0:
+            return RetryStrategy(
+                should_retry=False,
+                retry_reason="Score meets quality threshold",
+                adjusted_inputs={},
+                use_stronger_model=False,
+            )
 
         if retry_count >= self.max_retries:
             return RetryStrategy(
@@ -558,17 +574,31 @@ class VocabSupervisor:
             "syllables",
             "conjugation",
         ]:
-            adjusted_inputs["quality_feedback"] = (
-                f"Quality score: {validation_result.score}/10. Issues: {'; '.join(validation_result.issues)}"
-            )
-            adjusted_inputs["previous_issues"] = validation_result.issues
+            # Only include quality feedback if we have issues
+            if validation_result.issues:
+                adjusted_inputs["quality_feedback"] = (
+                    f"Quality score: {validation_result.score}/10. Issues: {'; '.join(validation_result.issues)}"
+                )
+                adjusted_inputs["previous_issues"] = validation_result.issues
 
-        # Should retry if we haven't reached max retries
-        should_retry = retry_count < self.max_retries
+        # Should retry if we haven't reached max retries and score is below threshold
+        should_retry = (
+            retry_count < self.max_retries
+            and validation_result.score < self.quality_threshold
+        )
+
+        retry_reason = (
+            f"Quality score {validation_result.score} below threshold {self.quality_threshold}"
+            + (
+                f". Issues: {'; '.join(validation_result.issues)}"
+                if validation_result.issues
+                else ""
+            )
+        )
 
         return RetryStrategy(
             should_retry=should_retry,
-            retry_reason=f"Quality score {validation_result.score} below threshold {self.quality_threshold}. Issues: {'; '.join(validation_result.issues)}",
+            retry_reason=retry_reason,
             adjusted_inputs=adjusted_inputs,
             use_stronger_model=retry_count > 0,
         )
@@ -605,7 +635,7 @@ class VocabSupervisor:
 
         return True
 
-    async def coordinate_parallel_tasks(self, state: VocabState) -> List[str]:
+    async def coordinate_parallel_tasks(self, state: VocabState) -> list[str]:
         """Determine which parallel tasks should be executed."""
 
         tasks = []
@@ -628,8 +658,8 @@ supervisor = VocabSupervisor()
 
 
 def create_fallback_result(
-    tool_name: str, inputs: Dict[str, Any], error: str
-) -> Dict[str, Any]:
+    tool_name: str, inputs: dict[str, Any], error: str
+) -> dict[str, Any]:
     """Create a fallback result when tool execution fails completely."""
 
     logger.error(f"Creating fallback result for {tool_name}: {error}")

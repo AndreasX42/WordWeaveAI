@@ -226,7 +226,7 @@ def get_instructor_oai_gpt4_1_mini():
         base_client = from_openai(
             client=client,
             model="gpt-4.1-mini-2025-04-14",
-            temperature=0.0,
+            temperature=0.1,
             mode=Mode.JSON,
         )
         _instructor_oai_gpt4_1_mini = TracedInstructorClient(
@@ -242,7 +242,7 @@ def get_instructor_oai_gpt4_1():
         base_client = from_openai(
             client=client,
             model="gpt-4.1-2025-04-14",
-            temperature=0.0,
+            temperature=0.1,
             mode=Mode.JSON,
         )
         _instructor_oai_gpt4_1 = TracedInstructorClient(

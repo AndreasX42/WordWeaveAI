@@ -13,10 +13,10 @@ SAMPLE_TEST_CASES = [
         "category": "basic_translation",
         "cases": [
             {
-                "source_word": "el edificio",
-                "target_language": "German",
-                "description": "English noun to Spanish",
-                "expected_pos": "noun",
+                "source_word": "to defraud",
+                "target_language": "Spanish",
+                "description": "English verb to Spanish",
+                "expected_pos": "verb",
                 "tags": ["english", "spanish", "noun", "basic"],
             },
             # {

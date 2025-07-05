@@ -25,7 +25,7 @@ class Translation(BaseModel):
     )
     target_additional_info: str | None = Field(
         None,
-        description="Additional information about the translation in the target language if needed. For example if the word is only common in a specific country or region, in what context the word is used, if it is colloquial or vulgar, etc.",
+        description="Additional information in the source language about the translation in the target language if needed. For example if the word is only common in a specific country or region, in what context the word is used, if it is colloquial or vulgar, etc.",
     )
 
 
@@ -72,9 +72,8 @@ Provide most common translation, appropriate POS, article if needed, and additio
         f"Match the register and tone of the source word:",
         f"- If source is informal/slang, provide informal translation",
         f"- If source is vulgar, note this and provide appropriate equivalent",
-        f"- Include register information in target_additional_info",
         f"For slang/colloquial words, provide the most natural equivalent learners would encounter",
-        f"Use target_additional_info to explain context, register, and regional usage",
+        f"Use target_additional_info to explain context, register, and regional usage in {source_language}",
         f"For informal/vulgar words like 'huevada', consider translations like 'bullshit', 'crap', 'nonsense' and explain the register.",
     ]
 

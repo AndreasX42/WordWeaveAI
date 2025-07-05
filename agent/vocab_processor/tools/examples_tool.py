@@ -48,16 +48,16 @@ async def get_examples(
     """Generate bilingual example phrases using the word and its translation."""
 
     # Base prompt
-    prompt = f"Create 3 to 4 bilingual example sentences using '{source_word}' ({source_language}) and '{target_word}' ({target_language}). Real-life contexts, medium length, everyday conversations. The context should be in the source language {source_language}."
+    prompt = f"Create 3-4 natural examples using '{source_word}' ({source_language}) and '{target_word}' ({target_language}). Context in {source_language}."
 
     # Quality requirements for examples
     quality_requirements = [
-        "Examples are natural, conversational, and realistic",
-        "Both original and translation are grammatically correct",
-        "Examples demonstrate proper usage of the word in context",
-        "Translations are accurate and natural in the target language",
-        "Context notes are helpful and relevant",
-        "Examples are diverse and show different use cases",
+        "Natural, conversational examples",
+        "Grammatically correct in both languages",
+        "Proper word usage in context",
+        "Natural translations",
+        "Helpful context notes",
+        "Show different use cases",
     ]
 
     # Add quality feedback if provided

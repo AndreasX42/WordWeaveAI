@@ -1,10 +1,10 @@
 [
   {
     "test_id": "basic_translation_01",
-    "description": "English noun to Spanish",
+    "description": "English verb to Spanish",
     "input_data": {
-      "source_word": "el edificio",
-      "target_language": "German"
+      "source_word": "to defraud",
+      "target_language": "Spanish"
     },
     "expected_output": null,
     "tags": [
