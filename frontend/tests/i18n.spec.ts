@@ -100,8 +100,6 @@ test.describe('i18n Home Page Language Switch', () => {
 
   test('switching to English updates CTA button', async ({ page }) => {
     await switchLanguage(page, 'English');
-    await expect(page.locator('.cta-button')).toContainText(
-      'Start Building Vocabulary'
-    );
+    await expect(page.locator('.cta-button')).toContainText('Start building');
   });
 });

@@ -182,7 +182,7 @@ export class TranslationService {
 
           // Form labels
           username: 'Username',
-          email: 'Email Address',
+          emailAddress: 'Email Address',
           password: 'Password',
           confirmPassword: 'Confirm Password',
           verificationCode: 'Verification Code',
@@ -298,7 +298,7 @@ export class TranslationService {
             titleHighlight: 'AI-powered community learning',
             subtitle:
               'Create personalized vocabulary lists from our community database, or watch our AI Agents generate new words in real time with audio, images, and examples. Master any combination of English, Spanish, and German through interactive quizzes and collaborative learning.',
-            ctaButton: 'Start Building Vocabulary',
+            ctaButton: 'Start building',
             stats: {
               wordsCreated: 'Words Created',
               publicLists: 'Public Lists',
@@ -343,6 +343,17 @@ export class TranslationService {
                 'Watch our AI Agents create vocabulary cards live with audio pronunciation, contextual images, and usage examples. Provide feedback to perfect each word.',
             },
           },
+        },
+        search: {
+          title: 'Discover',
+          titleHighlight: 'New Words',
+          subtitle:
+            'Search for words in our community database or let our AI Agents create them for you',
+          sourceLanguage: 'From',
+          targetLanguage: 'To',
+          selectLanguage: 'Select Language',
+          inputPlaceholder: 'Enter a word to search',
+          button: 'Search',
         },
       },
       de: {
@@ -429,7 +440,7 @@ export class TranslationService {
 
           username: 'Benutzername',
           email: 'E-Mail',
-          emailAddress: 'E-Mail-Adresse',
+          emailAddress: 'E-Mail Adresse',
           password: 'Passwort',
           confirmPassword: 'Passwort bestätigen',
           verificationCode: 'Verifizierungscode',
@@ -575,6 +586,17 @@ export class TranslationService {
             },
           },
         },
+        search: {
+          title: 'Entdecke',
+          titleHighlight: 'Neue Wörter',
+          subtitle:
+            'Suche Wörter in unserer Community-Datenbank oder lass sie von unseren KI-Agenten erstellen',
+          sourceLanguage: 'Von',
+          targetLanguage: 'Nach',
+          selectLanguage: 'Sprache wählen',
+          inputPlaceholder: 'Wort eingeben',
+          button: 'Suchen',
+        },
       },
       es: {
         // informal "tú"
@@ -659,7 +681,7 @@ export class TranslationService {
 
           // campos
           username: 'Usuario',
-          email: 'Correo electrónico',
+          emailAddress: 'Correo electrónico',
           password: 'Contraseña',
           confirmPassword: 'Confirmar contraseña',
           verificationCode: 'Código de verificación',
@@ -811,6 +833,17 @@ export class TranslationService {
                 'Ve en vivo cómo la IA crea tarjetas de vocabulario con audio, imágenes y ejemplos. Tu feedback las perfecciona.',
             },
           },
+        },
+        search: {
+          title: 'Descubre',
+          titleHighlight: 'Nuevas Palabras',
+          subtitle:
+            'Busca palabras en nuestra base comunitaria o deja que nuestros agentes de IA las creen para ti',
+          sourceLanguage: 'De',
+          targetLanguage: 'A',
+          selectLanguage: 'Seleccionar idioma',
+          inputPlaceholder: 'Ingresa una palabra',
+          button: 'Buscar',
         },
       },
     };

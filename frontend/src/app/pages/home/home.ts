@@ -39,7 +39,7 @@ import { CommonModule } from '@angular/common';
               mat-flat-button
               color="primary"
               class="cta-button"
-              routerLink="/login"
+              routerLink="/search"
             >
               <mat-icon>rocket_launch</mat-icon>
               {{ 'home.hero.ctaButton' | translate }}
@@ -376,7 +376,7 @@ import { CommonModule } from '@angular/common';
       }
 
       .hero-stats {
-        margin-top: 0px;
+        margin-top: 60px;
         opacity: 0.9;
       }
 
