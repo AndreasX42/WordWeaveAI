@@ -1,5 +1,6 @@
 from vocab_processor.tools.base_tool import (
     SystemMessages,
+    add_quality_feedback_to_prompt,
     create_llm_response,
     create_tool_error_response,
 )
@@ -26,6 +27,7 @@ __all__ = [
     "validate_word",
     # Base utilities
     "create_llm_response",
+    "add_quality_feedback_to_prompt",
     "SystemMessages",
     "create_tool_error_response",
 ]

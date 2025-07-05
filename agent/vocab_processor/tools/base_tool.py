@@ -1,6 +1,6 @@
 """Base tool utilities and common patterns for vocab processor tools."""
 
-from typing import Any, Dict, Type, TypeVar
+from typing import Any, Dict, List, Optional, Type, TypeVar
 
 from aws_lambda_powertools import Logger
 from pydantic import BaseModel
@@ -24,12 +24,38 @@ class SystemMessages:
     )
 
 
+def add_quality_feedback_to_prompt(
+    base_prompt: str,
+    quality_feedback: Optional[str] = None,
+    previous_issues: Optional[List[str]] = None,
+    quality_requirements: Optional[List[str]] = None,
+) -> str:
+    """Add quality feedback section to a prompt if provided."""
+    if not quality_feedback or not previous_issues:
+        return base_prompt
+
+    issues_text = "\n".join(f"- {issue}" for issue in previous_issues)
+
+    quality_section = f"""
+
+IMPORTANT: Previous attempts had these issues:
+{issues_text}
+
+Please ensure:"""
+
+    if quality_requirements:
+        for i, req in enumerate(quality_requirements, 1):
+            quality_section += f"\n{i}. {req}"
+
+    return base_prompt + quality_section
+
+
 async def create_llm_response(
     response_model: Type[T],
     user_prompt: str,
     system_message: str = SystemMessages.LINGUISTIC_SPECIALIST,
-    llm_provider: LLMVariant = LLMVariant.GPT41,
-    **kwargs
+    llm_provider: LLMVariant = LLMVariant.GPT41M,
+    **kwargs,
 ) -> T:
     """
     Standardized LLM response creation with error handling.
@@ -53,7 +79,7 @@ async def create_llm_response(
                 {"role": "system", "content": system_message},
                 {"role": "user", "content": user_prompt},
             ],
-            **kwargs
+            **kwargs,
         )
     except Exception as e:
         logger.error(

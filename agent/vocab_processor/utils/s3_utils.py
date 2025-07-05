@@ -137,7 +137,7 @@ async def upload_stream_to_s3(data_stream, s3_key: str, content_type: str) -> st
     Returns:
         S3 URL or mock URL in local mode
     """
-    if not is_lambda_context():
+    if is_lambda_context():
         logger.info(
             f"Local dev mode: skipping S3 stream upload for {s3_key} ({content_type})"
         )

@@ -36,6 +36,31 @@ class WordValidationResult(BaseModel):
     )
 
 
+def _build_validation_prompt(word: str, target_language: Language) -> str:
+    """Build the validation prompt with clear instructions."""
+    possible_source_languages = [
+        language for language in Language if language != target_language
+    ]
+
+    return f"""You are an expert linguistic validator. For input '{word}' targeting {target_language}:
+
+Instructions:
+- Keep the source_word exactly as provided by the user (preserve "to build", "la casa", etc.)
+- Validate if the input is a valid word/phrase in any supported language (except target language)
+- Accept common articles and prefixes (like "to", "la", "el", "der", "die", "das") as part of valid input
+- If the input is valid in any supported language, mark as valid and return the detected language
+- If the input is not valid/misspelled, suggest up to 3 real, high-frequency corrections with smallest spelling difference (edit distance up to 3)
+- Only suggest corrections if they are common and actually exist in the language
+- **Never invent words.**
+- **Never suggest rare words, names, or words in the target language.**
+- **Never suggest the input word itself as a suggestion.**
+
+Rules: No invented words, no rare words, no target language suggestions.
+Supported: {", ".join(Language.all_values())}
+
+Output JSON only."""
+
+
 @tool
 async def validate_word(word: str, target_language: Language) -> WordValidationResult:
     """
@@ -46,25 +71,7 @@ async def validate_word(word: str, target_language: Language) -> WordValidationR
     - Otherwise, return is_valid=False, source_language=None, and up to 3 suggestions if possible.
     """
 
-    possible_source_languages = [
-        language for language in Language if language != target_language
-    ]
-
-    prompt = f"""You are an expert linguistic validator. For word '{word}' targeting {target_language}:
-
-Instructions:
-- Only suggest as correction a **real word** from the list of supported languages ({", ".join(possible_source_languages)}).
-- If the input word is not valid, suggest up to 3 real, high-frequency words with the smallest possible spelling difference (edit distance up to 3). Only suggest corrections if they are common and actually exist in the language.
-- **Never invent words.**
-- **Never suggest rare words, names, or words in the target language.**
-- **Never suggest the input word itself as a suggestion.**
-- If the word is valid in any supported language (except the target language), mark as valid and return the detected language.
-- Otherwise, return is_valid: false and suggestions as above.
-
-Rules: No invented words, no rare words, no target language suggestions.
-Supported: {", ".join(Language.all_values())}
-
-Output JSON only."""
+    prompt = _build_validation_prompt(word, target_language)
 
     try:
         return await create_llm_response(

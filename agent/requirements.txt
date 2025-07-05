@@ -3,6 +3,7 @@ langchain==0.3.25
 langgraph==0.4.5
 langgraph-cli[inmem]==0.2.10
 langchain-openai==0.3.17
+langsmith<0.4
 
 # openai
 openai==1.79.0
@@ -20,3 +21,6 @@ python-dotenv==1.1.0
 pydantic==2.11.4
 elevenlabs==2.1.0
 ipykernel==6.29.5
+
+# testing
+rich==14.0.0

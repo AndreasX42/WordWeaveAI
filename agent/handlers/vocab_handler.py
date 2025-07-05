@@ -13,6 +13,7 @@ from aws_lambda_powertools.utilities.batch import (
 )
 from aws_lambda_powertools.utilities.parser import parse
 from aws_lambda_powertools.utilities.typing import LambdaContext
+
 from vocab_processor.agent import graph
 from vocab_processor.constants import Language
 from vocab_processor.utils.ddb_utils import (

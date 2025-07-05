@@ -1,0 +1,19 @@
+[
+  {
+    "test_id": "basic_translation_01",
+    "description": "English noun to Spanish",
+    "input_data": {
+      "source_word": "el edificio",
+      "target_language": "German"
+    },
+    "expected_output": null,
+    "tags": [
+      "english",
+      "spanish",
+      "noun",
+      "basic"
+    ],
+    "created_at": null,
+    "updated_at": null
+  }
+]

@@ -1,0 +1,279 @@
+[
+  {
+    "test_id": "basic_translation_01",
+    "passed": false,
+    "actual_output": {
+      "source_word": "be",
+      "target_language": "Spanish",
+      "validation_passed": true,
+      "source_language": "English",
+      "source_definition": [
+        "exist",
+        "occur"
+      ],
+      "source_part_of_speech": "verb",
+      "source_article": null,
+      "source_additional_info": null,
+      "target_word": "ser",
+      "target_part_of_speech": "verb",
+      "target_article": null,
+      "target_syllables": [
+        "ser"
+      ],
+      "target_phonetic_guide": "ser",
+      "target_additional_info": "Most common translation of 'be' in the sense of existence or identity.",
+      "english_word": "to be",
+      "search_query": [
+        "existence",
+        "identity",
+        "state"
+      ],
+      "synonyms": [
+        {
+          "synonym": "existir",
+          "explanation": "Indica la presencia o realidad de algo o alguien."
+        },
+        {
+          "synonym": "permanecer",
+          "explanation": "Se refiere a mantenerse en un estado o condici\u00f3n."
+        },
+        {
+          "synonym": "constar",
+          "explanation": "Significa estar registrado o ser conocido como cierto."
+        }
+      ],
+      "examples": [
+        {
+          "original": "I want to be a doctor when I grow up because I like helping people.",
+          "translation": "Quiero ser m\u00e9dico cuando sea grande porque me gusta ayudar a las personas.",
+          "context": "Talking about future career aspirations."
+        },
+        {
+          "original": "This restaurant is famous because the food is always fresh and delicious.",
+          "translation": "Este restaurante es famoso porque la comida siempre es fresca y deliciosa.",
+          "context": "Describing why a place is popular."
+        },
+        {
+          "original": "Are you going to be at the party tonight? I heard it will be really fun.",
+          "translation": "\u00bfVas a ser en la fiesta esta noche? Escuch\u00e9 que ser\u00e1 muy divertida.",
+          "context": "Asking about attendance at a social event."
+        },
+        {
+          "original": "It is important to be honest with your friends to build trust.",
+          "translation": "Es importante ser honesto con tus amigos para construir confianza.",
+          "context": "Giving advice about relationships."
+        }
+      ],
+      "conjugation": "{\n  \"formas_no_personales\": {\n    \"infinitivo\": \"ser\",\n    \"participio\": \"sido\",\n    \"gerundio\": \"siendo\"\n  },\n  \"indicativo\": {\n    \"presente\": {\n      \"yo\": \"soy\",\n      \"tu\": \"eres\",\n      \"el_ella_usted\": \"es\",\n      \"nosotros_nosotras\": \"somos\",\n      \"vosotros_vosotras\": \"sois\",\n      \"ellos_ellas_ustedes\": \"son\"\n    },\n    \"preterito_perfecto_simple\": {\n      \"yo\": \"fui\",\n      \"tu\": \"fuiste\",\n      \"el_ella_usted\": \"fue\",\n      \"nosotros_nosotras\": \"fuimos\",\n      \"vosotros_vosotras\": \"fuisteis\",\n      \"ellos_ellas_ustedes\": \"fueron\"\n    },\n    \"preterito_imperfecto\": {\n      \"yo\": \"era\",\n      \"tu\": \"eras\",\n      \"el_ella_usted\": \"era\",\n      \"nosotros_nosotras\": \"\u00e9ramos\",\n      \"vosotros_vosotras\": \"erais\",\n      \"ellos_ellas_ustedes\": \"eran\"\n    },\n    \"preterito_perfecto_compuesto\": {\n      \"yo\": \"he sido\",\n      \"tu\": \"has sido\",\n      \"el_ella_usted\": \"ha sido\",\n      \"nosotros_nosotras\": \"hemos sido\",\n      \"vosotros_vosotras\": \"hab\u00e9is sido\",\n      \"ellos_ellas_ustedes\": \"han sido\"\n    },\n    \"preterito_pluscuamperfecto\": {\n      \"yo\": \"hab\u00eda sido\",\n      \"tu\": \"hab\u00edas sido\",\n      \"el_ella_usted\": \"hab\u00eda sido\",\n      \"nosotros_nosotras\": \"hab\u00edamos sido\",\n      \"vosotros_vosotras\": \"hab\u00edais sido\",\n      \"ellos_ellas_ustedes\": \"hab\u00edan sido\"\n    },\n    \"futuro\": {\n      \"yo\": \"ser\u00e9\",\n      \"tu\": \"ser\u00e1s\",\n      \"el_ella_usted\": \"ser\u00e1\",\n      \"nosotros_nosotras\": \"seremos\",\n      \"vosotros_vosotras\": \"ser\u00e9is\",\n      \"ellos_ellas_ustedes\": \"ser\u00e1n\"\n    },\n    \"futuro_perfecto\": {\n      \"yo\": \"habr\u00e9 sido\",\n      \"tu\": \"habr\u00e1s sido\",\n      \"el_ella_usted\": \"habr\u00e1 sido\",\n      \"nosotros_nosotras\": \"habremos sido\",\n      \"vosotros_vosotras\": \"habr\u00e9is sido\",\n      \"ellos_ellas_ustedes\": \"habr\u00e1n sido\"\n    },\n    \"condicional\": {\n      \"yo\": \"ser\u00eda\",\n      \"tu\": \"ser\u00edas\",\n      \"el_ella_usted\": \"ser\u00eda\",\n      \"nosotros_nosotras\": \"ser\u00edamos\",\n      \"vosotros_vosotras\": \"ser\u00edais\",\n      \"ellos_ellas_ustedes\": \"ser\u00edan\"\n    },\n    \"condicional_perfecto\": {\n      \"yo\": \"habr\u00eda sido\",\n      \"tu\": \"habr\u00edas sido\",\n      \"el_ella_usted\": \"habr\u00eda sido\",\n      \"nosotros_nosotras\": \"habr\u00edamos sido\",\n      \"vosotros_vosotras\": \"habr\u00edais sido\",\n      \"ellos_ellas_ustedes\": \"habr\u00edan sido\"\n    }\n  },\n  \"subjuntivo\": {\n    \"presente\": {\n      \"yo\": \"sea\",\n      \"tu\": \"seas\",\n      \"el_ella_usted\": \"sea\",\n      \"nosotros_nosotras\": \"seamos\",\n      \"vosotros_vosotras\": \"se\u00e1is\",\n      \"ellos_ellas_ustedes\": \"sean\"\n    },\n    \"preterito_imperfecto\": {\n      \"yo\": \"fuera\",\n      \"tu\": \"fueras\",\n      \"el_ella_usted\": \"fuera\",\n      \"nosotros_nosotras\": \"fu\u00e9ramos\",\n      \"vosotros_vosotras\": \"fuerais\",\n      \"ellos_ellas_ustedes\": \"fueran\"\n    },\n    \"preterito_perfecto_compuesto\": {\n      \"yo\": \"haya sido\",\n      \"tu\": \"hayas sido\",\n      \"el_ella_usted\": \"haya sido\",\n      \"nosotros_nosotras\": \"hayamos sido\",\n      \"vosotros_vosotras\": \"hay\u00e1is sido\",\n      \"ellos_ellas_ustedes\": \"hayan sido\"\n    },\n    \"preterito_pluscuamperfecto\": {\n      \"yo\": \"hubiera sido\",\n      \"tu\": \"hubieras sido\",\n      \"el_ella_usted\": \"hubiera sido\",\n      \"nosotros_nosotras\": \"hubi\u00e9ramos sido\",\n      \"vosotros_vosotras\": \"hubierais sido\",\n      \"ellos_ellas_ustedes\": \"hubieran sido\"\n    },\n    \"futuro\": {\n      \"yo\": \"fuere\",\n      \"tu\": \"fueres\",\n      \"el_ella_usted\": \"fuere\",\n      \"nosotros_nosotras\": \"fu\u00e9remos\",\n      \"vosotros_vosotras\": \"fuereis\",\n      \"ellos_ellas_ustedes\": \"fueren\"\n    }\n  }\n}",
+      "validation_quality_approved": true,
+      "classification_quality_approved": true,
+      "translation_quality_approved": true,
+      "media_quality_approved": true,
+      "examples_quality_approved": true,
+      "synonyms_quality_approved": true,
+      "syllables_quality_approved": true,
+      "pronunciation_quality_approved": true,
+      "conjugation_quality_approved": true,
+      "validation_quality_score": 10.0,
+      "classification_quality_score": 7.0,
+      "translation_quality_score": 9.0,
+      "media_quality_score": 7.0,
+      "examples_quality_score": 7.0,
+      "synonyms_quality_score": 7.0,
+      "syllables_quality_score": 8.0,
+      "pronunciation_quality_score": 10.0,
+      "conjugation_quality_score": 9.5,
+      "sequential_quality_passed": true,
+      "overall_quality_score": 8.277777777777779,
+      "quality_checks_passed": 9,
+      "quality_checks_failed": 0
+    },
+    "expected_output": {
+      "source_word": "be",
+      "target_language": "Spanish",
+      "validation_passed": true,
+      "source_language": "English",
+      "source_definition": [
+        "exist",
+        "occur"
+      ],
+      "source_part_of_speech": "verb",
+      "source_article": null,
+      "source_additional_info": null,
+      "target_word": "ser",
+      "target_part_of_speech": "verb",
+      "target_article": null,
+      "target_syllables": [
+        "ser"
+      ],
+      "target_phonetic_guide": "se\u027e",
+      "target_additional_info": "Most common translation of 'be' in the sense of existence or identity.",
+      "english_word": "to be",
+      "search_query": [
+        "existence",
+        "identity",
+        "state"
+      ],
+      "synonyms": [
+        {
+          "synonym": "existir",
+          "explanation": "Indica la presencia o realidad de algo o alguien."
+        },
+        {
+          "synonym": "permanecer",
+          "explanation": "Se refiere a mantenerse en un estado o lugar determinado."
+        },
+        {
+          "synonym": "constar",
+          "explanation": "Significa estar registrado o ser conocido como cierto."
+        }
+      ],
+      "examples": [
+        {
+          "original": "I want to be a doctor when I grow up because I like helping people.",
+          "translation": "Quiero ser doctor cuando sea grande porque me gusta ayudar a las personas.",
+          "context": "Talking about future aspirations in a casual conversation."
+        },
+        {
+          "original": "This restaurant is famous because the food is always fresh and delicious.",
+          "translation": "Este restaurante es famoso porque la comida siempre es fresca y deliciosa.",
+          "context": "Describing a place during a discussion about good dining options."
+        },
+        {
+          "original": "Are you going to be at the meeting tomorrow, or should I take notes for you?",
+          "translation": "\u00bfVas a ser (estar) en la reuni\u00f3n ma\u00f1ana, o deber\u00eda tomar notas por ti?",
+          "context": "Asking about attendance in a work-related conversation."
+        },
+        {
+          "original": "It\u2019s important to be honest with your friends to build trust over time.",
+          "translation": "Es importante ser honesto con tus amigos para construir confianza con el tiempo.",
+          "context": "Giving advice about relationships in everyday life."
+        }
+      ],
+      "conjugation": "{\n  \"formas_no_personales\": {\n    \"infinitivo\": \"ser\",\n    \"participio\": \"sido\",\n    \"gerundio\": \"siendo\"\n  },\n  \"indicativo\": {\n    \"presente\": {\n      \"yo\": \"soy\",\n      \"tu\": \"eres\",\n      \"el_ella_usted\": \"es\",\n      \"nosotros_nosotras\": \"somos\",\n      \"vosotros_vosotras\": \"sois\",\n      \"ellos_ellas_ustedes\": \"son\"\n    },\n    \"preterito_perfecto_simple\": {\n      \"yo\": \"fui\",\n      \"tu\": \"fuiste\",\n      \"el_ella_usted\": \"fue\",\n      \"nosotros_nosotras\": \"fuimos\",\n      \"vosotros_vosotras\": \"fuisteis\",\n      \"ellos_ellas_ustedes\": \"fueron\"\n    },\n    \"preterito_imperfecto\": {\n      \"yo\": \"era\",\n      \"tu\": \"eras\",\n      \"el_ella_usted\": \"era\",\n      \"nosotros_nosotras\": \"\u00e9ramos\",\n      \"vosotros_vosotras\": \"erais\",\n      \"ellos_ellas_ustedes\": \"eran\"\n    },\n    \"preterito_perfecto_compuesto\": {\n      \"yo\": \"he sido\",\n      \"tu\": \"has sido\",\n      \"el_ella_usted\": \"ha sido\",\n      \"nosotros_nosotras\": \"hemos sido\",\n      \"vosotros_vosotras\": \"hab\u00e9is sido\",\n      \"ellos_ellas_ustedes\": \"han sido\"\n    },\n    \"preterito_pluscuamperfecto\": {\n      \"yo\": \"hab\u00eda sido\",\n      \"tu\": \"hab\u00edas sido\",\n      \"el_ella_usted\": \"hab\u00eda sido\",\n      \"nosotros_nosotras\": \"hab\u00edamos sido\",\n      \"vosotros_vosotras\": \"hab\u00edais sido\",\n      \"ellos_ellas_ustedes\": \"hab\u00edan sido\"\n    },\n    \"futuro\": {\n      \"yo\": \"ser\u00e9\",\n      \"tu\": \"ser\u00e1s\",\n      \"el_ella_usted\": \"ser\u00e1\",\n      \"nosotros_nosotras\": \"seremos\",\n      \"vosotros_vosotras\": \"ser\u00e9is\",\n      \"ellos_ellas_ustedes\": \"ser\u00e1n\"\n    },\n    \"futuro_perfecto\": {\n      \"yo\": \"habr\u00e9 sido\",\n      \"tu\": \"habr\u00e1s sido\",\n      \"el_ella_usted\": \"habr\u00e1 sido\",\n      \"nosotros_nosotras\": \"habremos sido\",\n      \"vosotros_vosotras\": \"habr\u00e9is sido\",\n      \"ellos_ellas_ustedes\": \"habr\u00e1n sido\"\n    },\n    \"condicional\": {\n      \"yo\": \"ser\u00eda\",\n      \"tu\": \"ser\u00edas\",\n      \"el_ella_usted\": \"ser\u00eda\",\n      \"nosotros_nosotras\": \"ser\u00edamos\",\n      \"vosotros_vosotras\": \"ser\u00edais\",\n      \"ellos_ellas_ustedes\": \"ser\u00edan\"\n    },\n    \"condicional_perfecto\": {\n      \"yo\": \"habr\u00eda sido\",\n      \"tu\": \"habr\u00edas sido\",\n      \"el_ella_usted\": \"habr\u00eda sido\",\n      \"nosotros_nosotras\": \"habr\u00edamos sido\",\n      \"vosotros_vosotras\": \"habr\u00edais sido\",\n      \"ellos_ellas_ustedes\": \"habr\u00edan sido\"\n    }\n  },\n  \"subjuntivo\": {\n    \"presente\": {\n      \"yo\": \"sea\",\n      \"tu\": \"seas\",\n      \"el_ella_usted\": \"sea\",\n      \"nosotros_nosotras\": \"seamos\",\n      \"vosotros_vosotras\": \"se\u00e1is\",\n      \"ellos_ellas_ustedes\": \"sean\"\n    },\n    \"preterito_imperfecto\": {\n      \"yo\": \"fuera\",\n      \"tu\": \"fueras\",\n      \"el_ella_usted\": \"fuera\",\n      \"nosotros_nosotras\": \"fu\u00e9ramos\",\n      \"vosotros_vosotras\": \"fuerais\",\n      \"ellos_ellas_ustedes\": \"fueran\"\n    },\n    \"preterito_perfecto_compuesto\": {\n      \"yo\": \"haya sido\",\n      \"tu\": \"hayas sido\",\n      \"el_ella_usted\": \"haya sido\",\n      \"nosotros_nosotras\": \"hayamos sido\",\n      \"vosotros_vosotras\": \"hay\u00e1is sido\",\n      \"ellos_ellas_ustedes\": \"hayan sido\"\n    },\n    \"preterito_pluscuamperfecto\": {\n      \"yo\": \"hubiera sido\",\n      \"tu\": \"hubieras sido\",\n      \"el_ella_usted\": \"hubiera sido\",\n      \"nosotros_nosotras\": \"hubi\u00e9ramos sido\",\n      \"vosotros_vosotras\": \"hubierais sido\",\n      \"ellos_ellas_ustedes\": \"hubieran sido\"\n    },\n    \"futuro\": {\n      \"yo\": \"fuere\",\n      \"tu\": \"fueres\",\n      \"el_ella_usted\": \"fuere\",\n      \"nosotros_nosotras\": \"fu\u00e9remos\",\n      \"vosotros_vosotras\": \"fuereis\",\n      \"ellos_ellas_ustedes\": \"fueren\"\n    }\n  }\n}",
+      "validation_quality_approved": true,
+      "classification_quality_approved": true,
+      "translation_quality_approved": true,
+      "media_quality_approved": true,
+      "examples_quality_approved": true,
+      "synonyms_quality_approved": true,
+      "syllables_quality_approved": true,
+      "pronunciation_quality_approved": true,
+      "conjugation_quality_approved": true,
+      "validation_quality_score": 10.0,
+      "classification_quality_score": 7.0,
+      "translation_quality_score": 9.0,
+      "media_quality_score": 7.0,
+      "examples_quality_score": 8.0,
+      "synonyms_quality_score": 8.0,
+      "syllables_quality_score": 10.0,
+      "pronunciation_quality_score": 10.0,
+      "conjugation_quality_score": 9.5,
+      "sequential_quality_passed": true,
+      "overall_quality_score": 8.722222222222221,
+      "quality_checks_passed": 9,
+      "quality_checks_failed": 0
+    },
+    "differences": {
+      "diff_target_phonetic_guide": {
+        "expected": "se\u027e",
+        "actual": "ser"
+      },
+      "diff_synonyms": {
+        "expected": [
+          {
+            "synonym": "existir",
+            "explanation": "Indica la presencia o realidad de algo o alguien."
+          },
+          {
+            "synonym": "permanecer",
+            "explanation": "Se refiere a mantenerse en un estado o lugar determinado."
+          },
+          {
+            "synonym": "constar",
+            "explanation": "Significa estar registrado o ser conocido como cierto."
+          }
+        ],
+        "actual": [
+          {
+            "synonym": "existir",
+            "explanation": "Indica la presencia o realidad de algo o alguien."
+          },
+          {
+            "synonym": "permanecer",
+            "explanation": "Se refiere a mantenerse en un estado o condici\u00f3n."
+          },
+          {
+            "synonym": "constar",
+            "explanation": "Significa estar registrado o ser conocido como cierto."
+          }
+        ]
+      },
+      "diff_examples": {
+        "expected": [
+          {
+            "original": "I want to be a doctor when I grow up because I like helping people.",
+            "translation": "Quiero ser doctor cuando sea grande porque me gusta ayudar a las personas.",
+            "context": "Talking about future aspirations in a casual conversation."
+          },
+          {
+            "original": "This restaurant is famous because the food is always fresh and delicious.",
+            "translation": "Este restaurante es famoso porque la comida siempre es fresca y deliciosa.",
+            "context": "Describing a place during a discussion about good dining options."
+          },
+          {
+            "original": "Are you going to be at the meeting tomorrow, or should I take notes for you?",
+            "translation": "\u00bfVas a ser (estar) en la reuni\u00f3n ma\u00f1ana, o deber\u00eda tomar notas por ti?",
+            "context": "Asking about attendance in a work-related conversation."
+          },
+          {
+            "original": "It\u2019s important to be honest with your friends to build trust over time.",
+            "translation": "Es importante ser honesto con tus amigos para construir confianza con el tiempo.",
+            "context": "Giving advice about relationships in everyday life."
+          }
+        ],
+        "actual": [
+          {
+            "original": "I want to be a doctor when I grow up because I like helping people.",
+            "translation": "Quiero ser m\u00e9dico cuando sea grande porque me gusta ayudar a las personas.",
+            "context": "Talking about future career aspirations."
+          },
+          {
+            "original": "This restaurant is famous because the food is always fresh and delicious.",
+            "translation": "Este restaurante es famoso porque la comida siempre es fresca y deliciosa.",
+            "context": "Describing why a place is popular."
+          },
+          {
+            "original": "Are you going to be at the party tonight? I heard it will be really fun.",
+            "translation": "\u00bfVas a ser en la fiesta esta noche? Escuch\u00e9 que ser\u00e1 muy divertida.",
+            "context": "Asking about attendance at a social event."
+          },
+          {
+            "original": "It is important to be honest with your friends to build trust.",
+            "translation": "Es importante ser honesto con tus amigos para construir confianza.",
+            "context": "Giving advice about relationships."
+          }
+        ]
+      },
+      "diff_examples_quality_score": {
+        "expected": 8.0,
+        "actual": 7.0
+      },
+      "diff_synonyms_quality_score": {
+        "expected": 8.0,
+        "actual": 7.0
+      },
+      "diff_syllables_quality_score": {
+        "expected": 10.0,
+        "actual": 8.0
+      },
+      "diff_overall_quality_score": {
+        "expected": 8.722222222222221,
+        "actual": 8.277777777777779
+      }
+    },
+    "execution_time": 35.57096654199995,
+    "error": null,
+    "timestamp": "2025-07-05T17:14:54.180411"
+  }
+]

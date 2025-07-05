@@ -1,0 +1,90 @@
+{
+  "basic_translation_01": {
+    "source_word": "edificio",
+    "target_language": "German",
+    "validation_passed": true,
+    "source_language": "Spanish",
+    "source_definition": [
+      "Construcci\u00f3n destinada a servir de vivienda, oficina, escuela, etc.",
+      "Estructura arquitect\u00f3nica con paredes y techo"
+    ],
+    "source_part_of_speech": "masculine noun",
+    "source_article": "el",
+    "source_additional_info": null,
+    "target_word": "Geb\u00e4ude",
+    "target_part_of_speech": "neuter noun",
+    "target_article": "das",
+    "target_syllables": [
+      "Ge",
+      "b\u00e4u",
+      "de"
+    ],
+    "target_phonetic_guide": "\u02c8\u0261e\u02d0.b\u0254\u028f.d\u0259",
+    "target_additional_info": null,
+    "english_word": "building",
+    "search_query": [
+      "building",
+      "architecture",
+      "structure"
+    ],
+    "synonyms": [
+      {
+        "synonym": "Bauwerk",
+        "explanation": "Ein von Menschen errichtetes, dauerhaftes Konstrukt, das als Geb\u00e4ude dient."
+      },
+      {
+        "synonym": "Immobilie",
+        "explanation": "Ein unbewegliches Sachgut, meist ein Geb\u00e4ude oder Grundst\u00fcck."
+      },
+      {
+        "synonym": "Anlage",
+        "explanation": "Ein Komplex von Geb\u00e4uden oder Einrichtungen, die zusammen eine funktionale Einheit bilden."
+      }
+    ],
+    "examples": [
+      {
+        "original": "El edificio en la esquina fue construido hace m\u00e1s de cien a\u00f1os y tiene un estilo arquitect\u00f3nico muy antiguo.",
+        "translation": "Das Geb\u00e4ude an der Ecke wurde vor \u00fcber hundert Jahren gebaut und hat einen sehr alten architektonischen Stil.",
+        "context": "Descripci\u00f3n hist\u00f3rica de un edificio en una conversaci\u00f3n casual."
+      },
+      {
+        "original": "Para llegar a la oficina, primero debes entrar al edificio principal y luego tomar el ascensor hasta el tercer piso.",
+        "translation": "Um zum B\u00fcro zu gelangen, musst du zuerst das Hauptgeb\u00e4ude betreten und dann den Aufzug in den dritten Stock nehmen.",
+        "context": "Indicaciones para llegar a un lugar dentro de un edificio."
+      },
+      {
+        "original": "El nuevo edificio de apartamentos tiene muchas comodidades, como gimnasio, piscina y \u00e1reas verdes para los residentes.",
+        "translation": "Das neue Wohngeb\u00e4ude verf\u00fcgt \u00fcber viele Annehmlichkeiten wie ein Fitnessstudio, einen Pool und Gr\u00fcnfl\u00e4chen f\u00fcr die Bewohner.",
+        "context": "Descripci\u00f3n de las caracter\u00edsticas de un edificio residencial moderno."
+      },
+      {
+        "original": "Durante la visita guiada, el gu\u00eda explic\u00f3 que el edificio fue renovado para mejorar su eficiencia energ\u00e9tica.",
+        "translation": "W\u00e4hrend der F\u00fchrung erkl\u00e4rte der Guide, dass das Geb\u00e4ude renoviert wurde, um seine Energieeffizienz zu verbessern.",
+        "context": "Explicaci\u00f3n durante una visita tur\u00edstica o educativa."
+      }
+    ],
+    "conjugation": null,
+    "validation_quality_approved": true,
+    "classification_quality_approved": true,
+    "translation_quality_approved": true,
+    "media_quality_approved": true,
+    "examples_quality_approved": true,
+    "synonyms_quality_approved": true,
+    "syllables_quality_approved": true,
+    "pronunciation_quality_approved": true,
+    "conjugation_quality_approved": true,
+    "validation_quality_score": 10.0,
+    "classification_quality_score": 9.0,
+    "translation_quality_score": 10.0,
+    "media_quality_score": 9.0,
+    "examples_quality_score": 9.0,
+    "synonyms_quality_score": 9.0,
+    "syllables_quality_score": 9.0,
+    "pronunciation_quality_score": 10.0,
+    "conjugation_quality_score": 10.0,
+    "sequential_quality_passed": true,
+    "overall_quality_score": 9.444444444444445,
+    "quality_checks_passed": 9,
+    "quality_checks_failed": 0
+  }
+}
