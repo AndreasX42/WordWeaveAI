@@ -105,8 +105,8 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
                 [(ngModel)]="searchTerm"
                 (keyup.enter)="search()"
               />
+              @if (searchTerm) {
               <button
-                *ngIf="searchTerm"
                 matSuffix
                 mat-icon-button
                 aria-label="Clear"
@@ -114,6 +114,7 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
               >
                 <mat-icon>close</mat-icon>
               </button>
+              }
             </mat-form-field>
 
             <button

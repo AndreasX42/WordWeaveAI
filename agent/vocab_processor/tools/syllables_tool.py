@@ -13,8 +13,11 @@ from vocab_processor.tools.base_tool import (
 class SyllableBreakdown(BaseModel):
     """Syllable breakdown of the word in the specified language."""
 
-    syllables: List[str] = Field(..., description="List of syllables for the word")
-    phonetic_guide: str = Field(..., description="Phonetic pronunciation guide")
+    syllables: List[str] = Field(..., description="List of syllables for the base word")
+    phonetic_guide: str = Field(
+        ...,
+        description="Phonetic pronunciation guide (IPA or learner-friendly symbols) of the base word.",
+    )
 
 
 @tool
@@ -31,6 +34,7 @@ async def get_syllables(
 
     # Quality requirements for syllables
     quality_requirements = [
+        "Syllable breakdown should be done on the base word, meaning the word without any article or other modifiers",
         "Syllable breakdown helps learners pronounce the word correctly",
         "Phonetic guide is accessible and useful for language learners",
         "Syllables are divided naturally for pronunciation learning",

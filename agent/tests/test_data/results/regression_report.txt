@@ -1,7 +1,7 @@
 ╭──────────────────────────────────────────────────────────────────────────────╮
 │ LANGGRAPH REGRESSION TEST REPORT                                             │
 ╰──────────────────────────────────────────────────────────────────────────────╯
-Generated: 2025-07-06 11:18:55
+Generated: 2025-07-06 11:29:12
 
         SUMMARY         
 ┏━━━━━━━━━━━━━━┳━━━━━━━┓
@@ -14,7 +14,7 @@ Generated: 2025-07-06 11:18:55
 └──────────────┴───────┘
 
 FAILED TESTS:
-  ✗ basic_translation_01 (34.94s)
+  ✗ basic_translation_01 (29.11s)
 ╭──────────────────────────────────────────────────────────╮
 │ DETAILED DIFF                                            │
 ╰──────────────────────────────────────────────────────────╯
@@ -32,64 +32,66 @@ FAILED TESTS:
 │ 9.0        │ │ 9.5      │
 ╰────────────╯ ╰──────────╯
 
-✓ MATCH: english_word
+~ CHANGED: english_word
+╭─ Expected ─╮ ╭─ Actual ──╮
+│ 'live'     │ │ 'to live' │
+╰────────────╯ ╰───────────╯
 
 ~ CHANGED: examples
-╭─────────────────────────────────────────── Expected ───────────────────────────────────────────╮
-│ [                                                                                              │
-│   {                                                                                            │
-│     'original': 'I live in a small town near the mountains.',                                  │
-│     'translation': 'Yo vivo en un pequeño pueblo cerca de las montañas.',                      │
-│     'context': "Describing one's place of residence.",                                         │
-│   },                                                                                           │
-│   {                                                                                            │
-│     'original': 'Many people want to live a happy and fulfilling life.',                       │
-│     'translation': 'Muchas personas quieren vivir una vida feliz y plena.',                    │
-│     'context': 'Talking about the desire for a good quality of life.',                         │
-│   },                                                                                           │
-│   {                                                                                            │
-│     'original': 'She decided to live abroad to experience a new culture.',                     │
-│     'translation': 'Ella decidió vivir en el extranjero para experimentar una nueva cultura.', │
-│     'context': 'Explaining a decision to move to another country.',                            │
-│   },                                                                                           │
-│   {                                                                                            │
-│     'original': 'We should live in the moment and enjoy every day.',                           │
-│     'translation': 'Debemos vivir el momento y disfrutar cada día.',                           │
-│     'context': 'Encouraging mindfulness and appreciation of life.',                            │
-│   },                                                                                           │
-│ ]                                                                                              │
-╰────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭──────────────────────────────────────────── Actual ────────────────────────────────────────────╮
-│ [                                                                                              │
-│   {                                                                                            │
-│     'original': 'I live in a small town near the mountains.',                                  │
-│     'translation': 'Yo vivo en un pequeño pueblo cerca de las montañas.',                      │
-│     'context': "Describing one's place of residence.",                                         │
-│   },                                                                                           │
-│   {                                                                                            │
-│     'original': 'Many people want to live a happy and fulfilling life.',                       │
-│     'translation': 'Muchas personas quieren vivir una vida feliz y plena.',                    │
-│     'context': 'Talking about the desire for a good quality of life.',                         │
-│   },                                                                                           │
-│   {                                                                                            │
-│     'original': 'She decided to live abroad to experience a new culture.',                     │
-│     'translation': 'Ella decidió vivir en el extranjero para experimentar una nueva cultura.', │
-│     'context': 'Explaining a decision to move to another country.',                            │
-│   },                                                                                           │
-│   {                                                                                            │
-│     'original': 'We live in a world that is constantly changing.',                             │
-│     'translation': 'Vivimos en un mundo que está cambiando constantemente.',                   │
-│     'context': 'Reflecting on the nature of the world we inhabit.',                            │
-│   },                                                                                           │
-│ ]                                                                                              │
-╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭────────────────────────────────────────────────────── Expected ──────────────────────────────────────────────────────╮
+│ [                                                                                                                    │
+│   {                                                                                                                  │
+│     'original': 'I live in a small town near the mountains.',                                                        │
+│     'translation': 'Yo vivo en un pequeño pueblo cerca de las montañas.',                                            │
+│     'context': "Describing one's place of residence.",                                                               │
+│   },                                                                                                                 │
+│   {                                                                                                                  │
+│     'original': 'Many people want to live a happy and fulfilling life.',                                             │
+│     'translation': 'Muchas personas quieren vivir una vida feliz y plena.',                                          │
+│     'context': 'Talking about the desire for a good quality of life.',                                               │
+│   },                                                                                                                 │
+│   {                                                                                                                  │
+│     'original': 'She decided to live abroad to experience a new culture.',                                           │
+│     'translation': 'Ella decidió vivir en el extranjero para experimentar una nueva cultura.',                       │
+│     'context': 'Explaining a decision to move to another country.',                                                  │
+│   },                                                                                                                 │
+│   {                                                                                                                  │
+│     'original': 'We should live in the moment and enjoy every day.',                                                 │
+│     'translation': 'Debemos vivir el momento y disfrutar cada día.',                                                 │
+│     'context': 'Encouraging mindfulness and appreciation of life.',                                                  │
+│   },                                                                                                                 │
+│ ]                                                                                                                    │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─────────────────────────────────────────────────────── Actual ───────────────────────────────────────────────────────╮
+│ [                                                                                                                    │
+│   {                                                                                                                  │
+│     'original': 'I live in a small town near the mountains where the air is fresh and clean.',                       │
+│     'translation': 'Vivo en un pequeño pueblo cerca de las montañas donde el aire es fresco y limpio.',              │
+│     'context': "Describing one's place of residence.",                                                               │
+│   },                                                                                                                 │
+│   {                                                                                                                  │
+│     'original': 'Many people dream to live a happy and fulfilling life surrounded by loved ones.',                   │
+│     'translation': 'Muchas personas sueñan con vivir una vida feliz y plena rodeados de sus seres queridos.',        │
+│     'context': 'Expressing a general aspiration about life.',                                                        │
+│   },                                                                                                                 │
+│   {                                                                                                                  │
+│     'original': 'She decided to live abroad for a year to experience a different culture and learn a new language.', │
+│     'translation': 'Ella decidió vivir en el extranjero durante un año para experimentar una cultura diferente y     │
+│ aprender un nuevo idioma.',                                                                                          │
+│     'context': 'Talking about living in a foreign country temporarily.',                                             │
+│   },                                                                                                                 │
+│   {                                                                                                                  │
+│     'original': 'To live sustainably means to make choices that protect the environment for future generations.',    │
+│     'translation': 'Vivir de manera sostenible significa tomar decisiones que protejan el medio ambiente para las    │
+│ futuras generaciones.',                                                                                              │
+│     'context': 'Discussing the concept of sustainable living.',                                                      │
+│   },                                                                                                                 │
+│ ]                                                                                                                    │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
 ✓ MATCH: examples_quality_approved
 
-~ CHANGED: examples_quality_score
-╭─ Expected ─╮ ╭─ Actual ─╮
-│ 9.0        │ │ 9.5      │
-╰────────────╯ ╰──────────╯
+✓ MATCH: examples_quality_score
 
 ✓ MATCH: media_quality_approved
 
@@ -97,7 +99,7 @@ FAILED TESTS:
 
 ~ CHANGED: overall_quality_score
 ╭──── Expected ─────╮ ╭───── Actual ──────╮
-│ 9.222222222222221 │ │ 9.333333333333334 │
+│ 9.222222222222221 │ │ 9.277777777777779 │
 ╰───────────────────╯ ╰───────────────────╯
 
 ✓ MATCH: pronunciation_quality_approved
@@ -159,11 +161,11 @@ FAILED TESTS:
 │   },                                                                              │
 │   {                                                                               │
 │     'synonym': 'existir',                                                         │
-│     'explanation': 'Estar presente o tener vida en un lugar o tiempo.',           │
+│     'explanation': 'Estar presente o tener vida en el mundo.',                    │
 │   },                                                                              │
 │   {                                                                               │
 │     'synonym': 'permanecer',                                                      │
-│     'explanation': 'Mantenerse en un estado o lugar durante un tiempo.',          │
+│     'explanation': 'Continuar en un estado o lugar durante un tiempo.',           │
 │   },                                                                              │
 │ ]                                                                                 │
 ╰───────────────────────────────────────────────────────────────────────────────────╯
@@ -195,7 +197,7 @@ FAILED TESTS:
 ✓ MATCH: validation_quality_approved
 
 ✓ MATCH: validation_quality_score
-  ✗ basic_translation_02 (30.62s)
+  ✗ basic_translation_02 (30.29s)
 ╭──────────────────────────────────────────────────────────╮
 │ DETAILED DIFF                                            │
 ╰──────────────────────────────────────────────────────────╯
@@ -272,58 +274,61 @@ FAILED TESTS:
 ╰────────────╯ ╰───────────╯
 
 ~ CHANGED: examples
-╭──────────────────────────────────────────────── Expected ─────────────────────────────────────────────────╮
-│ [                                                                                                         │
-│   {                                                                                                       │
-│     'original': 'Ich wohne seit fünf Jahren in Berlin und fühle mich hier sehr wohl.',                    │
-│     'translation': 'I have been living in Berlin for five years and feel very comfortable here.',         │
-│     'context': 'Beschreibt die Dauer und das Wohlbefinden am Wohnort.',                                   │
-│   },                                                                                                      │
-│   {                                                                                                       │
-│     'original': 'Viele Studenten wohnen in Wohngemeinschaften, um Kosten zu sparen.',                     │
-│     'translation': 'Many students live in shared apartments to save money.',                              │
-│     'context': 'Erklärt eine typische Wohnsituation von Studenten.',                                      │
-│   },                                                                                                      │
-│   {                                                                                                       │
-│     'original': 'Wir wohnen in einem kleinen Haus am Stadtrand, wo es ruhig und grün ist.',               │
-│     'translation': 'We live in a small house on the outskirts of the city, where it is quiet and green.', │
-│     'context': 'Beschreibt die Wohnlage und Umgebung.',                                                   │
-│   },                                                                                                      │
-│   {                                                                                                       │
-│     'original': 'Früher wohnte ich in einer Großstadt, aber jetzt lebe ich lieber auf dem Land.',         │
-│     'translation': 'I used to live in a big city, but now I prefer to live in the countryside.',          │
-│     'context': 'Vergleicht frühere und aktuelle Wohnorte.',                                               │
-│   },                                                                                                      │
-│ ]                                                                                                         │
-╰───────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭───────────────────────────────────────────────── Actual ──────────────────────────────────────────────────╮
-│ [                                                                                                         │
-│   {                                                                                                       │
-│     'original': 'Ich wohne seit fünf Jahren in Berlin und liebe die Stadt sehr.',                         │
-│     'translation': 'I have been living in Berlin for five years and really love the city.',               │
-│     'context': 'Beschreibt den Wohnort und die Dauer des Aufenthalts.',                                   │
-│   },                                                                                                      │
-│   {                                                                                                       │
-│     'original': 'Wir wohnen in einem kleinen Haus am Stadtrand, wo es ruhig und grün ist.',               │
-│     'translation': 'We live in a small house on the outskirts of the city, where it is quiet and green.', │
-│     'context': 'Beschreibt die Wohnsituation und Umgebung.',                                              │
-│   },                                                                                                      │
-│   {                                                                                                       │
-│     'original': 'Viele Studenten wohnen während ihres Studiums in Wohngemeinschaften.',                   │
-│     'translation': 'Many students live in shared apartments during their studies.',                       │
-│     'context': 'Erklärt eine typische Wohnform von Studenten.',                                           │
-│   },                                                                                                      │
-│   {                                                                                                       │
-│     'original': 'Früher wohnte meine Familie auf dem Land, aber jetzt leben wir in der Stadt.',           │
-│     'translation': 'My family used to live in the countryside, but now we live in the city.',             │
-│     'context': 'Vergleicht frühere und aktuelle Wohnorte.',                                               │
-│   },                                                                                                      │
-│ ]                                                                                                         │
-╰───────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭────────────────────────────────────────────────── Expected ───────────────────────────────────────────────────╮
+│ [                                                                                                             │
+│   {                                                                                                           │
+│     'original': 'Ich wohne seit fünf Jahren in Berlin und fühle mich hier sehr wohl.',                        │
+│     'translation': 'I have been living in Berlin for five years and feel very comfortable here.',             │
+│     'context': 'Beschreibt die Dauer und das Wohlbefinden am Wohnort.',                                       │
+│   },                                                                                                          │
+│   {                                                                                                           │
+│     'original': 'Viele Studenten wohnen in Wohngemeinschaften, um Kosten zu sparen.',                         │
+│     'translation': 'Many students live in shared apartments to save money.',                                  │
+│     'context': 'Erklärt eine typische Wohnsituation von Studenten.',                                          │
+│   },                                                                                                          │
+│   {                                                                                                           │
+│     'original': 'Wir wohnen in einem kleinen Haus am Stadtrand, wo es ruhig und grün ist.',                   │
+│     'translation': 'We live in a small house on the outskirts of the city, where it is quiet and green.',     │
+│     'context': 'Beschreibt die Wohnlage und Umgebung.',                                                       │
+│   },                                                                                                          │
+│   {                                                                                                           │
+│     'original': 'Früher wohnte ich in einer Großstadt, aber jetzt lebe ich lieber auf dem Land.',             │
+│     'translation': 'I used to live in a big city, but now I prefer to live in the countryside.',              │
+│     'context': 'Vergleicht frühere und aktuelle Wohnorte.',                                                   │
+│   },                                                                                                          │
+│ ]                                                                                                             │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─────────────────────────────────────────────────── Actual ────────────────────────────────────────────────────╮
+│ [                                                                                                             │
+│   {                                                                                                           │
+│     'original': 'Ich wohne seit fünf Jahren in Berlin und liebe die Stadt sehr.',                             │
+│     'translation': 'I have been living in Berlin for five years and really love the city.',                   │
+│     'context': 'Beschreibt den Wohnort und die Dauer des Aufenthalts.',                                       │
+│   },                                                                                                          │
+│   {                                                                                                           │
+│     'original': 'Wir wohnen in einem kleinen Haus am Stadtrand, wo es ruhig und grün ist.',                   │
+│     'translation': 'We live in a small house on the outskirts of the city, where it is quiet and green.',     │
+│     'context': 'Beschreibt die Wohnsituation und Umgebung.',                                                  │
+│   },                                                                                                          │
+│   {                                                                                                           │
+│     'original': 'Viele Studenten wohnen während ihres Studiums in Wohngemeinschaften.',                       │
+│     'translation': 'Many students live in shared apartments during their studies.',                           │
+│     'context': 'Erklärt eine typische Wohnform von Studenten.',                                               │
+│   },                                                                                                          │
+│   {                                                                                                           │
+│     'original': 'Früher wohnte ich in einer großen Wohnung, aber jetzt bevorzuge ich ein kleines Apartment.', │
+│     'translation': 'I used to live in a large apartment, but now I prefer a small one.',                      │
+│     'context': 'Vergleicht frühere und aktuelle Wohnsituationen.',                                            │
+│   },                                                                                                          │
+│ ]                                                                                                             │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
 ✓ MATCH: examples_quality_approved
 
-✓ MATCH: examples_quality_score
+~ CHANGED: examples_quality_score
+╭─ Expected ─╮ ╭─ Actual ─╮
+│ 9.0        │ │ 9.5      │
+╰────────────╯ ╰──────────╯
 
 ✓ MATCH: media_quality_approved
 
@@ -333,9 +338,9 @@ FAILED TESTS:
 ╰────────────╯ ╰──────────╯
 
 ~ CHANGED: overall_quality_score
-╭──── Expected ─────╮ ╭───── Actual ──────╮
-│ 9.277777777777779 │ │ 8.944444444444445 │
-╰───────────────────╯ ╰───────────────────╯
+╭──── Expected ─────╮ ╭─ Actual ─╮
+│ 9.277777777777779 │ │ 9.0      │
+╰───────────────────╯ ╰──────────╯
 
 ✓ MATCH: pronunciation_quality_approved
 
@@ -346,13 +351,13 @@ FAILED TESTS:
 ✓ MATCH: quality_checks_passed
 
 ~ CHANGED: search_query
-╭────── Expected ───────╮ ╭──── Actual ────╮
-│ [                     │ │ [              │
-│   'live event',       │ │   'existence', │
-│   'live performance', │ │   'life',      │
-│   'live broadcast',   │ │   'living',    │
-│ ]                     │ │ ]              │
-╰───────────────────────╯ ╰────────────────╯
+╭────── Expected ───────╮ ╭─── Actual ───╮
+│ [                     │ │ [            │
+│   'live event',       │ │   'to live', │
+│   'live performance', │ │   'reside',  │
+│   'live broadcast',   │ │   'dwell',   │
+│ ]                     │ │ ]            │
+╰───────────────────────╯ ╰──────────────╯
 
 ✓ MATCH: sequential_quality_passed
 
@@ -370,44 +375,42 @@ FAILED TESTS:
 
 ✓ MATCH: syllables_quality_approved
 
-~ CHANGED: syllables_quality_score
-╭─ Expected ─╮ ╭─ Actual ─╮
-│ 9.0        │ │ 8.0      │
-╰────────────╯ ╰──────────╯
+✓ MATCH: syllables_quality_score
 
 ~ CHANGED: synonyms
-╭───────────────────────────────────────────────── Expected ──────────────────────────────────────────────────╮
-│ [                                                                                                           │
-│   {                                                                                                         │
-│     'synonym': 'reside',                                                                                    │
-│     'explanation': "To have one's permanent home in a particular place.",                                   │
-│   },                                                                                                        │
-│   {                                                                                                         │
-│     'synonym': 'dwell',                                                                                     │
-│     'explanation': 'To live or stay as a permanent resident; to inhabit.',                                  │
-│   },                                                                                                        │
-│   {                                                                                                         │
-│     'synonym': 'inhabit',                                                                                   │
-│     'explanation': 'To live or occupy a place or environment.',                                             │
-│   },                                                                                                        │
-│ ]                                                                                                           │
-╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭────────────────────────────────────────────────── Actual ───────────────────────────────────────────────────╮
-│ [                                                                                                           │
-│   {                                                                                                         │
-│     'synonym': 'reside',                                                                                    │
-│     'explanation': "To have one's permanent home in a particular place.",                                   │
-│   },                                                                                                        │
-│   {                                                                                                         │
-│     'synonym': 'dwell',                                                                                     │
-│     'explanation': 'To live in or at a specified place, often implying a more permanent or settled state.', │
-│   },                                                                                                        │
-│   {                                                                                                         │
-│     'synonym': 'inhabit',                                                                                   │
-│     'explanation': 'To live or occupy a place or environment.',                                             │
-│   },                                                                                                        │
-│ ]                                                                                                           │
-╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭────────────────────────────────────────────────────── Expected ──────────────────────────────────────────────────────╮
+│ [                                                                                                                    │
+│   {                                                                                                                  │
+│     'synonym': 'reside',                                                                                             │
+│     'explanation': "To have one's permanent home in a particular place.",                                            │
+│   },                                                                                                                 │
+│   {                                                                                                                  │
+│     'synonym': 'dwell',                                                                                              │
+│     'explanation': 'To live or stay as a permanent resident; to inhabit.',                                           │
+│   },                                                                                                                 │
+│   {                                                                                                                  │
+│     'synonym': 'inhabit',                                                                                            │
+│     'explanation': 'To live or occupy a place or environment.',                                                      │
+│   },                                                                                                                 │
+│ ]                                                                                                                    │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─────────────────────────────────────────────────────── Actual ───────────────────────────────────────────────────────╮
+│ [                                                                                                                    │
+│   {                                                                                                                  │
+│     'synonym': 'reside',                                                                                             │
+│     'explanation': "To have one's permanent home in a particular place.",                                            │
+│   },                                                                                                                 │
+│   {                                                                                                                  │
+│     'synonym': 'dwell',                                                                                              │
+│     'explanation': 'To live in or at a specified place, often implying a more permanent or settled presence.',       │
+│   },                                                                                                                 │
+│   {                                                                                                                  │
+│     'synonym': 'inhabit',                                                                                            │
+│     'explanation': 'To live or occupy a place, typically referring to animals or people living in a specific         │
+│ environment.',                                                                                                       │
+│   },                                                                                                                 │
+│ ]                                                                                                                    │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
 ✓ MATCH: synonyms_quality_approved
 
@@ -428,18 +431,9 @@ FAILED TESTS:
 
 ✓ MATCH: target_part_of_speech
 
-~ CHANGED: target_phonetic_guide
-╭─ Expected ─╮ ╭────────────────────── Actual ───────────────────────╮
-│ 'lɪv'      │ │ "toʊ (rhymes with 'go') | liv (rhymes with 'give')" │
-╰────────────╯ ╰─────────────────────────────────────────────────────╯
+✓ MATCH: target_phonetic_guide
 
-~ CHANGED: target_syllables
-╭─ Expected ─╮ ╭─ Actual ──╮
-│ [          │ │ [         │
-│   'live',  │ │   'to',   │
-│ ]          │ │   'live', │
-╰────────────╯ │ ]         │
-               ╰───────────╯
+✓ MATCH: target_syllables
 
 ~ CHANGED: target_word
 ╭─ Expected ─╮ ╭─ Actual ──╮
@@ -450,7 +444,7 @@ FAILED TESTS:
 
 ~ CHANGED: translation_quality_score
 ╭─ Expected ─╮ ╭─ Actual ─╮
-│ 9.5        │ │ 8.0      │
+│ 9.5        │ │ 7.0      │
 ╰────────────╯ ╰──────────╯
 
 ✓ MATCH: validation_passed
@@ -458,7 +452,7 @@ FAILED TESTS:
 ✓ MATCH: validation_quality_approved
 
 ✓ MATCH: validation_quality_score
-  ✗ basic_translation_03 (28.77s)
+  ✗ basic_translation_03 (29.23s)
 ╭──────────────────────────────────────────────────────────╮
 │ DETAILED DIFF                                            │
 ╰──────────────────────────────────────────────────────────╯
@@ -509,70 +503,84 @@ FAILED TESTS:
 
 ✓ MATCH: conjugation_quality_approved
 
-✓ MATCH: conjugation_quality_score
+~ CHANGED: conjugation_quality_score
+╭─ Expected ─╮ ╭─ Actual ─╮
+│ 9.0        │ │ 9.5      │
+╰────────────╯ ╰──────────╯
 
-✓ MATCH: english_word
+~ CHANGED: english_word
+╭─ Expected ─╮ ╭─ Actual ──╮
+│ 'life'     │ │ 'to live' │
+╰────────────╯ ╰───────────╯
 
 ~ CHANGED: examples
-╭────────────────────────────────────────────────────── Expected ──────────────────────────────────────────────────────╮
-│ [                                                                                                                    │
-│   {                                                                                                                  │
-│     'original': 'Me gusta vivir cerca del mar porque el aire es muy fresco.',                                        │
-│     'translation': 'Ich lebe gerne in der Nähe des Meeres, weil die Luft sehr frisch ist.',                          │
-│     'context': 'Expresa una preferencia personal sobre el lugar de residencia.',                                     │
-│   },                                                                                                                 │
-│   {                                                                                                                  │
-│     'original': 'Ellos decidieron vivir en Alemania para aprender el idioma y la cultura.',                          │
-│     'translation': 'Sie haben beschlossen, in Deutschland zu leben, um die Sprache und Kultur zu lernen.',           │
-│     'context': 'Describe una decisión de mudanza con un propósito educativo y cultural.',                            │
-│   },                                                                                                                 │
-│   {                                                                                                                  │
-│     'original': 'Vivir una vida saludable requiere ejercicio y buena alimentación.',                                 │
-│     'translation': 'Ein gesundes Leben zu führen erfordert Bewegung und gute Ernährung.',                            │
-│     'context': 'Consejo general sobre hábitos para mantener la salud.',                                              │
-│   },                                                                                                                 │
-│   {                                                                                                                  │
-│     'original': 'Después de muchos años, aprendí a vivir con menos preocupaciones.',                                 │
-│     'translation': 'Nach vielen Jahren habe ich gelernt, mit weniger Sorgen zu leben.',                              │
-│     'context': 'Reflexión personal sobre el manejo del estrés y la tranquilidad.',                                   │
-│   },                                                                                                                 │
-│ ]                                                                                                                    │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭─────────────────────────────────────────────────────── Actual ───────────────────────────────────────────────────────╮
-│ [                                                                                                                    │
-│   {                                                                                                                  │
-│     'original': 'Me gusta vivir cerca del mar porque el aire es muy fresco.',                                        │
-│     'translation': 'Ich wohne gerne in der Nähe des Meeres, weil die Luft sehr frisch ist.',                         │
-│     'context': 'Expresa una preferencia personal sobre el lugar de residencia.',                                     │
-│   },                                                                                                                 │
-│   {                                                                                                                  │
-│     'original': 'Para vivir una vida feliz, es importante tener buenos amigos y familia.',                           │
-│     'translation': 'Um ein glückliches Leben zu führen, ist es wichtig, gute Freunde und Familie zu haben.',         │
-│     'context': 'Consejo sobre cómo alcanzar la felicidad en la vida.',                                               │
-│   },                                                                                                                 │
-│   {                                                                                                                  │
-│     'original': 'Ellos decidieron vivir en Alemania para aprender el idioma y conocer la cultura.',                  │
-│     'translation': 'Sie haben beschlossen, in Deutschland zu leben, um die Sprache zu lernen und die Kultur          │
-│ kennenzulernen.',                                                                                                    │
-│     'context': 'Describe una decisión de mudanza con un propósito educativo y cultural.',                            │
-│   },                                                                                                                 │
-│   {                                                                                                                  │
-│     'original': 'Vivir en una ciudad grande puede ser emocionante pero también estresante.',                         │
-│     'translation': 'In einer großen Stadt zu leben kann aufregend, aber auch stressig sein.',                        │
-│     'context': 'Reflexión sobre las ventajas y desventajas de la vida urbana.',                                      │
-│   },                                                                                                                 │
-│ ]                                                                                                                    │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭───────────────────────────────────────────────────── Expected ─────────────────────────────────────────────────────╮
+│ [                                                                                                                  │
+│   {                                                                                                                │
+│     'original': 'Me gusta vivir cerca del mar porque el aire es muy fresco.',                                      │
+│     'translation': 'Ich lebe gerne in der Nähe des Meeres, weil die Luft sehr frisch ist.',                        │
+│     'context': 'Expresa una preferencia personal sobre el lugar de residencia.',                                   │
+│   },                                                                                                               │
+│   {                                                                                                                │
+│     'original': 'Ellos decidieron vivir en Alemania para aprender el idioma y la cultura.',                        │
+│     'translation': 'Sie haben beschlossen, in Deutschland zu leben, um die Sprache und Kultur zu lernen.',         │
+│     'context': 'Describe una decisión de mudanza con un propósito educativo y cultural.',                          │
+│   },                                                                                                               │
+│   {                                                                                                                │
+│     'original': 'Vivir una vida saludable requiere ejercicio y buena alimentación.',                               │
+│     'translation': 'Ein gesundes Leben zu führen erfordert Bewegung und gute Ernährung.',                          │
+│     'context': 'Consejo general sobre hábitos para mantener la salud.',                                            │
+│   },                                                                                                               │
+│   {                                                                                                                │
+│     'original': 'Después de muchos años, aprendí a vivir con menos preocupaciones.',                               │
+│     'translation': 'Nach vielen Jahren habe ich gelernt, mit weniger Sorgen zu leben.',                            │
+│     'context': 'Reflexión personal sobre el manejo del estrés y la tranquilidad.',                                 │
+│   },                                                                                                               │
+│ ]                                                                                                                  │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭────────────────────────────────────────────────────── Actual ──────────────────────────────────────────────────────╮
+│ [                                                                                                                  │
+│   {                                                                                                                │
+│     'original': 'Me gusta vivir en una ciudad con mucha cultura y vida.',                                          │
+│     'translation': 'Ich lebe gerne in einer Stadt mit viel Kultur und Leben.',                                     │
+│     'context': 'Expresa preferencia por el lugar de residencia.',                                                  │
+│   },                                                                                                               │
+│   {                                                                                                                │
+│     'original': 'Para vivir una vida plena, es importante cuidar la salud y las relaciones.',                      │
+│     'translation': 'Um ein erfülltes Leben zu führen, ist es wichtig, die Gesundheit und Beziehungen zu pflegen.', │
+│     'context': 'Consejo sobre cómo tener una vida satisfactoria.',                                                 │
+│   },                                                                                                               │
+│   {                                                                                                                │
+│     'original': 'Ellos decidieron vivir juntos después de varios años de amistad.',                                │
+│     'translation': 'Sie beschlossen, zusammen zu leben, nachdem sie jahrelang Freunde waren.',                     │
+│     'context': 'Describe una decisión de convivencia.',                                                            │
+│   },                                                                                                               │
+│   {                                                                                                                │
+│     'original': 'Vivir en el campo ofrece tranquilidad y contacto con la naturaleza.',                             │
+│     'translation': 'Das Leben auf dem Land bietet Ruhe und Kontakt mit der Natur.',                                │
+│     'context': 'Comparación entre vida urbana y rural.',                                                           │
+│   },                                                                                                               │
+│ ]                                                                                                                  │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
 ✓ MATCH: examples_quality_approved
 
-✓ MATCH: examples_quality_score
+~ CHANGED: examples_quality_score
+╭─ Expected ─╮ ╭─ Actual ─╮
+│ 9.0        │ │ 8.5      │
+╰────────────╯ ╰──────────╯
 
 ✓ MATCH: media_quality_approved
 
-✓ MATCH: media_quality_score
+~ CHANGED: media_quality_score
+╭─ Expected ─╮ ╭─ Actual ─╮
+│ 9.0        │ │ 8.0      │
+╰────────────╯ ╰──────────╯
 
-✓ MATCH: overall_quality_score
+~ CHANGED: overall_quality_score
+╭──── Expected ─────╮ ╭───── Actual ─────╮
+│ 9.222222222222221 │ │ 9.11111111111111 │
+╰───────────────────╯ ╰──────────────────╯
 
 ✓ MATCH: pronunciation_quality_approved
 
@@ -582,7 +590,14 @@ FAILED TESTS:
 
 ✓ MATCH: quality_checks_passed
 
-✓ MATCH: search_query
+~ CHANGED: search_query
+╭─── Expected ───╮ ╭──── Actual ────╮
+│ [              │ │ [              │
+│   'life',      │ │   'live',      │
+│   'living',    │ │   'life',      │
+│   'existence', │ │   'existence', │
+│ ]              │ │ ]              │
+╰────────────────╯ ╰────────────────╯
 
 ✓ MATCH: sequential_quality_passed
 

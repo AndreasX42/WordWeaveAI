@@ -1,0 +1,311 @@
+<div class="word-card-container" [class.dark-theme]="themeService.isDarkMode()">
+  <div class="content-wrapper">
+    <!-- Loading State -->
+    @if (loading) {
+    <div class="loading-container">
+      <mat-spinner></mat-spinner>
+      <p>{{ "wordCard.loading" | translate }}</p>
+    </div>
+    }
+
+    <!-- Error State -->
+    @if (error && !loading) {
+    <div class="error-container">
+      <mat-icon>error_outline</mat-icon>
+      <h2>{{ "wordCard.errorTitle" | translate }}</h2>
+      <p>{{ error }}</p>
+      <button mat-flat-button color="primary" (click)="goBack()">
+        {{ "common.back" | translate }}
+      </button>
+    </div>
+    }
+
+    <!-- Word Card -->
+    @if (word && !loading) {
+    <div class="word-card">
+      <!-- Header Section -->
+      <div class="word-header">
+        <div class="word-title-section">
+          <h1 class="source-word">
+            {{ word.source_word }}
+          </h1>
+          <h2 class="target-word">
+            {{ word.target_word }}
+            @if (word.pronunciation_url) {
+            <button
+              mat-icon-button
+              (click)="playPronunciation()"
+              class="pronunciation-button"
+            >
+              <mat-icon>volume_up</mat-icon>
+            </button>
+            }
+          </h2>
+          @if (hasTargetSyllables) {
+          <div class="pronunciation">
+            ({{ word.target_syllables?.join("-") }}) @if
+            (word.target_phonetic_guide) {
+            <span class="phonetic-guide">
+              [{{ word.target_phonetic_guide }}]
+            </span>
+            }
+          </div>
+          }
+        </div>
+        <button mat-stroked-button class="add-to-list-button">
+          <mat-icon>playlist_add</mat-icon>
+          {{ "wordCard.addToList" | translate }}
+        </button>
+      </div>
+
+      <!-- Header Content Section -->
+      <div class="header-content">
+        <div class="content-left">
+          <!-- Part of Speech Tags -->
+          <div class="pos-tags">
+            <div class="language-flags">
+              <span class="language-flag">{{
+                getLanguageFlag(word.source_language)
+              }}</span>
+              <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+              <span class="language-flag">{{
+                getLanguageFlag(word.target_language)
+              }}</span>
+            </div>
+            @if (word.target_part_of_speech) {
+            <div class="pos-tag">
+              {{ word.source_part_of_speech }}
+            </div>
+            }
+          </div>
+
+          <!-- Usage Hint -->
+          <div class="usage-hint">
+            <mat-icon class="hint-icon">info</mat-icon>
+            <span>Commonly used in legal and financial contexts.</span>
+          </div>
+        </div>
+
+        <!-- Media Section -->
+        @if (hasMedia) {
+        <div class="media-section">
+          <img
+            [src]="word.media![0].url"
+            [alt]="word.media![0].caption || word.target_word"
+            class="word-image"
+          />
+        </div>
+        }
+      </div>
+
+      <!-- Tabs Section -->
+      <mat-tab-group class="content-tabs">
+        <!-- Definitions Tab -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon>description</mat-icon>
+            {{ "wordCard.definition" | translate }}
+          </ng-template>
+
+          <div class="tab-content">
+            @if (word.source_definition) {
+            <div class="definitions">
+              @if (isArray(word.source_definition)) {
+              <ul>
+                @for (def of asArray(word.source_definition); track $index) {
+                <li>
+                  <span class="definition-number">{{ $index + 1 }}.</span>
+                  <span class="definition-text">{{ def }}</span>
+                </li>
+                }
+              </ul>
+              } @else {
+              <p class="single-definition">
+                {{ word.source_definition }}
+              </p>
+              }
+            </div>
+            }
+          </div>
+        </mat-tab>
+
+        <!-- Synonyms Tab -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon>compare_arrows</mat-icon>
+            {{ "wordCard.synonyms" | translate }}
+          </ng-template>
+
+          <div class="tab-content">
+            @if (hasSynonyms) {
+            <div class="synonyms-list">
+              @for (synonym of word.synonyms; track $index) {
+              <div class="synonym-item">
+                <div class="synonym-header">
+                  <span class="synonym-number">{{ $index + 1 }}.</span>
+                  <span class="synonym-word">{{ synonym.synonym }}</span>
+                </div>
+                <p class="synonym-explanation">{{ synonym.explanation }}</p>
+              </div>
+              }
+            </div>
+            }
+          </div>
+        </mat-tab>
+
+        <!-- Examples Tab -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon>format_quote</mat-icon>
+            {{ "wordCard.examples" | translate }}
+          </ng-template>
+
+          <div class="tab-content">
+            @if (hasExamples) {
+            <div class="examples-list">
+              @for (example of word.examples; track $index) {
+              <div class="example-item">
+                <div class="example-text">
+                  <p class="source-example">{{ example.original }}</p>
+                  <p class="target-example">{{ example.translation }}</p>
+                </div>
+                @if (example.context) {
+                <div class="example-context">
+                  <mat-icon class="context-icon">lightbulb</mat-icon>
+                  <span>{{ example.context }}</span>
+                </div>
+                }
+              </div>
+              }
+            </div>
+            }
+          </div>
+        </mat-tab>
+
+        <!-- Conjugation Tab (if applicable) -->
+        @if (hasConjugationTable) {
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon>table_chart</mat-icon>
+            {{ "wordCard.conjugation" | translate }}
+          </ng-template>
+
+          <div class="tab-content">
+            <div class="conjugation-table">
+              <!-- Non-personal forms -->
+              @if (hasFormasNoPersonales) {
+              <div class="tense-section">
+                <h4>
+                  {{ getNonPersonalFormsLabel() }}
+                </h4>
+                <table>
+                  <tr>
+                    <td class="pronoun">
+                      {{ getInfinitiveLabel() }}
+                    </td>
+                    <td class="conjugation">
+                      {{ getInfinitive() }}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="pronoun">
+                      {{ getParticipleLabel() }}
+                    </td>
+                    <td class="conjugation">
+                      {{ getParticiple() }}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="pronoun">
+                      {{ getGerundLabel() }}
+                    </td>
+                    <td class="conjugation">
+                      {{ getGerund() }}
+                    </td>
+                  </tr>
+                </table>
+              </div>
+              }
+
+              <!-- Indicative mood -->
+              @if (hasIndicativo) {
+              <div class="mood-section">
+                <h3>
+                  {{ getIndicativeMoodLabel() }}
+                </h3>
+                @for (tense of indicativeTenses; track tense) {
+                <div class="tense-section">
+                  <h4>{{ getConjugationTenseLabel(tense) }}</h4>
+                  <table>
+                    @for (pronoun of
+                    getConjugationPronouns(getIndicativeMoodName(), tense);
+                    track pronoun) {
+                    <tr>
+                      <td class="pronoun">
+                        {{ getPronounLabel(pronoun) }}
+                      </td>
+                      <td class="conjugation">
+                        {{
+                          word.conjugation_table![getIndicativeMoodName()]![
+                            tense
+                          ][pronoun]
+                        }}
+                      </td>
+                    </tr>
+                    }
+                  </table>
+                </div>
+                }
+              </div>
+              }
+
+              <!-- Subjunctive mood -->
+              @if (hasSubjuntivo) {
+              <div class="mood-section">
+                <h3>
+                  {{ getSubjunctiveMoodLabel() }}
+                </h3>
+                @for (tense of subjunctiveTenses; track tense) {
+                <div class="tense-section">
+                  <h4>{{ getConjugationTenseLabel(tense) }}</h4>
+                  <table>
+                    @for (pronoun of
+                    getConjugationPronouns(getSubjunctiveMoodName(), tense);
+                    track pronoun) {
+                    <tr>
+                      <td class="pronoun">
+                        {{ getPronounLabel(pronoun) }}
+                      </td>
+                      <td class="conjugation">
+                        {{
+                          word.conjugation_table![getSubjunctiveMoodName()]![
+                            tense
+                          ][pronoun]
+                        }}
+                      </td>
+                    </tr>
+                    }
+                  </table>
+                </div>
+                }
+              </div>
+              }
+            </div>
+          </div>
+        </mat-tab>
+        }
+      </mat-tab-group>
+
+      <!-- Metadata Footer -->
+      <div class="metadata-footer">
+        <span
+          >{{ "wordCard.createdBy" | translate }}: {{ word.created_by }}</span
+        >
+        @if (word.created_at) {
+        <span>{{ formatDate(word.created_at) }}</span>
+        }
+      </div>
+    </div>
+    }
+  </div>
+</div>
