@@ -1,4 +1,5 @@
 import { Component, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -488,6 +489,7 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
 export class Search {
   themeService = inject(ThemeService);
   translationService = inject(TranslationService);
+  router = inject(Router);
 
   searchTerm = '';
   sourceLanguage = '';
@@ -532,12 +534,13 @@ export class Search {
 
   search() {
     if (this.searchTerm && this.sourceLanguage && this.targetLanguage) {
-      console.log('Searching:', {
-        term: this.searchTerm,
-        from: this.sourceLanguage,
-        to: this.targetLanguage,
-      });
-      // TODO: Implement actual search logic
+      // Navigate to the word card page
+      this.router.navigate([
+        '/words',
+        this.sourceLanguage,
+        this.targetLanguage,
+        this.searchTerm.toLowerCase().trim(),
+      ]);
     }
   }
 }

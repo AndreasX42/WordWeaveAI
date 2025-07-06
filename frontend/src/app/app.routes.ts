@@ -18,6 +18,11 @@ export const routes: Routes = [
       import('./pages/search/search').then((mod) => mod.Search),
   },
   {
+    path: 'words/:sourceLanguage/:targetLanguage/:word',
+    loadComponent: () =>
+      import('./pages/word-card/word-card').then((mod) => mod.WordCard),
+  },
+  {
     path: 'login',
     loadComponent: () => import('./auth/login/login').then((mod) => mod.Login),
   },

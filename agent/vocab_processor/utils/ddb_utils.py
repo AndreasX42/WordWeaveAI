@@ -78,9 +78,6 @@ async def get_existing_media_for_search_words(
         )
         return None
 
-    # ------------------------------------------------------------------
-    # Inner coroutine: query GSI for one word
-    # ------------------------------------------------------------------
     async def _query_gsi(word: str):
         norm = normalize_word(word)
         try:
