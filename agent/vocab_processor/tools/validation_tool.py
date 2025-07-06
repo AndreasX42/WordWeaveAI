@@ -23,7 +23,7 @@ class WordValidationResult(BaseModel):
     )
     source_language: Optional[Language] = Field(
         None,
-        description="The detected language of the source word, if clear and unambiguous, otherwise null.",
+        description="The language of the source word. Will be either provided by the user or detected by the validation step. Has to be a clear, unambiguous and supported language.",
     )
     message: Optional[str] = Field(
         None,
@@ -36,21 +36,28 @@ class WordValidationResult(BaseModel):
     )
 
 
-def _build_validation_prompt(word: str, target_language: Language) -> str:
+def _build_validation_prompt(
+    word: str, target_language: Language, source_language: Optional[Language] = None
+) -> str:
     """Build the validation prompt with clear instructions."""
-    possible_source_languages = [
-        language for language in Language if language != target_language
-    ]
+
+    if source_language is None:
+        possible_source_languages = [
+            language for language in Language if language != target_language
+        ]
+    else:
+        possible_source_languages = [source_language]
 
     return f"""You are an expert linguistic validator. For input '{word}' targeting {target_language}:
 
 Instructions:
 - Keep the source_word exactly as provided by the user (preserve "to build", "la casa", etc.)
-- Validate if the input is a valid word/phrase in any supported language (except target language)
+- Validate if the input is a valid word/phrase in any supported and possible source language {possible_source_languages}
+- If the source_language is provided, validate if the input is a valid word/phrase in the source language
 - Accept common articles and prefixes (like "to", "la", "el", "der", "die", "das") as part of valid input
-- If the input is valid in any supported language, mark as valid and return the detected language
+- If the input is valid in any supported and possible source language {possible_source_languages}, mark as valid and return the detected language
 - If the input is not valid/misspelled, suggest up to 3 real, high-frequency corrections with smallest spelling difference (edit distance up to 3)
-- Only suggest corrections if they are common and actually exist in the language
+- Only suggest corrections if they are common and actually exist in the possible source languages {possible_source_languages}
 - **Never invent words.**
 - **Never suggest rare words, names, or words in the target language.**
 - **Never suggest the input word itself as a suggestion.**
@@ -62,16 +69,14 @@ Output JSON only."""
 
 
 @tool
-async def validate_word(word: str, target_language: Language) -> WordValidationResult:
-    """
-    Validates a word for spelling, language clarity, and ambiguity.
+async def validate_word(
+    source_word: str,
+    target_language: Language,
+    source_language: Optional[Language] = None,
+) -> WordValidationResult:
+    """Validates a word for spelling, language clarity, and ambiguity."""
 
-    - If the word is obviously a valid word in one of the supported languages
-      (except the chosen target_language), return is_valid=True and source_language.
-    - Otherwise, return is_valid=False, source_language=None, and up to 3 suggestions if possible.
-    """
-
-    prompt = _build_validation_prompt(word, target_language)
+    prompt = _build_validation_prompt(source_word, target_language, source_language)
 
     try:
         return await create_llm_response(

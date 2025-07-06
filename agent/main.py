@@ -7,6 +7,7 @@ async def main():
     # Initialize state
     initial_state: dict[str, str] = {
         "source_word": "Haus",
+        "source_language": "German",
         "target_language": "Spanish",
     }
 

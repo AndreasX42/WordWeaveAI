@@ -7,7 +7,7 @@ NonPersonalForms = Literal["infinitive", "partizip_praesens", "partizip_perfekt"
 IndicativeTenses = Literal[
     "praesens", "praeteritum", "perfekt", "plusquamperfekt", "futur_i", "futur_ii"
 ]
-KonjunktivTenses = Literal["konjunktiv_i", "konjunktiv_ii"]
+KonjunktivTenses = Literal["konjunktiv_i", "konjunktiv_ii", "konjunktiv_perfekt"]
 
 
 class GermanConjugationForm(BaseModel):
@@ -31,5 +31,5 @@ class GermanVerbConjugation(BaseModel):
         description="praesens=present, praeteritum=simple past, perfekt=present perfect, plusquamperfekt=past perfect, futur_i=future, futur_ii=future perfect"
     )
     konjunktiv: Dict[KonjunktivTenses, GermanConjugationForm] = Field(
-        description="konjunktiv_i=subjunctive I, konjunktiv_ii=subjunctive II"
+        description="konjunktiv_i=subjunctive I, konjunktiv_ii=subjunctive II, konjunktiv_perfekt=subjunctive perfect"
     )

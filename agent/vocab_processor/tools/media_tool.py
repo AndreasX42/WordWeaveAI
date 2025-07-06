@@ -34,7 +34,9 @@ _session_config = aiohttp.ClientTimeout(total=HTTP_TIMEOUT, connect=5)
 
 
 class TranslationResult(BaseModel):
-    english_word: str = Field(description="The English translation of the target word")
+    english_word: str = Field(
+        description="The English translation of the target word including article if it is a proper noun or 'to' if it is a verb"
+    )
     search_query: list[str] = Field(
         description="English search query plus 2 or 3 descriptive synonyms to find the most relevant photos in Pexels",
         min_length=2,

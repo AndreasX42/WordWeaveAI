@@ -25,6 +25,7 @@ def create_test_cases_from_config() -> list[TestCase]:
                 description=case_data["description"],
                 input_data={
                     "source_word": case_data["source_word"],
+                    "source_language": case_data.get("source_language", None),
                     "target_language": case_data["target_language"],
                 },
                 tags=case_data.get("tags", []),

@@ -13,6 +13,10 @@ IndicativeTenses = Literal[
     "past_perfect_progressive",
     "future",
     "future_perfect",
+    "future_progressive",
+    "future_perfect_progressive",
+    "conditional",
+    "conditional_perfect",
 ]
 SubjunctiveTenses = Literal["present", "past"]
 
@@ -35,7 +39,7 @@ class EnglishVerbConjugation(BaseModel):
         description="infinitive, present participle, past participle"
     )
     indicative: Dict[IndicativeTenses, EnglishConjugationForm] = Field(
-        description="present=simple present, past=simple past, present_perfect=have/has+past participle, past_perfect=had+past participle, present_perfect_progressive=have/has been+present participle, past_perfect_progressive=had been+present participle, future=will+infinitive, future_perfect=will have+past participle"
+        description="present=simple present, past=simple past, present_perfect=have/has+past participle, past_perfect=had+past participle, present_perfect_progressive=have/has been+present participle, past_perfect_progressive=had been+present participle, future=will+infinitive, future_perfect=will have+past participle, future_progressive=will be+present participle, future_perfect_progressive=will have been+present participle, conditional=would+infinitive, conditional_perfect=would have+past participle"
     )
     subjunctive: Dict[SubjunctiveTenses, EnglishConjugationForm] = Field(
         description="present=present subjunctive, past=past subjunctive"

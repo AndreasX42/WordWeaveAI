@@ -13,19 +13,29 @@ SAMPLE_TEST_CASES = [
         "category": "basic_translation",
         "cases": [
             {
-                "source_word": "to defraud",
+                "source_word": "to live",
+                "source_language": "English",
                 "target_language": "Spanish",
                 "description": "English verb to Spanish",
                 "expected_pos": "verb",
                 "tags": ["english", "spanish", "noun", "basic"],
             },
-            # {
-            #     "source_word": "comer",
-            #     "target_language": "English",
-            #     "description": "Spanish verb to English",
-            #     "expected_pos": "verb",
-            #     "tags": ["spanish", "english", "verb", "basic"],
-            # },
+            {
+                "source_word": "wohnen",
+                "source_language": "German",
+                "target_language": "English",
+                "description": "German verb to English",
+                "expected_pos": "verb",
+                "tags": ["german", "english", "verb", "basic"],
+            },
+            {
+                "source_word": "vivir",
+                "source_language": "Spanish",
+                "target_language": "German",
+                "description": "Spanish verb to German",
+                "expected_pos": "verb",
+                "tags": ["spanish", "german", "verb", "basic"],
+            },
         ],
     },
     # {

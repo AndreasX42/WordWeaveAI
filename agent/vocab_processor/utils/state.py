@@ -12,6 +12,10 @@ from vocab_processor.tools.validation_tool import SuggestedWordInfo
 class VocabState(BaseModel):
     # Inputs from user
     source_word: str = Field(..., description="The initial word provided by the user.")
+    source_language: Optional[Language] = Field(
+        None,
+        description="The language of the source word, if provided by the user. If not provided, it will be detected by the classification step.",
+    )
     target_language: Language = Field(
         ..., description="The target language for translation and other operations."
     )
@@ -27,12 +31,6 @@ class VocabState(BaseModel):
     suggested_words: Optional[List[SuggestedWordInfo]] = Field(
         None,
         description="Suggested corrections or alternatives from the validation step.",
-    )
-
-    # source_language can be populated by validation or classification
-    # If validation provides it and is valid, classification might refine or confirm it.
-    source_language: Optional[Language] = Field(
-        None, description="The detected language of the source word."
     )
 
     # Fields from classification step

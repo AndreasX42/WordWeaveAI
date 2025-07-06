@@ -192,7 +192,8 @@ async def node_validate_source_word(state: VocabState) -> VocabState:
     """Validate the source word for spelling, ambiguity, and clarity."""
 
     inputs = {
-        "word": state.source_word,
+        "source_word": state.source_word,
+        "source_language": state.source_language,
         "target_language": state.target_language,
     }
 

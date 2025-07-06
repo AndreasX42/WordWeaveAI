@@ -1,69 +1,58 @@
 {
   "basic_translation_01": {
-    "source_word": "defraud",
+    "source_word": "live",
+    "source_language": "English",
     "target_language": "Spanish",
     "validation_passed": true,
-    "source_language": "English",
-    "source_definition": [
-      "to illegally obtain money from someone by deception",
-      "to cheat or trick someone to gain something"
-    ],
+    "source_definition": ["to remain alive", "to reside or dwell"],
     "source_part_of_speech": "verb",
     "source_article": null,
     "source_additional_info": null,
-    "target_word": "defraudar",
+    "target_word": "vivir",
     "target_part_of_speech": "verb",
     "target_article": null,
-    "target_syllables": [
-      "de",
-      "frau",
-      "dar"
-    ],
-    "target_phonetic_guide": "de\u02c8f\u027eau\u032fdar",
-    "target_additional_info": "Commonly used in legal and financial contexts.",
-    "english_word": "to defraud",
-    "search_query": [
-      "fraud",
-      "deception",
-      "scam"
-    ],
+    "target_syllables": ["vi", "vir"],
+    "target_phonetic_guide": "bi\u02c8\u03b2i\u027e",
+    "target_additional_info": "Commonly used verb meaning 'to live' in the sense of residing or being alive.",
+    "english_word": "live",
+    "search_query": ["live", "life", "existence"],
     "synonyms": [
       {
-        "synonym": "enga\u00f1ar",
-        "explanation": "Indica hacer que alguien crea algo falso, con la intenci\u00f3n de obtener un beneficio."
+        "synonym": "habitar",
+        "explanation": "Significa ocupar o residir en un lugar determinado."
       },
       {
-        "synonym": "estafar",
-        "explanation": "Se refiere a obtener dinero u otros bienes mediante enga\u00f1os o trampas."
+        "synonym": "existir",
+        "explanation": "Se refiere a estar vivo o tener vida en un sentido general."
       },
       {
-        "synonym": "timar",
-        "explanation": "Significa enga\u00f1ar a alguien para quitarle dinero o bienes, generalmente con astucia."
+        "synonym": "residir",
+        "explanation": "Indica establecerse o vivir habitualmente en un lugar."
       }
     ],
     "examples": [
       {
-        "original": "The company was found guilty of attempting to defraud its investors by falsifying financial statements.",
-        "translation": "La empresa fue declarada culpable de intentar defraudar a sus inversores falsificando los estados financieros.",
-        "context": "Legal context involving financial fraud."
+        "original": "I live in a small town near the mountains.",
+        "translation": "Yo vivo en un peque\u00f1o pueblo cerca de las monta\u00f1as.",
+        "context": "Describing one's place of residence."
       },
       {
-        "original": "He tried to defraud the government by submitting fake tax returns, but was caught by the authorities.",
-        "translation": "Intent\u00f3 defraudar al gobierno presentando declaraciones de impuestos falsas, pero fue atrapado por las autoridades.",
-        "context": "Criminal act related to tax evasion."
+        "original": "Many people want to live a happy and fulfilling life.",
+        "translation": "Muchas personas quieren vivir una vida feliz y plena.",
+        "context": "Talking about the desire for a good quality of life."
       },
       {
-        "original": "Many people fall victim to scams designed to defraud them of their savings through deceptive schemes.",
-        "translation": "Muchas personas son v\u00edctimas de estafas dise\u00f1adas para defraudarlas de sus ahorros mediante esquemas enga\u00f1osos.",
-        "context": "General warning about fraudulent schemes."
+        "original": "She decided to live abroad to experience a new culture.",
+        "translation": "Ella decidi\u00f3 vivir en el extranjero para experimentar una nueva cultura.",
+        "context": "Explaining a decision to move to another country."
       },
       {
-        "original": "The charity was accused of defrauding donors by misusing the funds collected for relief efforts.",
-        "translation": "La organizaci\u00f3n ben\u00e9fica fue acusada de defraudar a los donantes al malversar los fondos recaudados para esfuerzos de ayuda.",
-        "context": "Misuse of charitable donations."
+        "original": "We should live in the moment and enjoy every day.",
+        "translation": "Debemos vivir el momento y disfrutar cada d\u00eda.",
+        "context": "Encouraging mindfulness and appreciation of life."
       }
     ],
-    "conjugation": "{\n  \"formas_no_personales\": {\n    \"infinitivo\": \"defraudar\",\n    \"participio\": \"defraudado\",\n    \"gerundio\": \"defraudando\"\n  },\n  \"indicativo\": {\n    \"presente\": {\n      \"yo\": \"defraudo\",\n      \"tu\": \"defraudas\",\n      \"el_ella_usted\": \"defrauda\",\n      \"nosotros_nosotras\": \"defraudamos\",\n      \"vosotros_vosotras\": \"defraud\u00e1is\",\n      \"ellos_ellas_ustedes\": \"defraudan\"\n    },\n    \"preterito_perfecto_simple\": {\n      \"yo\": \"defraud\u00e9\",\n      \"tu\": \"defraudaste\",\n      \"el_ella_usted\": \"defraud\u00f3\",\n      \"nosotros_nosotras\": \"defraudamos\",\n      \"vosotros_vosotras\": \"defraudasteis\",\n      \"ellos_ellas_ustedes\": \"defraudaron\"\n    },\n    \"preterito_imperfecto\": {\n      \"yo\": \"defraudaba\",\n      \"tu\": \"defraudabas\",\n      \"el_ella_usted\": \"defraudaba\",\n      \"nosotros_nosotras\": \"defraud\u00e1bamos\",\n      \"vosotros_vosotras\": \"defraudabais\",\n      \"ellos_ellas_ustedes\": \"defraudaban\"\n    },\n    \"preterito_perfecto_compuesto\": {\n      \"yo\": \"he defraudado\",\n      \"tu\": \"has defraudado\",\n      \"el_ella_usted\": \"ha defraudado\",\n      \"nosotros_nosotras\": \"hemos defraudado\",\n      \"vosotros_vosotras\": \"hab\u00e9is defraudado\",\n      \"ellos_ellas_ustedes\": \"han defraudado\"\n    },\n    \"preterito_pluscuamperfecto\": {\n      \"yo\": \"hab\u00eda defraudado\",\n      \"tu\": \"hab\u00edas defraudado\",\n      \"el_ella_usted\": \"hab\u00eda defraudado\",\n      \"nosotros_nosotras\": \"hab\u00edamos defraudado\",\n      \"vosotros_vosotras\": \"hab\u00edais defraudado\",\n      \"ellos_ellas_ustedes\": \"hab\u00edan defraudado\"\n    },\n    \"futuro\": {\n      \"yo\": \"defraudar\u00e9\",\n      \"tu\": \"defraudar\u00e1s\",\n      \"el_ella_usted\": \"defraudar\u00e1\",\n      \"nosotros_nosotras\": \"defraudaremos\",\n      \"vosotros_vosotras\": \"defraudar\u00e9is\",\n      \"ellos_ellas_ustedes\": \"defraudar\u00e1n\"\n    },\n    \"futuro_perfecto\": {\n      \"yo\": \"habr\u00e9 defraudado\",\n      \"tu\": \"habr\u00e1s defraudado\",\n      \"el_ella_usted\": \"habr\u00e1 defraudado\",\n      \"nosotros_nosotras\": \"habremos defraudado\",\n      \"vosotros_vosotras\": \"habr\u00e9is defraudado\",\n      \"ellos_ellas_ustedes\": \"habr\u00e1n defraudado\"\n    },\n    \"condicional\": {\n      \"yo\": \"defraudar\u00eda\",\n      \"tu\": \"defraudar\u00edas\",\n      \"el_ella_usted\": \"defraudar\u00eda\",\n      \"nosotros_nosotras\": \"defraudar\u00edamos\",\n      \"vosotros_vosotras\": \"defraudar\u00edais\",\n      \"ellos_ellas_ustedes\": \"defraudar\u00edan\"\n    },\n    \"condicional_perfecto\": {\n      \"yo\": \"habr\u00eda defraudado\",\n      \"tu\": \"habr\u00edas defraudado\",\n      \"el_ella_usted\": \"habr\u00eda defraudado\",\n      \"nosotros_nosotras\": \"habr\u00edamos defraudado\",\n      \"vosotros_vosotras\": \"habr\u00edais defraudado\",\n      \"ellos_ellas_ustedes\": \"habr\u00edan defraudado\"\n    }\n  },\n  \"subjuntivo\": {\n    \"presente\": {\n      \"yo\": \"defraude\",\n      \"tu\": \"defraudes\",\n      \"el_ella_usted\": \"defraude\",\n      \"nosotros_nosotras\": \"defraudemos\",\n      \"vosotros_vosotras\": \"defraud\u00e9is\",\n      \"ellos_ellas_ustedes\": \"defrauden\"\n    },\n    \"preterito_imperfecto\": {\n      \"yo\": \"defraudara\",\n      \"tu\": \"defraudaras\",\n      \"el_ella_usted\": \"defraudara\",\n      \"nosotros_nosotras\": \"defraud\u00e1ramos\",\n      \"vosotros_vosotras\": \"defraudarais\",\n      \"ellos_ellas_ustedes\": \"defraudaran\"\n    },\n    \"preterito_perfecto_compuesto\": {\n      \"yo\": \"haya defraudado\",\n      \"tu\": \"hayas defraudado\",\n      \"el_ella_usted\": \"haya defraudado\",\n      \"nosotros_nosotras\": \"hayamos defraudado\",\n      \"vosotros_vosotras\": \"hay\u00e1is defraudado\",\n      \"ellos_ellas_ustedes\": \"hayan defraudado\"\n    },\n    \"preterito_pluscuamperfecto\": {\n      \"yo\": \"hubiera defraudado\",\n      \"tu\": \"hubieras defraudado\",\n      \"el_ella_usted\": \"hubiera defraudado\",\n      \"nosotros_nosotras\": \"hubi\u00e9ramos defraudado\",\n      \"vosotros_vosotras\": \"hubierais defraudado\",\n      \"ellos_ellas_ustedes\": \"hubieran defraudado\"\n    },\n    \"futuro\": {\n      \"yo\": \"defraudare\",\n      \"tu\": \"defraudares\",\n      \"el_ella_usted\": \"defraudare\",\n      \"nosotros_nosotras\": \"defraud\u00e1remos\",\n      \"vosotros_vosotras\": \"defraudareis\",\n      \"ellos_ellas_ustedes\": \"defraudaren\"\n    }\n  }\n}",
+    "conjugation": "{\n  \"formas_no_personales\": {\n    \"infinitivo\": \"vivir\",\n    \"participio\": \"vivido\",\n    \"gerundio\": \"viviendo\"\n  },\n  \"indicativo\": {\n    \"presente\": {\n      \"yo\": \"vivo\",\n      \"tu\": \"vives\",\n      \"el_ella_usted\": \"vive\",\n      \"nosotros_nosotras\": \"vivimos\",\n      \"vosotros_vosotras\": \"viv\u00eds\",\n      \"ellos_ellas_ustedes\": \"viven\"\n    },\n    \"preterito_perfecto_simple\": {\n      \"yo\": \"viv\u00ed\",\n      \"tu\": \"viviste\",\n      \"el_ella_usted\": \"vivi\u00f3\",\n      \"nosotros_nosotras\": \"vivimos\",\n      \"vosotros_vosotras\": \"vivisteis\",\n      \"ellos_ellas_ustedes\": \"vivieron\"\n    },\n    \"preterito_imperfecto\": {\n      \"yo\": \"viv\u00eda\",\n      \"tu\": \"viv\u00edas\",\n      \"el_ella_usted\": \"viv\u00eda\",\n      \"nosotros_nosotras\": \"viv\u00edamos\",\n      \"vosotros_vosotras\": \"viv\u00edais\",\n      \"ellos_ellas_ustedes\": \"viv\u00edan\"\n    },\n    \"preterito_perfecto_compuesto\": {\n      \"yo\": \"he vivido\",\n      \"tu\": \"has vivido\",\n      \"el_ella_usted\": \"ha vivido\",\n      \"nosotros_nosotras\": \"hemos vivido\",\n      \"vosotros_vosotras\": \"hab\u00e9is vivido\",\n      \"ellos_ellas_ustedes\": \"han vivido\"\n    },\n    \"preterito_pluscuamperfecto\": {\n      \"yo\": \"hab\u00eda vivido\",\n      \"tu\": \"hab\u00edas vivido\",\n      \"el_ella_usted\": \"hab\u00eda vivido\",\n      \"nosotros_nosotras\": \"hab\u00edamos vivido\",\n      \"vosotros_vosotras\": \"hab\u00edais vivido\",\n      \"ellos_ellas_ustedes\": \"hab\u00edan vivido\"\n    },\n    \"futuro\": {\n      \"yo\": \"vivir\u00e9\",\n      \"tu\": \"vivir\u00e1s\",\n      \"el_ella_usted\": \"vivir\u00e1\",\n      \"nosotros_nosotras\": \"viviremos\",\n      \"vosotros_vosotras\": \"vivir\u00e9is\",\n      \"ellos_ellas_ustedes\": \"vivir\u00e1n\"\n    },\n    \"futuro_perfecto\": {\n      \"yo\": \"habr\u00e9 vivido\",\n      \"tu\": \"habr\u00e1s vivido\",\n      \"el_ella_usted\": \"habr\u00e1 vivido\",\n      \"nosotros_nosotras\": \"habremos vivido\",\n      \"vosotros_vosotras\": \"habr\u00e9is vivido\",\n      \"ellos_ellas_ustedes\": \"habr\u00e1n vivido\"\n    },\n    \"condicional\": {\n      \"yo\": \"vivir\u00eda\",\n      \"tu\": \"vivir\u00edas\",\n      \"el_ella_usted\": \"vivir\u00eda\",\n      \"nosotros_nosotras\": \"vivir\u00edamos\",\n      \"vosotros_vosotras\": \"vivir\u00edais\",\n      \"ellos_ellas_ustedes\": \"vivir\u00edan\"\n    },\n    \"condicional_perfecto\": {\n      \"yo\": \"habr\u00eda vivido\",\n      \"tu\": \"habr\u00edas vivido\",\n      \"el_ella_usted\": \"habr\u00eda vivido\",\n      \"nosotros_nosotras\": \"habr\u00edamos vivido\",\n      \"vosotros_vosotras\": \"habr\u00edais vivido\",\n      \"ellos_ellas_ustedes\": \"habr\u00edan vivido\"\n    }\n  },\n  \"subjuntivo\": {\n    \"presente\": {\n      \"yo\": \"viva\",\n      \"tu\": \"vivas\",\n      \"el_ella_usted\": \"viva\",\n      \"nosotros_nosotras\": \"vivamos\",\n      \"vosotros_vosotras\": \"viv\u00e1is\",\n      \"ellos_ellas_ustedes\": \"vivan\"\n    },\n    \"preterito_imperfecto\": {\n      \"yo\": \"viviera\",\n      \"tu\": \"vivieras\",\n      \"el_ella_usted\": \"viviera\",\n      \"nosotros_nosotras\": \"vivi\u00e9ramos\",\n      \"vosotros_vosotras\": \"vivierais\",\n      \"ellos_ellas_ustedes\": \"vivieran\"\n    },\n    \"preterito_perfecto_compuesto\": {\n      \"yo\": \"haya vivido\",\n      \"tu\": \"hayas vivido\",\n      \"el_ella_usted\": \"haya vivido\",\n      \"nosotros_nosotras\": \"hayamos vivido\",\n      \"vosotros_vosotras\": \"hay\u00e1is vivido\",\n      \"ellos_ellas_ustedes\": \"hayan vivido\"\n    },\n    \"preterito_pluscuamperfecto\": {\n      \"yo\": \"hubiera vivido\",\n      \"tu\": \"hubieras vivido\",\n      \"el_ella_usted\": \"hubiera vivido\",\n      \"nosotros_nosotras\": \"hubi\u00e9ramos vivido\",\n      \"vosotros_vosotras\": \"hubierais vivido\",\n      \"ellos_ellas_ustedes\": \"hubieran vivido\"\n    },\n    \"futuro\": {\n      \"yo\": \"viviere\",\n      \"tu\": \"vivieres\",\n      \"el_ella_usted\": \"viviere\",\n      \"nosotros_nosotras\": \"vivi\u00e9remos\",\n      \"vosotros_vosotras\": \"viviereis\",\n      \"ellos_ellas_ustedes\": \"vivieren\"\n    }\n  }\n}",
     "validation_quality_approved": true,
     "classification_quality_approved": true,
     "translation_quality_approved": true,
@@ -79,11 +68,168 @@
     "media_quality_score": 8.0,
     "examples_quality_score": 9.0,
     "synonyms_quality_score": 9.0,
-    "syllables_quality_score": 8.0,
+    "syllables_quality_score": 9.0,
     "pronunciation_quality_score": 10.0,
-    "conjugation_quality_score": 9.5,
+    "conjugation_quality_score": 9.0,
     "sequential_quality_passed": true,
-    "overall_quality_score": 9.166666666666666,
+    "overall_quality_score": 9.222222222222221,
+    "quality_checks_passed": 9,
+    "quality_checks_failed": 0
+  },
+  "basic_translation_02": {
+    "source_word": "wohnen",
+    "source_language": "German",
+    "target_language": "English",
+    "validation_passed": true,
+    "source_definition": [
+      "in einem Haus oder einer Wohnung leben",
+      "einen Wohnsitz haben"
+    ],
+    "source_part_of_speech": "verb",
+    "source_article": null,
+    "source_additional_info": null,
+    "target_word": "live",
+    "target_part_of_speech": "verb",
+    "target_article": null,
+    "target_syllables": ["live"],
+    "target_phonetic_guide": "l\u026av",
+    "target_additional_info": "This is the most common and natural English translation of the German verb 'wohnen' when referring to residing or having a home. It is used in everyday contexts and is less formal than 'reside'.",
+    "english_word": "live",
+    "search_query": ["live event", "live performance", "live broadcast"],
+    "synonyms": [
+      {
+        "synonym": "reside",
+        "explanation": "To have one's permanent home in a particular place."
+      },
+      {
+        "synonym": "dwell",
+        "explanation": "To live or stay as a permanent resident; to inhabit."
+      },
+      {
+        "synonym": "inhabit",
+        "explanation": "To live or occupy a place or environment."
+      }
+    ],
+    "examples": [
+      {
+        "original": "Ich wohne seit f\u00fcnf Jahren in Berlin und f\u00fchle mich hier sehr wohl.",
+        "translation": "I have been living in Berlin for five years and feel very comfortable here.",
+        "context": "Beschreibt die Dauer und das Wohlbefinden am Wohnort."
+      },
+      {
+        "original": "Viele Studenten wohnen in Wohngemeinschaften, um Kosten zu sparen.",
+        "translation": "Many students live in shared apartments to save money.",
+        "context": "Erkl\u00e4rt eine typische Wohnsituation von Studenten."
+      },
+      {
+        "original": "Wir wohnen in einem kleinen Haus am Stadtrand, wo es ruhig und gr\u00fcn ist.",
+        "translation": "We live in a small house on the outskirts of the city, where it is quiet and green.",
+        "context": "Beschreibt die Wohnlage und Umgebung."
+      },
+      {
+        "original": "Fr\u00fcher wohnte ich in einer Gro\u00dfstadt, aber jetzt lebe ich lieber auf dem Land.",
+        "translation": "I used to live in a big city, but now I prefer to live in the countryside.",
+        "context": "Vergleicht fr\u00fchere und aktuelle Wohnorte."
+      }
+    ],
+    "conjugation": "{\n  \"non_personal_forms\": {\n    \"infinitive\": \"to live\",\n    \"present_participle\": \"living\",\n    \"past_participle\": \"lived\"\n  },\n  \"indicative\": {\n    \"present\": {\n      \"I\": \"live\",\n      \"you\": \"live\",\n      \"he_she_it\": \"lives\",\n      \"we\": \"live\",\n      \"you_plural\": \"live\",\n      \"they\": \"live\"\n    },\n    \"past\": {\n      \"I\": \"lived\",\n      \"you\": \"lived\",\n      \"he_she_it\": \"lived\",\n      \"we\": \"lived\",\n      \"you_plural\": \"lived\",\n      \"they\": \"lived\"\n    },\n    \"present_perfect\": {\n      \"I\": \"have lived\",\n      \"you\": \"have lived\",\n      \"he_she_it\": \"has lived\",\n      \"we\": \"have lived\",\n      \"you_plural\": \"have lived\",\n      \"they\": \"have lived\"\n    },\n    \"past_perfect\": {\n      \"I\": \"had lived\",\n      \"you\": \"had lived\",\n      \"he_she_it\": \"had lived\",\n      \"we\": \"had lived\",\n      \"you_plural\": \"had lived\",\n      \"they\": \"had lived\"\n    },\n    \"present_perfect_progressive\": {\n      \"I\": \"have been living\",\n      \"you\": \"have been living\",\n      \"he_she_it\": \"has been living\",\n      \"we\": \"have been living\",\n      \"you_plural\": \"have been living\",\n      \"they\": \"have been living\"\n    },\n    \"past_perfect_progressive\": {\n      \"I\": \"had been living\",\n      \"you\": \"had been living\",\n      \"he_she_it\": \"had been living\",\n      \"we\": \"had been living\",\n      \"you_plural\": \"had been living\",\n      \"they\": \"had been living\"\n    },\n    \"future\": {\n      \"I\": \"will live\",\n      \"you\": \"will live\",\n      \"he_she_it\": \"will live\",\n      \"we\": \"will live\",\n      \"you_plural\": \"will live\",\n      \"they\": \"will live\"\n    },\n    \"future_perfect\": {\n      \"I\": \"will have lived\",\n      \"you\": \"will have lived\",\n      \"he_she_it\": \"will have lived\",\n      \"we\": \"will have lived\",\n      \"you_plural\": \"will have lived\",\n      \"they\": \"will have lived\"\n    }\n  },\n  \"subjunctive\": {\n    \"present\": {\n      \"I\": \"live\",\n      \"you\": \"live\",\n      \"he_she_it\": \"live\",\n      \"we\": \"live\",\n      \"you_plural\": \"live\",\n      \"they\": \"live\"\n    },\n    \"past\": {\n      \"I\": \"lived\",\n      \"you\": \"lived\",\n      \"he_she_it\": \"lived\",\n      \"we\": \"lived\",\n      \"you_plural\": \"lived\",\n      \"they\": \"lived\"\n    }\n  }\n}",
+    "validation_quality_approved": true,
+    "classification_quality_approved": true,
+    "translation_quality_approved": true,
+    "media_quality_approved": true,
+    "examples_quality_approved": true,
+    "synonyms_quality_approved": true,
+    "syllables_quality_approved": true,
+    "pronunciation_quality_approved": true,
+    "conjugation_quality_approved": true,
+    "validation_quality_score": 10.0,
+    "classification_quality_score": 9.0,
+    "translation_quality_score": 9.5,
+    "media_quality_score": 9.0,
+    "examples_quality_score": 9.0,
+    "synonyms_quality_score": 9.0,
+    "syllables_quality_score": 9.0,
+    "pronunciation_quality_score": 10.0,
+    "conjugation_quality_score": 9.0,
+    "sequential_quality_passed": true,
+    "overall_quality_score": 9.277777777777779,
+    "quality_checks_passed": 9,
+    "quality_checks_failed": 0
+  },
+  "basic_translation_03": {
+    "source_word": "vivir",
+    "source_language": "Spanish",
+    "target_language": "German",
+    "validation_passed": true,
+    "source_definition": ["existir", "tener vida"],
+    "source_part_of_speech": "verb",
+    "source_article": null,
+    "source_additional_info": null,
+    "target_word": "leben",
+    "target_part_of_speech": "verb",
+    "target_article": null,
+    "target_syllables": ["le", "ben"],
+    "target_phonetic_guide": "\u02c8le\u02d0b\u0259n",
+    "target_additional_info": "Standard German verb meaning 'to live'.",
+    "english_word": "life",
+    "search_query": ["life", "living", "existence"],
+    "synonyms": [
+      {
+        "synonym": "existieren",
+        "explanation": "Bedeutet, dass etwas tats\u00e4chlich vorhanden oder am Leben ist."
+      },
+      {
+        "synonym": "wohnen",
+        "explanation": "Bezieht sich darauf, an einem bestimmten Ort zu leben oder seinen Wohnsitz zu haben."
+      },
+      {
+        "synonym": "\u00fcberleben",
+        "explanation": "Bedeutet, eine schwierige Situation oder Gefahr zu \u00fcberstehen und weiterzuleben."
+      }
+    ],
+    "examples": [
+      {
+        "original": "Me gusta vivir cerca del mar porque el aire es muy fresco.",
+        "translation": "Ich lebe gerne in der N\u00e4he des Meeres, weil die Luft sehr frisch ist.",
+        "context": "Expresa una preferencia personal sobre el lugar de residencia."
+      },
+      {
+        "original": "Ellos decidieron vivir en Alemania para aprender el idioma y la cultura.",
+        "translation": "Sie haben beschlossen, in Deutschland zu leben, um die Sprache und Kultur zu lernen.",
+        "context": "Describe una decisi\u00f3n de mudanza con un prop\u00f3sito educativo y cultural."
+      },
+      {
+        "original": "Vivir una vida saludable requiere ejercicio y buena alimentaci\u00f3n.",
+        "translation": "Ein gesundes Leben zu f\u00fchren erfordert Bewegung und gute Ern\u00e4hrung.",
+        "context": "Consejo general sobre h\u00e1bitos para mantener la salud."
+      },
+      {
+        "original": "Despu\u00e9s de muchos a\u00f1os, aprend\u00ed a vivir con menos preocupaciones.",
+        "translation": "Nach vielen Jahren habe ich gelernt, mit weniger Sorgen zu leben.",
+        "context": "Reflexi\u00f3n personal sobre el manejo del estr\u00e9s y la tranquilidad."
+      }
+    ],
+    "conjugation": "{\n  \"non_personal_forms\": {\n    \"infinitive\": \"leben\",\n    \"partizip_praesens\": \"lebend\",\n    \"partizip_perfekt\": \"gelebt\"\n  },\n  \"indikativ\": {\n    \"praesens\": {\n      \"ich\": \"lebe\",\n      \"du\": \"lebst\",\n      \"er_sie_es\": \"lebt\",\n      \"wir\": \"leben\",\n      \"ihr\": \"lebt\",\n      \"sie\": \"leben\"\n    },\n    \"praeteritum\": {\n      \"ich\": \"lebte\",\n      \"du\": \"lebtest\",\n      \"er_sie_es\": \"lebte\",\n      \"wir\": \"lebten\",\n      \"ihr\": \"lebtet\",\n      \"sie\": \"lebten\"\n    },\n    \"perfekt\": {\n      \"ich\": \"habe gelebt\",\n      \"du\": \"hast gelebt\",\n      \"er_sie_es\": \"hat gelebt\",\n      \"wir\": \"haben gelebt\",\n      \"ihr\": \"habt gelebt\",\n      \"sie\": \"haben gelebt\"\n    },\n    \"plusquamperfekt\": {\n      \"ich\": \"hatte gelebt\",\n      \"du\": \"hattest gelebt\",\n      \"er_sie_es\": \"hatte gelebt\",\n      \"wir\": \"hatten gelebt\",\n      \"ihr\": \"hattet gelebt\",\n      \"sie\": \"hatten gelebt\"\n    },\n    \"futur_i\": {\n      \"ich\": \"werde leben\",\n      \"du\": \"wirst leben\",\n      \"er_sie_es\": \"wird leben\",\n      \"wir\": \"werden leben\",\n      \"ihr\": \"werdet leben\",\n      \"sie\": \"werden leben\"\n    },\n    \"futur_ii\": {\n      \"ich\": \"werde gelebt haben\",\n      \"du\": \"wirst gelebt haben\",\n      \"er_sie_es\": \"wird gelebt haben\",\n      \"wir\": \"werden gelebt haben\",\n      \"ihr\": \"werdet gelebt haben\",\n      \"sie\": \"werden gelebt haben\"\n    }\n  },\n  \"konjunktiv\": {\n    \"konjunktiv_i\": {\n      \"ich\": \"lebe\",\n      \"du\": \"lebest\",\n      \"er_sie_es\": \"lebe\",\n      \"wir\": \"leben\",\n      \"ihr\": \"lebet\",\n      \"sie\": \"leben\"\n    },\n    \"konjunktiv_ii\": {\n      \"ich\": \"lebte\",\n      \"du\": \"lebtest\",\n      \"er_sie_es\": \"lebte\",\n      \"wir\": \"lebten\",\n      \"ihr\": \"lebtet\",\n      \"sie\": \"lebten\"\n    }\n  }\n}",
+    "validation_quality_approved": true,
+    "classification_quality_approved": true,
+    "translation_quality_approved": true,
+    "media_quality_approved": true,
+    "examples_quality_approved": true,
+    "synonyms_quality_approved": true,
+    "syllables_quality_approved": true,
+    "pronunciation_quality_approved": true,
+    "conjugation_quality_approved": true,
+    "validation_quality_score": 10.0,
+    "classification_quality_score": 8.0,
+    "translation_quality_score": 10.0,
+    "media_quality_score": 9.0,
+    "examples_quality_score": 9.0,
+    "synonyms_quality_score": 8.0,
+    "syllables_quality_score": 10.0,
+    "pronunciation_quality_score": 10.0,
+    "conjugation_quality_score": 9.0,
+    "sequential_quality_passed": true,
+    "overall_quality_score": 9.222222222222221,
     "quality_checks_passed": 9,
     "quality_checks_failed": 0
   }
