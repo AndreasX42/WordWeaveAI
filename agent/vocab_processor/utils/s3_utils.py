@@ -23,13 +23,9 @@ s3_client = boto3.client(
 
 
 def is_lambda_context() -> bool:
-    """
-    Check if we're running in AWS Lambda context.
-
-    Returns:
-        True if running in Lambda, False if running locally (e.g., langgraph dev)
-    """
-    return os.getenv("AWS_LAMBDA_FUNCTION_NAME") is not None
+    """Check if we're running in AWS Lambda context."""
+    execution_env = os.getenv("AGENT_EXECUTION_CONTEXT")
+    return execution_env == "lambda"
 
 
 def generate_safe_word_key(word: str, max_length: int = 20) -> str:
@@ -137,7 +133,7 @@ async def upload_stream_to_s3(data_stream, s3_key: str, content_type: str) -> st
     Returns:
         S3 URL or mock URL in local mode
     """
-    if is_lambda_context():
+    if not is_lambda_context():
         logger.info(
             f"Local dev mode: skipping S3 stream upload for {s3_key} ({content_type})"
         )

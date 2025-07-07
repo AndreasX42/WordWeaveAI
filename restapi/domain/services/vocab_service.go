@@ -2,10 +2,9 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 	"strings"
-	"sync"
-	"time"
 	"unicode"
 
 	"github.com/AndreasX42/restapi/domain/entities"
@@ -13,17 +12,8 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-// CacheEntry represents a cached search result
-type CacheEntry struct {
-	Results   []entities.VocabWord
-	Timestamp time.Time
-}
-
 type VocabService struct {
 	vocabRepo repositories.VocabRepository
-	cache     map[string]CacheEntry
-	cacheMu   sync.RWMutex
-	cacheTTL  time.Duration
 }
 
 type SearchVocabularyRequest struct {
@@ -38,8 +28,6 @@ var normalizeRgx = regexp.MustCompile(`[^a-z0-9]`)
 func NewVocabService(vocabRepo repositories.VocabRepository) *VocabService {
 	return &VocabService{
 		vocabRepo: vocabRepo,
-		cache:     make(map[string]CacheEntry),
-		cacheTTL:  time.Minute * 10,
 	}
 }
 
@@ -52,25 +40,16 @@ func (s *VocabService) SearchVocabulary(ctx context.Context, req SearchVocabular
 	// Normalize the query
 	normalizedQuery := normalizeWord(req.Query)
 
-	// Check cache
-	s.cacheMu.RLock()
-	cacheEntry, exists := s.cache[normalizedQuery]
-	s.cacheMu.RUnlock()
-
-	if exists && time.Since(cacheEntry.Timestamp) < s.cacheTTL {
-		return cacheEntry.Results, nil
-	}
+	fmt.Println("1 - normalizedQuery", normalizedQuery)
 
 	// Choose search strategy based on language specification
 	if req.SourceLang != "" || req.TargetLang != "" {
 		// Targeted search when languages are specified
 		results, err := s.vocabRepo.SearchByWordWithLanguages(ctx, normalizedQuery, req.SourceLang, req.TargetLang, req.Limit)
+		fmt.Println("4 - results", results)
 		if err != nil {
 			return nil, err
 		}
-		s.cacheMu.Lock()
-		s.cache[normalizedQuery] = CacheEntry{Results: results, Timestamp: time.Now()}
-		s.cacheMu.Unlock()
 		return results, nil
 	} else {
 		// Comprehensive search across all supported languages
@@ -79,9 +58,6 @@ func (s *VocabService) SearchVocabulary(ctx context.Context, req SearchVocabular
 		if err != nil {
 			return nil, err
 		}
-		s.cacheMu.Lock()
-		s.cache[normalizedQuery] = CacheEntry{Results: results, Timestamp: time.Now()}
-		s.cacheMu.Unlock()
 		return results, nil
 	}
 }

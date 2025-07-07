@@ -11,7 +11,7 @@ logger = Logger(service="vocab-processor-websocket")
 
 # DynamoDB setup
 dynamodb = boto3.resource("dynamodb")
-connections_table_name = os.environ.get("DYNAMODB_CONNECTIONS_TABLE_NAME")
+connections_table_name = os.getenv("DYNAMODB_CONNECTIONS_TABLE_NAME")
 connections_table = (
     dynamodb.Table(connections_table_name) if connections_table_name else None
 )

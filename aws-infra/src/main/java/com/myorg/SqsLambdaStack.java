@@ -15,7 +15,9 @@ import software.amazon.awscdk.services.lambda.Function;
 import software.amazon.awscdk.services.lambda.LayerVersion;
 import software.amazon.awscdk.services.lambda.Runtime;
 import software.amazon.awscdk.services.lambda.eventsources.SqsEventSource;
+import software.amazon.awscdk.services.sqs.DeadLetterQueue;
 import software.amazon.awscdk.services.sqs.Queue;
+import software.amazon.awscdk.services.sqs.QueueEncryption;
 import software.amazon.awscdk.services.ssm.StringParameter;
 import software.constructs.Construct;
 
@@ -49,13 +51,15 @@ public class SqsLambdaStack extends Stack {
 		// Create Dead Letter Queue first
 		this.deadLetterQueue = Queue.Builder.create(this, "VocabJobsDeadLetterQueue")
 				.queueName("vocab-jobs-dlq")
+				.encryption(QueueEncryption.SQS_MANAGED)
 				.build();
 
 		// Define the main queue with DLQ configuration
 		this.queue = Queue.Builder.create(this, "VocabJobsQueue")
 				.queueName("vocab-jobs-queue")
 				.visibilityTimeout(Duration.seconds(150))
-				.deadLetterQueue(software.amazon.awscdk.services.sqs.DeadLetterQueue.builder()
+				.encryption(QueueEncryption.SQS_MANAGED)
+				.deadLetterQueue(DeadLetterQueue.builder()
 						.queue(this.deadLetterQueue)
 						.maxReceiveCount(1)
 						.build())
@@ -75,17 +79,18 @@ public class SqsLambdaStack extends Stack {
 
 		// define the Lambda Function
 		this.vocabProcessorLambda = Function.Builder.create(this, "VocabProcessorLambda")
-				.runtime(Runtime.PYTHON_3_11)
+				.runtime(Runtime.PYTHON_3_12)
 				.handler("lambda_handler.lambda_handler")
 				.code(Code.fromAsset("resources/lambda/vocab_processor_zip.zip"))
 				.memorySize(256)
 				.timeout(Duration.seconds(120))
 				.layers(List.of(lambdaLayer))
-				.architecture(Architecture.X86_64)
+				.architecture(Architecture.ARM_64)
 				.environment(Map.of(
 						"OPENAI_API_KEY", openaiApiKey,
 						"PEXELS_API_KEY", pexelsApiKey,
 						"ELEVENLABS_API_KEY", elevenLabsApiKey,
+						"AGENT_EXECUTION_CONTEXT", "lambda",
 						"DYNAMODB_USER_TABLE_NAME",
 						CfnStackApp.getRequiredVariable("DYNAMODB_USER_TABLE_NAME"),
 						"DYNAMODB_VOCAB_TABLE_NAME",
@@ -109,6 +114,16 @@ public class SqsLambdaStack extends Stack {
 
 		// Add SQS trigger
 		this.vocabProcessorLambda.addEventSource(new SqsEventSource(queue));
+		// Add VPC endpoint access managed policy
+		// this.vocabProcessorLambda.getRole().addManagedPolicy(
+		// ManagedPolicy.fromAwsManagedPolicyName("service-role/AWSLambdaVPCAccessExecutionRole"));
 
+		// Add SQS trigger with batch size optimization
+		// this.vocabProcessorLambda.addEventSource(new SqsEventSource(queue,
+		// SqsEventSourceProps.builder()
+		// .batchSize(10) // Process up to 10 messages at once
+		// .maxBatchingWindow(Duration.seconds(5)) // Wait up to 5 seconds to batch
+		// messages
+		// .build()));
 	}
 }

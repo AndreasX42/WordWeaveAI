@@ -72,13 +72,13 @@ type VocabListWordWithDataResponse struct {
 	// Vocabulary data (if available)
 	SourceWord       *string                `json:"source_word,omitempty"`
 	SourceLanguage   *string                `json:"source_language,omitempty"`
-	SourceDefinition *string                `json:"source_definition,omitempty"`
+	SourceDefinition *[]string              `json:"source_definition,omitempty"`
 	TargetWord       *string                `json:"target_word,omitempty"`
 	TargetLanguage   *string                `json:"target_language,omitempty"`
 	Examples         []map[string]string    `json:"examples,omitempty"`
-	Synonyms         []string               `json:"synonyms,omitempty"`
+	Synonyms         []map[string]string    `json:"synonyms,omitempty"`
 	Media            map[string]interface{} `json:"media,omitempty"`
-	PronunciationURL *string                `json:"pronunciation_url,omitempty"`
+	PronunciationURL *map[string]string     `json:"pronunciation_url,omitempty"`
 	EnglishWord      *string                `json:"english_word,omitempty"`
 }
 

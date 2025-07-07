@@ -8,7 +8,7 @@ from vocab_processor.tools.categrization_tool import get_classification
 from vocab_processor.tools.conjugation_tool import get_conjugation
 from vocab_processor.tools.examples_tool import get_examples
 from vocab_processor.tools.media_tool import get_media
-from vocab_processor.tools.pronounciation_tool import get_pronunciation
+from vocab_processor.tools.pronunciation_tool import get_pronunciation
 from vocab_processor.tools.syllables_tool import get_syllables
 from vocab_processor.tools.synonyms_tool import get_synonyms
 from vocab_processor.tools.translation_tool import get_translation

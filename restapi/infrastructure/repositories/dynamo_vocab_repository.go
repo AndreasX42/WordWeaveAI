@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/AndreasX42/restapi/domain/entities"
@@ -21,20 +22,26 @@ type DynamoVocabRepository struct {
 type VocabRecord struct {
 	PK               string                 `dynamo:"PK,hash"`
 	SK               string                 `dynamo:"SK,range"`
-	SourceWord       string                 `dynamo:"source_word"`
-	SourceLanguage   string                 `dynamo:"source_language"`
-	SourceDefinition string                 `dynamo:"source_definition"`
-	TargetWord       string                 `dynamo:"target_word"`
-	TargetLanguage   string                 `dynamo:"target_language"`
-	Examples         []map[string]string    `dynamo:"examples"`
-	Synonyms         []string               `dynamo:"synonyms"`
-	Media            map[string]interface{} `dynamo:"media"`
-	PronunciationURL string                 `dynamo:"pronunciation_url"`
+	ConjugationTable string                 `dynamo:"conjugation_table"`
+	CreatedAt        string                 `dynamo:"created_at"`
+	CreatedBy        string                 `dynamo:"created_by"`
 	EnglishWord      string                 `dynamo:"english_word" index:"EnglishMediaLookupIndex,hash"`
+	Examples         []map[string]string    `dynamo:"examples"`
 	LKP              string                 `dynamo:"LKP" index:"ReverseLookupIndex,hash"`
+	Media            map[string]interface{} `dynamo:"media"`
+	PronunciationURL map[string]string      `dynamo:"pronunciation_url"`
+	SchemaVersion    int                    `dynamo:"schema_version"`
+	SearchQuery      []string               `dynamo:"search_query"`
+	SourceDefinition []string               `dynamo:"source_definition"`
+	SourceLanguage   string                 `dynamo:"source_language"`
+	SourcePos        string                 `dynamo:"source_pos"`
+	SourceWord       string                 `dynamo:"source_word"`
 	SrcLang          string                 `dynamo:"SRC_LANG" index:"ReverseLookupIndex,range"`
-	ReferencePK      string                 `dynamo:"reference_pk"`
-	ReferenceSK      string                 `dynamo:"reference_sk"`
+	Syllables        []string               `dynamo:"syllables"`
+	Synonyms         []map[string]string    `dynamo:"synonyms"`
+	TargetLanguage   string                 `dynamo:"target_language"`
+	TargetPos        string                 `dynamo:"target_pos"`
+	TargetWord       string                 `dynamo:"target_word"`
 }
 
 // NewDynamoVocabRepository creates a new DynamoDB vocabulary repository
@@ -47,6 +54,13 @@ func NewDynamoVocabRepository(table dynamo.Table) repositories.VocabRepository {
 // toVocabRecord converts domain entity to DynamoDB record
 func (r *DynamoVocabRepository) toVocabRecord(vocab *entities.VocabWord) VocabRecord {
 	return VocabRecord{
+		// DynamoDB-specific fields
+		PK:      "SRC#" + vocab.SourceLanguage + "#" + strings.ToLower(vocab.SourceWord),
+		SK:      "TGT#" + vocab.TargetLanguage,
+		LKP:     "LKP#" + vocab.TargetLanguage + "#" + strings.ToLower(vocab.TargetWord),
+		SrcLang: "SRC#" + vocab.SourceLanguage,
+
+		// Business fields
 		SourceWord:       vocab.SourceWord,
 		SourceLanguage:   vocab.SourceLanguage,
 		SourceDefinition: vocab.SourceDefinition,
@@ -57,7 +71,14 @@ func (r *DynamoVocabRepository) toVocabRecord(vocab *entities.VocabWord) VocabRe
 		Media:            vocab.Media,
 		PronunciationURL: vocab.PronunciationURL,
 		EnglishWord:      vocab.EnglishWord,
-		// PK, SK, LKP, SrcLang, ReferencePK, ReferenceSK would be set based on business logic
+		ConjugationTable: vocab.ConjugationTable,
+		CreatedAt:        vocab.CreatedAt,
+		CreatedBy:        vocab.CreatedBy,
+		SchemaVersion:    vocab.SchemaVersion,
+		SearchQuery:      vocab.SearchQuery,
+		SourcePos:        vocab.SourcePos,
+		Syllables:        vocab.Syllables,
+		TargetPos:        vocab.TargetPos,
 	}
 }
 
@@ -74,6 +95,14 @@ func (r *DynamoVocabRepository) toEntity(record VocabRecord) *entities.VocabWord
 		Media:            record.Media,
 		PronunciationURL: record.PronunciationURL,
 		EnglishWord:      record.EnglishWord,
+		ConjugationTable: record.ConjugationTable,
+		CreatedAt:        record.CreatedAt,
+		CreatedBy:        record.CreatedBy,
+		SchemaVersion:    record.SchemaVersion,
+		SearchQuery:      record.SearchQuery,
+		SourcePos:        record.SourcePos,
+		Syllables:        record.Syllables,
+		TargetPos:        record.TargetPos,
 	}
 }
 
@@ -205,13 +234,17 @@ func (r *DynamoVocabRepository) SearchByWordWithLanguages(ctx context.Context, n
 	// Direct PK query if source language is specified
 	if sourceLang != "" {
 		pk := "SRC#" + sourceLang + "#" + normalizedQuery
+		fmt.Println("3.1 - pk", pk)
 		var records []VocabRecord
 
 		// If target language is also specified, query exact SK
 		if targetLang != "" {
 			sk := "TGT#" + targetLang
+			fmt.Println("3.2 - sk", sk)
 			var record VocabRecord
 			err := r.table.Get("PK", pk).Range("SK", dynamo.Equal, sk).One(ctx, &record)
+			fmt.Println("3.3 - record", record)
+			fmt.Println("3.4 - err", err)
 			if err == nil {
 				entity := r.toEntity(record)
 				allResults = append(allResults, *entity)
@@ -229,6 +262,31 @@ func (r *DynamoVocabRepository) SearchByWordWithLanguages(ctx context.Context, n
 					}
 				}
 			}
+		}
+	} else if targetLang != "" {
+		// Handle case where only target language is specified
+		// Use reverse lookup index to find words that translate to the target language
+		lkpKey := "LKP#" + targetLang + "#" + normalizedQuery
+		fmt.Println("3.5 - lkpKey", lkpKey)
+		var records []VocabRecord
+
+		// Query the ReverseLookupIndex where LKP matches (hash key)
+		// This will return all records with this LKP regardless of SRC_LANG (range key)
+		err := r.table.Get("LKP", lkpKey).Index("ReverseLookupIndex").Limit(limit).All(ctx, &records)
+		fmt.Println("3.6 - records count:", len(records))
+		fmt.Println("3.7 - err", err)
+
+		if err == nil {
+			for _, record := range records {
+				key := record.PK + record.SK
+				if _, exists := resultMap[key]; !exists {
+					entity := r.toEntity(record)
+					resultMap[key] = *entity
+					fmt.Println("3.8 - added record with PK:", record.PK, "SK:", record.SK, "LKP:", record.LKP)
+				}
+			}
+		} else {
+			fmt.Println("3.9 - reverse lookup error:", err)
 		}
 	}
 

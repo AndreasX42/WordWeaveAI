@@ -83,10 +83,9 @@ public class ECSFargateStack extends Stack {
 				Port.tcp(80),
 				"Allow http inbound from ALB");
 
-		// Frontend Task Definition
+		// Frontend Task Definition - optimized for static content serving
 		this.frontendTaskDef = FargateTaskDefinition.Builder.create(this, "FrontendTaskDef")
-				.memoryLimitMiB(
-						512)
+				.memoryLimitMiB(256)
 				.cpu(256)
 				.build();
 
@@ -126,7 +125,8 @@ public class ECSFargateStack extends Stack {
 				.vpcSubnets(SubnetSelection.builder()
 						.subnetType(SubnetType.PUBLIC)
 						.build())
-				.minHealthyPercent(100)
+				.minHealthyPercent(50)
+				.maxHealthyPercent(200)
 				.build();
 
 		// Add Frontend Target Group to ALB Listener
@@ -165,7 +165,7 @@ public class ECSFargateStack extends Stack {
 
 		// Backend Task Definition
 		this.backendTaskDef = FargateTaskDefinition.Builder.create(this, "BackendTaskDef")
-				.memoryLimitMiB(512)
+				.memoryLimitMiB(256)
 				.cpu(256)
 				.build();
 
@@ -229,7 +229,8 @@ public class ECSFargateStack extends Stack {
 				.vpcSubnets(SubnetSelection.builder()
 						.subnetType(SubnetType.PUBLIC)
 						.build())
-				.minHealthyPercent(100)
+				.minHealthyPercent(50)
+				.maxHealthyPercent(200)
 				.build();
 
 		// Add Backend Target Group to ALB Listener

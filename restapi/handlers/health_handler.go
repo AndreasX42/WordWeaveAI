@@ -43,7 +43,7 @@ var startTime = time.Now()
 
 // HealthCheck performs comprehensive health check including DynamoDB
 func (h *HealthHandler) HealthCheck(c *gin.Context) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	startCheck := time.Now()
@@ -94,20 +94,41 @@ func (h *HealthHandler) checkDynamoDB(ctx context.Context) ServiceInfo {
 		"vocab_lists": utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_LIST_TABLE_NAME")),
 	}
 
+	// Use channels to collect results from parallel checks
+	type tableResult struct {
+		name   string
+		status string
+		err    error
+	}
+
+	resultChan := make(chan tableResult, len(tables))
+
+	// Launch parallel checks for each table
+	for tableName, fullTableName := range tables {
+		go func(name, fullName string) {
+			table := h.dynamoDB.Table(fullName)
+			desc, err := table.Describe().Run(ctx)
+
+			result := tableResult{name: name, err: err}
+			if err == nil {
+				result.status = string(desc.Status)
+			}
+
+			resultChan <- result
+		}(tableName, fullTableName)
+	}
+
+	// Collect results
 	var errors []string
 	tableStatuses := make(map[string]string)
 
-	// Check each table
-	for tableName, fullTableName := range tables {
-		table := h.dynamoDB.Table(fullTableName)
-
-		// Try to describe the table to test connectivity and existence
-		desc, err := table.Describe().Run(ctx)
-		if err != nil {
-			errors = append(errors, fmt.Sprintf("%s: %v", tableName, err))
-			tableStatuses[tableName] = "error"
+	for i := 0; i < len(tables); i++ {
+		result := <-resultChan
+		if result.err != nil {
+			errors = append(errors, fmt.Sprintf("%s: %v", result.name, result.err))
+			tableStatuses[result.name] = "error"
 		} else {
-			tableStatuses[tableName] = string(desc.Status)
+			tableStatuses[result.name] = result.status
 		}
 	}
 

@@ -26,8 +26,8 @@ public class VocabStack extends Stack {
 		VPCStack vpcStack = new VPCStack(this, "Vpc", nestedStackProps);
 
 		// // create application load balancer
-		ALBStack albStack = new ALBStack(this, "Alb", nestedStackProps,
-				vpcStack.getVpc());
+		// ALBStack albStack = new ALBStack(this, "Alb", nestedStackProps,
+		// vpcStack.getVpc());
 
 		// Create DataStack first for basic resources
 		DataStack dataStack = new DataStack(this, "DataStack", nestedStackProps);
@@ -44,19 +44,20 @@ public class VocabStack extends Stack {
 				vpcStack.getVpc(), sharedResourcesStack.getLambdaLayer());
 
 		// // create ECS Fargate cluster and services
-		ECSFargateStack ecsFargateStack = new ECSFargateStack(this, "EcsFargate",
-				nestedStackProps,
-				vpcStack.getVpc(),
-				sqsLambdaStack.getQueue(),
-				albStack.getHttpsListener(),
-				albStack.getFrontendDomainName(),
-				albStack.getBackendDomainName(),
-				albStack.getAlbSecurityGroup().getSecurityGroupId());
+		// ECSFargateStack ecsFargateStack = new ECSFargateStack(this, "EcsFargate",
+		// nestedStackProps,
+		// vpcStack.getVpc(),
+		// sqsLambdaStack.getQueue(),
+		// albStack.getHttpsListener(),
+		// albStack.getFrontendDomainName(),
+		// albStack.getBackendDomainName(),
+		// albStack.getAlbSecurityGroup().getSecurityGroupId());
 
-		// Grant permissions to DataStack resources after all components are created
-		dataStack.grantPermissions(sqsLambdaStack.getVocabProcessorLambda(), ecsFargateStack.getBackendTaskRole());
+		// // Grant permissions to DataStack resources after all components are created
+		dataStack.grantPermissions(sqsLambdaStack.getVocabProcessorLambda(), null);
+		// ecsFargateStack.getBackendTaskRole());
 
-		// Grant WebSocket API permissions to VocabProcessorLambda
+		// // Grant WebSocket API permissions to VocabProcessorLambda
 		webSocketApiStack.grantWebSocketPermissions(sqsLambdaStack.getVocabProcessorLambda());
 
 		// create Angular CodePipeline
@@ -67,9 +68,10 @@ public class VocabStack extends Stack {
 		// ecsFargateStack.getFrontendService());
 
 		// create Backend CodePipeline
-		BackendCodePipelineStack backendCodePipelineStack = new BackendCodePipelineStack(this,
-				"BackendPipeline",
-				nestedStackProps,
-				ecsFargateStack.getBackendService());
+		// BackendCodePipelineStack backendCodePipelineStack = new
+		// BackendCodePipelineStack(this,
+		// "BackendPipeline",
+		// nestedStackProps,
+		// ecsFargateStack.getBackendService());
 	}
 }

@@ -19,33 +19,33 @@ func setupVocabListService() (*services.VocabListService, *mocks.MockVocabListRe
 	mockVocabRepo.AddTestWord("SRC#en#hello", "TGT#es#hola", &entities.VocabWord{
 		SourceWord:       "hello",
 		SourceLanguage:   "en",
-		SourceDefinition: "A greeting expression",
+		SourceDefinition: []string{"A greeting expression"},
 		TargetWord:       "hola",
 		TargetLanguage:   "es",
 		Examples:         []map[string]string{{"en": "Hello, how are you?", "es": "Hola, ¿cómo estás?"}},
-		Synonyms:         []string{"hi", "greetings"},
+		Synonyms:         []map[string]string{{"synonym": "hi", "explanation": "informal greeting"}, {"synonym": "greetings", "explanation": "formal greeting"}},
 		EnglishWord:      "hello",
 	})
 
 	mockVocabRepo.AddTestWord("SRC#en#bye", "TGT#es#adios", &entities.VocabWord{
 		SourceWord:       "bye",
 		SourceLanguage:   "en",
-		SourceDefinition: "A farewell expression",
+		SourceDefinition: []string{"A farewell expression"},
 		TargetWord:       "adios",
 		TargetLanguage:   "es",
 		Examples:         []map[string]string{{"en": "Bye, see you later!", "es": "Adiós, ¡nos vemos luego!"}},
-		Synonyms:         []string{"goodbye", "farewell"},
+		Synonyms:         []map[string]string{{"synonym": "goodbye", "explanation": "formal farewell"}, {"synonym": "farewell", "explanation": "formal departure"}},
 		EnglishWord:      "bye",
 	})
 
 	mockVocabRepo.AddTestWord("SRC#en#thankyou", "TGT#es#gracias", &entities.VocabWord{
 		SourceWord:       "thank you",
 		SourceLanguage:   "en",
-		SourceDefinition: "An expression of gratitude",
+		SourceDefinition: []string{"An expression of gratitude"},
 		TargetWord:       "gracias",
 		TargetLanguage:   "es",
 		Examples:         []map[string]string{{"en": "Thank you very much!", "es": "¡Muchas gracias!"}},
-		Synonyms:         []string{"thanks"},
+		Synonyms:         []map[string]string{{"synonym": "thanks", "explanation": "informal gratitude"}},
 		EnglishWord:      "thank you",
 	})
 

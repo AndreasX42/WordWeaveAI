@@ -69,6 +69,7 @@ async def _process_record(record: Dict[str, Any]):
         logger.append_keys(
             source_word=request.source_word,
             target_language=request.target_language,
+            source_language=request.source_language,
             user=request.user_id,
             req=request.request_id,
         )
@@ -122,13 +123,16 @@ async def _validate_word(
     req: VocabProcessRequestDto, notifier: WebSocketNotifier
 ) -> Dict[str, Any] | None:
     """Validate word and check if it exists. Returns result dict if processing should stop, None to continue."""
-    check_result = await validate_and_check_exists(req.source_word, req.target_language)
+    check_result = await validate_and_check_exists(
+        req.source_word, req.target_language, req.source_language
+    )
 
     if check_result["status"] == STATUS_INVALID:
         logger.warning(
             "word_validation_failed",
             word=req.source_word,
             target_lang=req.target_language,
+            source_lang=req.source_language,
             reason=getattr(check_result["validation_result"], "message", "unknown"),
         )
         notifier.send_validation_failed(
@@ -138,6 +142,7 @@ async def _validate_word(
             "status": STATUS_INVALID,
             "source_word": req.source_word,
             "target_language": req.target_language,
+            "source_language": req.source_language,
             "validation_result": check_result["validation_result"],
         }
 
@@ -146,11 +151,13 @@ async def _validate_word(
             "word_already_exists",
             word=req.source_word,
             target_lang=req.target_language,
+            source_lang=req.source_language,
         )
         ddb_result = {
             "status": STATUS_EXISTS,
             "source_word": req.source_word,
             "target_language": req.target_language,
+            "source_language": req.source_language,
             "result": check_result["existing_item"],
             "ddb_hit": True,
         }
@@ -162,7 +169,8 @@ async def _validate_word(
         "word_validation_passed",
         word=req.source_word,
         target_lang=req.target_language,
-        source_lang=check_result["validation_result"].source_language,
+        source_lang=req.source_language
+        or check_result["validation_result"].source_language,
     )
     return None
 
@@ -175,6 +183,10 @@ async def _process_word_with_graph(
         "source_word": req.source_word,
         "target_language": Language.from_code(req.target_language),
     }
+
+    # Add source_language to initial state if provided
+    if req.source_language:
+        initial_state["source_language"] = Language.from_code(req.source_language)
 
     # Stream the graph execution and send real-time updates
     result = None

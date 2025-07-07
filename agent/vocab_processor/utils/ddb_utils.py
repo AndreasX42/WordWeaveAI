@@ -50,6 +50,10 @@ def normalize_word(word: str) -> str:
 
 class VocabProcessRequestDto(BaseModel):
     source_word: str = Field(..., description="Word to process")
+    source_language: str | None = Field(
+        None,
+        description="Source language (ISO code). If not provided, it will be detected by the validation step.",
+    )
     target_language: str = Field(..., description="Target language (ISO code)")
     user_id: str | None = Field(None)
     request_id: str | None = Field(None)
@@ -143,7 +147,9 @@ def to_ddb(value: Any):
     return str(value)
 
 
-async def validate_and_check_exists(word: str, tgt_lang: str) -> Dict[str, Any]:
+async def validate_and_check_exists(
+    src_word: str, tgt_lang: str, src_lang: str | None = None
+) -> Dict[str, Any]:
     """
     Validate word and check if it exists in DDB.
 
@@ -157,13 +163,17 @@ async def validate_and_check_exists(word: str, tgt_lang: str) -> Dict[str, Any]:
     from vocab_processor.tools.validation_tool import validate_word
 
     validation_result = await validate_word.ainvoke(
-        input={"word": word, "target_language": Language.from_code(tgt_lang)}
+        input={
+            "source_word": src_word,
+            "target_language": Language.from_code(tgt_lang),
+            "source_language": Language.from_code(src_lang) if src_lang else None,
+        }
     )
 
     if not validation_result.is_valid:
         logger.warning(
             "invalid_word",
-            word=word,
+            word=src_word,
             tgt_lang=tgt_lang,
             reason=getattr(validation_result, "message", "unknown"),
         )
@@ -175,7 +185,7 @@ async def validate_and_check_exists(word: str, tgt_lang: str) -> Dict[str, Any]:
 
     if not is_lambda_context():
         logger.info(
-            f"Local dev mode: skipping DynamoDB existence check for {word} -> {tgt_lang}"
+            f"Local dev mode: skipping DynamoDB existence check for {src_word} -> {tgt_lang}"
         )
         return {
             "status": "not_exists",
@@ -183,7 +193,9 @@ async def validate_and_check_exists(word: str, tgt_lang: str) -> Dict[str, Any]:
             "existing_item": None,
         }
 
-    pk = f"SRC#{lang_code(validation_result.source_language)}#{normalize_word(word)}"
+    pk = (
+        f"SRC#{lang_code(validation_result.source_language)}#{normalize_word(src_word)}"
+    )
     sk = f"TGT#{tgt_lang}"
 
     response = await asyncio.to_thread(VOCAB_TABLE.get_item, Key={"PK": pk, "SK": sk})

@@ -1,10 +1,11 @@
 package com.myorg;
 
-import software.amazon.awscdk.App;
-import software.amazon.awscdk.StackProps;
-import software.amazon.awscdk.Environment;
-import io.github.cdimascio.dotenv.Dotenv;
 import java.util.Optional;
+
+import io.github.cdimascio.dotenv.Dotenv;
+import software.amazon.awscdk.App;
+import software.amazon.awscdk.Environment;
+import software.amazon.awscdk.StackProps;
 
 public class CfnStackApp {
 

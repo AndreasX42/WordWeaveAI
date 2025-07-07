@@ -21,11 +21,11 @@ type VocabularySearchResult struct {
 	SourceLanguage   string                 `json:"source_language"`
 	TargetWord       string                 `json:"target_word"`
 	TargetLanguage   string                 `json:"target_language"`
-	Definition       string                 `json:"source_definition,omitempty"`
+	Definition       []string               `json:"source_definition,omitempty"`
 	Examples         []map[string]string    `json:"examples,omitempty"`
-	Synonyms         []string               `json:"synonyms,omitempty"`
+	Synonyms         []map[string]string    `json:"synonyms,omitempty"`
 	Media            map[string]interface{} `json:"media,omitempty"`
-	PronunciationURL string                 `json:"pronunciation_url,omitempty"`
+	PronunciationURL map[string]string      `json:"pronunciation_url,omitempty"`
 }
 
 type SearchRequest struct {

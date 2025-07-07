@@ -24,7 +24,7 @@ public class SharedResourcesStack extends Stack {
         // WebSocketApiStack
         this.lambdaLayer = LayerVersion.Builder.create(this, "LambdaLayer")
                 .layerVersionName("lambda-requirements-layer")
-                .compatibleRuntimes(List.of(Runtime.PYTHON_3_11))
+                .compatibleRuntimes(List.of(Runtime.PYTHON_3_12))
                 .code(Code.fromAsset("resources/layers/lambda_requirements_layer.zip"))
                 .build();
     }
