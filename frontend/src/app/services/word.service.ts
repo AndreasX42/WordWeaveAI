@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { VocabularyWord } from '../models/word.model';
+import { VocabularyWord, SearchResponse } from '../models/word.model';
 import { Configs } from '../shared/config';
 
 @Injectable({
@@ -30,18 +30,32 @@ export class WordService {
   }
 
   searchWords(
-    sourceLanguage: string,
-    targetLanguage: string,
-    query: string
+    query: string,
+    sourceLanguage?: string,
+    targetLanguage?: string
   ): Observable<VocabularyWord[]> {
-    const url = `${this.apiUrl}/search`;
-    const params = {
-      source_lang: sourceLanguage,
-      target_lang: targetLanguage,
-      q: query,
+    const url = `${Configs.BASE_URL}${Configs.SEARCH_URL}`;
+    const body: any = {
+      query: query,
+      limit: 3,
     };
 
-    return this.http.get<VocabularyWord[]>(url, { params }).pipe(
+    if (sourceLanguage && sourceLanguage.trim() !== '') {
+      body.source_lang = sourceLanguage;
+    } else {
+      body.source_lang = null;
+    }
+
+    if (targetLanguage && targetLanguage.trim() !== '') {
+      body.target_lang = targetLanguage;
+    } else {
+      body.target_lang = null;
+    }
+
+    return this.http.post<SearchResponse>(url, body).pipe(
+      map((response) => {
+        return response.results;
+      }),
       catchError((error) => {
         console.error('Error searching words:', error);
         return of([]);
@@ -176,23 +190,23 @@ export class WordService {
     };
 
     return {
+      pk: '1',
+      sk: '1',
       source_word: 'live',
       source_language: 'en',
       target_language: 'es',
-      validation_passed: true,
       source_definition: ['to remain alive', 'to reside or dwell'],
-      source_part_of_speech: 'verb',
+      source_pos: 'verb',
       source_article: null,
       source_additional_info: null,
       target_word: 'vivir',
-      target_part_of_speech: 'verb',
+      target_pos: 'verb',
       target_article: null,
       target_syllables: ['vi', 'vir'],
       target_phonetic_guide: 'biˈβiɾ',
       target_additional_info:
         "Commonly used verb meaning 'to live' in the sense of residing or being alive.",
       english_word: 'live',
-      search_query: ['live', 'life', 'existence'],
       synonyms: [
         {
           synonym: 'habitar',

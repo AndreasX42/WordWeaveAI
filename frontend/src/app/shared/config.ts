@@ -4,6 +4,9 @@ export class Configs {
   // health
   static readonly HEALTH_URL = '/health';
 
+  // search
+  static readonly SEARCH_URL = '/search';
+
   // auth
   static readonly REGISTER_URL = '/auth/register';
   static readonly CONFIRM_EMAIL_URL = '/auth/confirm-email';

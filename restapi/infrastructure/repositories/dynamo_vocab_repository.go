@@ -22,12 +22,13 @@ type DynamoVocabRepository struct {
 type VocabRecord struct {
 	PK               string                 `dynamo:"PK,hash"`
 	SK               string                 `dynamo:"SK,range"`
+	LKP              string                 `dynamo:"LKP" index:"ReverseLookupIndex,hash"`
+	SrcLang          string                 `dynamo:"SRC_LANG" index:"ReverseLookupIndex,range"`
 	ConjugationTable string                 `dynamo:"conjugation_table"`
 	CreatedAt        string                 `dynamo:"created_at"`
 	CreatedBy        string                 `dynamo:"created_by"`
 	EnglishWord      string                 `dynamo:"english_word" index:"EnglishMediaLookupIndex,hash"`
 	Examples         []map[string]string    `dynamo:"examples"`
-	LKP              string                 `dynamo:"LKP" index:"ReverseLookupIndex,hash"`
 	Media            map[string]interface{} `dynamo:"media"`
 	PronunciationURL map[string]string      `dynamo:"pronunciation_url"`
 	SchemaVersion    int                    `dynamo:"schema_version"`
@@ -36,7 +37,6 @@ type VocabRecord struct {
 	SourceLanguage   string                 `dynamo:"source_language"`
 	SourcePos        string                 `dynamo:"source_pos"`
 	SourceWord       string                 `dynamo:"source_word"`
-	SrcLang          string                 `dynamo:"SRC_LANG" index:"ReverseLookupIndex,range"`
 	Syllables        []string               `dynamo:"syllables"`
 	Synonyms         []map[string]string    `dynamo:"synonyms"`
 	TargetLanguage   string                 `dynamo:"target_language"`
@@ -56,9 +56,9 @@ func (r *DynamoVocabRepository) toVocabRecord(vocab *entities.VocabWord) VocabRe
 	return VocabRecord{
 		// DynamoDB-specific fields
 		PK:      "SRC#" + vocab.SourceLanguage + "#" + strings.ToLower(vocab.SourceWord),
-		SK:      "TGT#" + vocab.TargetLanguage,
+		SK:      "TGT#" + vocab.TargetLanguage + "#POS#" + vocab.SourcePos,
 		LKP:     "LKP#" + vocab.TargetLanguage + "#" + strings.ToLower(vocab.TargetWord),
-		SrcLang: "SRC#" + vocab.SourceLanguage,
+		SrcLang: "SRC_LANG#" + vocab.SourceLanguage,
 
 		// Business fields
 		SourceWord:       vocab.SourceWord,
@@ -85,6 +85,10 @@ func (r *DynamoVocabRepository) toVocabRecord(vocab *entities.VocabWord) VocabRe
 // toEntity converts DynamoDB record to domain entity
 func (r *DynamoVocabRepository) toEntity(record VocabRecord) *entities.VocabWord {
 	return &entities.VocabWord{
+		PK:               record.PK,
+		SK:               record.SK,
+		LKP:              record.LKP,
+		SrcLang:          record.SrcLang,
 		SourceWord:       record.SourceWord,
 		SourceLanguage:   record.SourceLanguage,
 		SourceDefinition: record.SourceDefinition,
@@ -98,8 +102,6 @@ func (r *DynamoVocabRepository) toEntity(record VocabRecord) *entities.VocabWord
 		ConjugationTable: record.ConjugationTable,
 		CreatedAt:        record.CreatedAt,
 		CreatedBy:        record.CreatedBy,
-		SchemaVersion:    record.SchemaVersion,
-		SearchQuery:      record.SearchQuery,
 		SourcePos:        record.SourcePos,
 		Syllables:        record.Syllables,
 		TargetPos:        record.TargetPos,
@@ -237,18 +239,21 @@ func (r *DynamoVocabRepository) SearchByWordWithLanguages(ctx context.Context, n
 		fmt.Println("3.1 - pk", pk)
 		var records []VocabRecord
 
-		// If target language is also specified, query exact SK
+		// If target language is also specified, query with SK prefix
 		if targetLang != "" {
-			sk := "TGT#" + targetLang
-			fmt.Println("3.2 - sk", sk)
-			var record VocabRecord
-			err := r.table.Get("PK", pk).Range("SK", dynamo.Equal, sk).One(ctx, &record)
-			fmt.Println("3.3 - record", record)
+			skPrefix := "TGT#" + targetLang
+			fmt.Println("3.2 - skPrefix", skPrefix)
+			err := r.table.Get("PK", pk).Range("SK", dynamo.BeginsWith, skPrefix).Limit(limit).All(ctx, &records)
+			fmt.Println("3.3 - records count:", len(records))
 			fmt.Println("3.4 - err", err)
 			if err == nil {
-				entity := r.toEntity(record)
-				allResults = append(allResults, *entity)
-				return allResults, nil
+				for _, record := range records {
+					key := record.PK + record.SK
+					if _, exists := resultMap[key]; !exists {
+						entity := r.toEntity(record)
+						resultMap[key] = *entity
+					}
+				}
 			}
 		} else {
 			// Get all target language translations for this source word
@@ -314,6 +319,14 @@ func (r *DynamoVocabRepository) GetByKeys(ctx context.Context, vocabPK, vocabSK 
 	}
 
 	return r.toEntity(record), nil
+}
+
+// GetByKeysWithPOS gets a vocabulary entry by source word, target language, and specific POS
+func (r *DynamoVocabRepository) GetByKeysWithPOS(ctx context.Context, sourceWord, sourceLang, targetLang, pos string) (*entities.VocabWord, error) {
+	pk := "SRC#" + sourceLang + "#" + strings.ToLower(sourceWord)
+	sk := "TGT#" + targetLang + "#POS#" + pos
+
+	return r.GetByKeys(ctx, pk, sk)
 }
 
 // GetByKeysBatch gets multiple vocabulary entries by their PK/SK pairs

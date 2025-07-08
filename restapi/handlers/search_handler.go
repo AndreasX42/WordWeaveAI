@@ -17,15 +17,25 @@ type SearchHandler struct {
 }
 
 type VocabularySearchResult struct {
-	SourceWord       string                 `json:"source_word"`
-	SourceLanguage   string                 `json:"source_language"`
-	TargetWord       string                 `json:"target_word"`
-	TargetLanguage   string                 `json:"target_language"`
-	Definition       []string               `json:"source_definition,omitempty"`
-	Examples         []map[string]string    `json:"examples,omitempty"`
-	Synonyms         []map[string]string    `json:"synonyms,omitempty"`
-	Media            map[string]interface{} `json:"media,omitempty"`
-	PronunciationURL map[string]string      `json:"pronunciation_url,omitempty"`
+	PK               string              `json:"pk" required:"true"`
+	SK               string              `json:"sk" required:"true"`
+	LKP              string              `json:"lkp" required:"true"`
+	SrcLang          string              `json:"src_lang" required:"true"`
+	SourceWord       string              `json:"source_word" required:"true"`
+	SourceLanguage   string              `json:"source_language" required:"true"`
+	SourcePos        string              `json:"source_pos" required:"true"`
+	TargetWord       string              `json:"target_word" required:"true"`
+	TargetLanguage   string              `json:"target_language" required:"true"`
+	TargetPos        string              `json:"target_pos,omitempty"`
+	Definition       []string            `json:"source_definition,omitempty"`
+	Examples         []map[string]string `json:"examples,omitempty"`
+	Synonyms         []map[string]string `json:"synonyms,omitempty"`
+	Syllables        []string            `json:"syllables,omitempty"`
+	Media            map[string]any      `json:"media,omitempty"`
+	PronunciationURL map[string]string   `json:"pronunciation_url,omitempty"`
+	ConjugationTable string              `json:"conjugation_table,omitempty"`
+	CreatedAt        string              `json:"created_at,omitempty"`
+	CreatedBy        string              `json:"created_by,omitempty"`
 }
 
 type SearchRequest struct {
@@ -95,15 +105,25 @@ func (h *SearchHandler) SearchVocabulary(c *gin.Context) {
 
 func (h *SearchHandler) convertToSearchResult(vocab entities.VocabWord) VocabularySearchResult {
 	return VocabularySearchResult{
+		PK:               vocab.PK,
+		SK:               vocab.SK,
+		LKP:              vocab.LKP,
+		SrcLang:          vocab.SrcLang,
 		SourceWord:       vocab.SourceWord,
 		SourceLanguage:   vocab.SourceLanguage,
+		SourcePos:        vocab.SourcePos,
 		TargetWord:       vocab.TargetWord,
 		TargetLanguage:   vocab.TargetLanguage,
+		TargetPos:        vocab.TargetPos,
 		Definition:       vocab.SourceDefinition,
 		Examples:         vocab.Examples,
 		Synonyms:         vocab.Synonyms,
+		Syllables:        vocab.Syllables,
 		Media:            vocab.Media,
 		PronunciationURL: vocab.PronunciationURL,
+		ConjugationTable: vocab.ConjugationTable,
+		CreatedAt:        vocab.CreatedAt,
+		CreatedBy:        vocab.CreatedBy,
 	}
 }
 

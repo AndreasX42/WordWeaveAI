@@ -78,24 +78,14 @@ export class HealthMonitorService implements OnDestroy {
   constructor() {
     this.loadTilesFromStorage();
     this.startMonitoring();
-
-    // Debug: Log tile titles to verify translation keys are being used
-    console.log(
-      'Health tiles initialized with translation keys:',
-      this.tiles.map((tile) => ({
-        id: tile.id,
-        title: tile.title,
-        description: tile.description,
-      }))
-    );
   }
 
   private startMonitoring(): void {
-    // Check backend health every 30 seconds
+    // Check backend health every 2 minutes
     this.checkBackendHealth();
     this.monitoringInterval = window.setInterval(() => {
       this.checkBackendHealth();
-    }, 30000);
+    }, 120000);
 
     // Start error tracking
     this.startErrorTracking();

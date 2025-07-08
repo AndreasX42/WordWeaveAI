@@ -15,7 +15,7 @@ export const routes: Routes = [
   {
     path: 'search',
     loadComponent: () =>
-      import('./pages/search/search').then((mod) => mod.Search),
+      import('./pages/search/search').then((mod) => mod.SearchComponent),
   },
   {
     path: 'words/:sourceLanguage/:targetLanguage/:word',

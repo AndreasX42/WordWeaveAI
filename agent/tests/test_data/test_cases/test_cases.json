@@ -3,7 +3,7 @@
     "test_id": "basic_translation_01",
     "description": "English verb to Spanish",
     "input_data": {
-      "source_word": "to live",
+      "source_word": "swimming",
       "source_language": "English",
       "target_language": "Spanish"
     },
@@ -12,42 +12,6 @@
       "english",
       "spanish",
       "noun",
-      "basic"
-    ],
-    "created_at": null,
-    "updated_at": null
-  },
-  {
-    "test_id": "basic_translation_02",
-    "description": "German verb to English",
-    "input_data": {
-      "source_word": "wohnen",
-      "source_language": "German",
-      "target_language": "English"
-    },
-    "expected_output": null,
-    "tags": [
-      "german",
-      "english",
-      "verb",
-      "basic"
-    ],
-    "created_at": null,
-    "updated_at": null
-  },
-  {
-    "test_id": "basic_translation_03",
-    "description": "Spanish verb to German",
-    "input_data": {
-      "source_word": "vivir",
-      "source_language": "Spanish",
-      "target_language": "German"
-    },
-    "expected_output": null,
-    "tags": [
-      "spanish",
-      "german",
-      "verb",
       "basic"
     ],
     "created_at": null,

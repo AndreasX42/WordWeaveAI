@@ -355,6 +355,7 @@ export class TranslationService {
           selectLanguage: 'Select Language',
           inputPlaceholder: 'Enter a word to search',
           button: 'Search',
+          noResults: 'No results found',
         },
         wordCard: {
           loading: 'Loading word...',
@@ -652,6 +653,7 @@ export class TranslationService {
           selectLanguage: 'Sprache wählen',
           inputPlaceholder: 'Wort eingeben',
           button: 'Suchen',
+          noResults: 'Keine Ergebnisse gefunden',
         },
         wordCard: {
           loading: 'Wort wird geladen...',
@@ -955,6 +957,7 @@ export class TranslationService {
           selectLanguage: 'Seleccionar idioma',
           inputPlaceholder: 'Ingresa una palabra',
           button: 'Buscar',
+          noResults: 'No se encontraron resultados',
         },
         wordCard: {
           loading: 'Cargando palabra...',

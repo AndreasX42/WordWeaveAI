@@ -1,0 +1,156 @@
+<div class="search-container" [class.dark-theme]="themeService.isDarkMode()">
+  <!-- Animated Background -->
+  <div class="background-animation">
+    <div class="wave wave-1"></div>
+    <div class="wave wave-2"></div>
+    <div class="wave wave-3"></div>
+    <div class="gradient-overlay"></div>
+  </div>
+
+  <!-- Search Section -->
+  <section class="search-section">
+    <div class="search-content">
+      <h1 class="search-title">
+        {{ "search.title" | translate }}
+        <span class="highlight-text">{{
+          "search.titleHighlight" | translate
+        }}</span>
+      </h1>
+
+      <p class="search-subtitle">
+        {{ "search.subtitle" | translate }}
+      </p>
+
+      <div class="search-box">
+        <div class="language-selectors">
+          <mat-form-field appearance="outline" class="language-select">
+            <mat-label>{{ "search.sourceLanguage" | translate }}</mat-label>
+            <mat-select
+              [(ngModel)]="sourceLanguage"
+              (ngModelChange)="onLanguageChange()"
+            >
+              <mat-option value="">{{
+                "search.selectLanguage" | translate
+              }}</mat-option>
+              <mat-option value="en" [disabled]="targetLanguage === 'en'"
+                >English</mat-option
+              >
+              <mat-option value="es" [disabled]="targetLanguage === 'es'"
+                >Spanish</mat-option
+              >
+              <mat-option value="de" [disabled]="targetLanguage === 'de'"
+                >German</mat-option
+              >
+            </mat-select>
+          </mat-form-field>
+
+          <button
+            mat-icon-button
+            class="swap-button"
+            (click)="swapLanguages()"
+            [disabled]="!sourceLanguage && !targetLanguage"
+          >
+            <mat-icon>swap_horiz</mat-icon>
+          </button>
+
+          <mat-form-field appearance="outline" class="language-select">
+            <mat-label>{{ "search.targetLanguage" | translate }}</mat-label>
+            <mat-select
+              [(ngModel)]="targetLanguage"
+              (ngModelChange)="onLanguageChange()"
+            >
+              <mat-option value="">{{
+                "search.selectLanguage" | translate
+              }}</mat-option>
+              <mat-option value="en" [disabled]="sourceLanguage === 'en'"
+                >English</mat-option
+              >
+              <mat-option value="es" [disabled]="sourceLanguage === 'es'"
+                >Spanish</mat-option
+              >
+              <mat-option value="de" [disabled]="sourceLanguage === 'de'"
+                >German</mat-option
+              >
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <!-- Search Input with Professional Layout -->
+        <div class="search-wrapper">
+          <div class="search-input-group">
+            <input
+              type="text"
+              class="search-input"
+              [(ngModel)]="searchTerm"
+              (keyup.enter)="search()"
+              (input)="onSearchInput()"
+              [placeholder]="'search.inputPlaceholder' | translate"
+              [disabled]="loading"
+            />
+
+            @if (searchTerm && !loading) {
+            <button
+              type="button"
+              class="clear-btn"
+              (click)="clearSearch()"
+              aria-label="Clear search"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+            } @if (loading) {
+            <div class="loading-spinner">
+              <mat-spinner diameter="20" strokeWidth="3"></mat-spinner>
+            </div>
+            }
+
+            <button
+              type="button"
+              class="search-btn"
+              (click)="search()"
+              [disabled]="!searchTerm || loading"
+              aria-label="Search"
+            >
+              <mat-icon>search</mat-icon>
+            </button>
+          </div>
+
+          <!-- Search Results Dropdown -->
+          @if (searchResults && searchResults.length > 0) {
+          <div class="results-dropdown">
+            @for (word of searchResults; track word.source_word +
+            word.target_word) {
+            <div class="result-item" (click)="openWord(word)">
+              <div class="result-row">
+                <div class="source-info">
+                  <span class="flag">{{
+                    getLanguageFlag(word.source_language)
+                  }}</span>
+                  @if (word.source_pos) {
+                  <span class="pos">{{ word.source_pos }}</span>
+                  <span class="word">{{ word.source_word }}</span>
+                  }
+                </div>
+                <mat-icon class="arrow">arrow_forward</mat-icon>
+                <div class="target-info">
+                  <span class="flag">{{
+                    getLanguageFlag(word.target_language)
+                  }}</span>
+                  <span class="word target">{{ word.target_word }}</span>
+                </div>
+              </div>
+            </div>
+            }
+          </div>
+          } @else if (hasSearched && !loading && searchResults.length === 0) {
+          <div class="results-dropdown">
+            <div class="no-results">
+              <mat-icon>search_off</mat-icon>
+              <span>{{ "search.noResults" | translate }}</span>
+            </div>
+          </div>
+          }
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

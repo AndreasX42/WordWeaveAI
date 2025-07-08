@@ -21,7 +21,7 @@ class WordCategorization(BaseModel):
     source_definition: list[str] = Field(
         ...,
         min_items=1,
-        max_items=2,
+        max_items=3,
         description="Definition of the word in its native language",
     )
     source_part_of_speech: PartOfSpeech = Field(
@@ -29,7 +29,7 @@ class WordCategorization(BaseModel):
     )
     source_article: str | None = Field(
         None,
-        description="Article of the source word in the source language, if it is a noun",
+        description="Article of the source word in the source language, if it is a noun.",
     )
     source_additional_info: str | None = Field(
         None,
@@ -47,13 +47,21 @@ async def get_classification(
     """Categorize part of speech and language."""
 
     # Base prompt
-    prompt = f"Classify '{source_word}' ({source_language}): part of speech ({', '.join(PartOfSpeech.all_values())}), 1-2 {source_language} definitions. For nouns: add article. For inputs like 'to build' or 'la casa', extract base word (build, casa)."
+    prompt = f"""Classify '{source_word}' ({source_language}): part of speech ({', '.join(PartOfSpeech.all_values())}). 
+    
+    For inputs like 'to build' or 'la casa', extract base word (build, casa).
+    
+    For source_article:
+    - English: null (no articles needed)
+    - German: der/die/das for nouns
+    - Spanish: el/la/los/las for nouns
+    """
 
     # Quality requirements for classification
     quality_requirements = [
         "Extract base word correctly (to build → build)",
         "Return base word in source_word field",
-        "1-2 definitions max - distinct meanings only",
+        "1-3 definitions max - distinct meanings only",
         f"Clear, natural {source_language} definitions",
         "Most common meanings only",
         "Pedagogically useful part of speech",

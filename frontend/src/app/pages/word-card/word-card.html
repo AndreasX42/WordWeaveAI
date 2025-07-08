@@ -43,7 +43,7 @@
           </h2>
           @if (hasTargetSyllables) {
           <div class="pronunciation">
-            ({{ word.target_syllables?.join("-") }}) @if
+            ({{ word.target_syllables.join("-") }}) @if
             (word.target_phonetic_guide) {
             <span class="phonetic-guide">
               [{{ word.target_phonetic_guide }}]
@@ -72,9 +72,9 @@
                 getLanguageFlag(word.target_language)
               }}</span>
             </div>
-            @if (word.target_part_of_speech) {
+            @if (word.target_pos) {
             <div class="pos-tag">
-              {{ word.source_part_of_speech }}
+              {{ word.target_pos }}
             </div>
             }
           </div>
@@ -246,9 +246,11 @@
                       </td>
                       <td class="conjugation">
                         {{
-                          word.conjugation_table![getIndicativeMoodName()]![
-                            tense
-                          ][pronoun]
+                          getConjugationValue(
+                            getIndicativeMoodName(),
+                            tense,
+                            pronoun
+                          )
                         }}
                       </td>
                     </tr>
@@ -278,9 +280,11 @@
                       </td>
                       <td class="conjugation">
                         {{
-                          word.conjugation_table![getSubjunctiveMoodName()]![
-                            tense
-                          ][pronoun]
+                          getConjugationValue(
+                            getSubjunctiveMoodName(),
+                            tense,
+                            pronoun
+                          )
                         }}
                       </td>
                     </tr>

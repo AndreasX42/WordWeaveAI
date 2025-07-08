@@ -140,7 +140,7 @@ public class DataStack extends Stack {
 						.type(software.amazon.awscdk.services.dynamodb.AttributeType.STRING)
 						.build())
 				.sortKey(software.amazon.awscdk.services.dynamodb.Attribute.builder()
-						.name("SK") // Format: TGT#{lang}
+						.name("SK") // Format: TGT#{lang}#POS#{source_pos}
 						.type(software.amazon.awscdk.services.dynamodb.AttributeType.STRING)
 						.build())
 				.billingMode(software.amazon.awscdk.services.dynamodb.BillingMode.PAY_PER_REQUEST)

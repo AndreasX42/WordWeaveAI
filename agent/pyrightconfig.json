@@ -1,0 +1,46 @@
+{
+    "include": [
+        "vocab_processor",
+        "handlers",
+        "tests",
+        "main.py"
+    ],
+    "exclude": [
+        "**/__pycache__",
+        "**/*.pyc",
+        ".venv",
+        "build",
+        "dist"
+    ],
+    "extraPaths": [
+        ".",
+        "vocab_processor",
+        "handlers",
+        "tests"
+    ],
+    "pythonPlatform": "Darwin",
+    "pythonVersion": "3.12",
+    "typeshedPath": "typeshed",
+    "reportMissingImports": "warning",
+    "reportMissingTypeStubs": "none",
+    "reportGeneralTypeIssues": "none",
+    "reportOptionalSubscript": "none",
+    "reportOptionalMemberAccess": "none",
+    "reportOptionalCall": "none",
+    "reportOptionalIterable": "none",
+    "reportOptionalContextManager": "none",
+    "reportOptionalOperand": "none",
+    "reportUnboundVariable": "none",
+    "reportUnnecessaryTypeIgnoreComment": "none",
+    "executionEnvironments": [
+        {
+            "root": ".",
+            "extraPaths": [
+                ".",
+                "vocab_processor",
+                "handlers",
+                "tests"
+            ]
+        }
+    ]
+} 

@@ -3,6 +3,7 @@ package mocks
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/AndreasX42/restapi/domain/entities"
@@ -72,6 +73,14 @@ func (m *MockVocabRepository) GetByKeys(ctx context.Context, vocabPK, vocabSK st
 	// Return copy to avoid data races
 	wordCopy := *word
 	return &wordCopy, nil
+}
+
+// GetByKeysWithPOS gets a vocabulary entry by source word, target language, and specific POS
+func (m *MockVocabRepository) GetByKeysWithPOS(ctx context.Context, sourceWord, sourceLang, targetLang, pos string) (*entities.VocabWord, error) {
+	pk := fmt.Sprintf("SRC#%s#%s", sourceLang, strings.ToLower(sourceWord))
+	sk := fmt.Sprintf("TGT#%s#POS#%s", targetLang, pos)
+
+	return m.GetByKeys(ctx, pk, sk)
 }
 
 // GetByKeysBatch gets multiple vocabulary entries by their PK/SK pairs

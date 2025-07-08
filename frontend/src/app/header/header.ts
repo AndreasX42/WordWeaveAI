@@ -71,6 +71,10 @@ export class Header {
     this.router.navigate(['/health']);
   }
 
+  onSearch(): void {
+    this.router.navigate(['/search']);
+  }
+
   changeLanguage(languageCode: string): void {
     this.translationService.changeLanguage(languageCode);
   }

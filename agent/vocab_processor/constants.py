@@ -70,6 +70,7 @@ class PartOfSpeech(str, Enum):
     FEMININE_NOUN = "feminine noun"
     MASCULINE_NOUN = "masculine noun"
     NEUTER_NOUN = "neuter noun"
+    NOUN = "noun"
     VERB = "verb"
     ADJECTIVE = "adjective"
     ADVERB = "adverb"

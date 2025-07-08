@@ -2,6 +2,10 @@ package entities
 
 // Vocabulary word represents a vocabulary entity matching the DynamoDB schema
 type VocabWord struct {
+	PK               string
+	SK               string
+	LKP              string
+	SrcLang          string
 	SourceWord       string
 	SourceLanguage   string
 	SourceDefinition []string

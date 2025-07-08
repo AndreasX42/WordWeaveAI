@@ -38,7 +38,7 @@ def is_lambda_context() -> bool:
 
 
 def normalize_word(word: str) -> str:
-    """Return lower‑case, accent‑stripped, alnum‑only version of *word*."""
+    """Return lowercase, accent stripped, alnumonly version of the word."""
     word = unicodedata.normalize("NFKC", word.lower())
     word = "".join(
         ch
@@ -196,13 +196,20 @@ async def validate_and_check_exists(
     pk = (
         f"SRC#{lang_code(validation_result.source_language)}#{normalize_word(src_word)}"
     )
-    sk = f"TGT#{tgt_lang}"
+    # Query for any translation to target language (regardless of POS)
+    sk_prefix = f"TGT#{tgt_lang}"
 
-    response = await asyncio.to_thread(VOCAB_TABLE.get_item, Key={"PK": pk, "SK": sk})
-    existing_item = response.get("Item")
+    response = await asyncio.to_thread(
+        VOCAB_TABLE.query,
+        KeyConditionExpression="PK = :pk AND begins_with(SK, :sk_prefix)",
+        ExpressionAttributeValues={":pk": pk, ":sk_prefix": sk_prefix},
+        Limit=1,
+    )
+    items = response.get("Items", [])
+    existing_item = items[0] if items else None
 
     if existing_item:
-        logger.info("ddb_hit", pk=pk, sk=sk)
+        logger.info("ddb_hit", pk=pk, sk=existing_item["SK"])
         return {
             "status": "exists",
             "validation_result": validation_result,
@@ -232,7 +239,8 @@ async def store_result(result: Dict[str, Any], req: VocabProcessRequestDto):
         return
 
     pk = f"SRC#{lang_code(src_lang)}#{normalize_word(src_word)}"
-    sk = f"TGT#{lang_code(tgt_lang)}"
+    source_pos = getattr(result.get("source_part_of_speech"), "value", "unknown")
+    sk = f"TGT#{lang_code(tgt_lang)}#POS#{source_pos}"
 
     # Prepare search words for individual entries
     search_query = result.get("search_query", [])

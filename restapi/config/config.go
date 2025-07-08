@@ -91,14 +91,17 @@ func (c *Container) initAWS() {
 
 	// Optimize HTTP client for DynamoDB performance and ensure TLS for all AWS services
 	cfg.HTTPClient = &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: 10 * time.Second,
 		Transport: &http.Transport{
-			MaxIdleConns:        100,              // Increase from default 100
-			MaxIdleConnsPerHost: 20,               // Increase from default 2
-			IdleConnTimeout:     90 * time.Second, // Keep connections alive longer
-			DisableCompression:  true,             // DynamoDB responses are already compressed
-			WriteBufferSize:     32 * 1024,        // 32KB write buffer
-			ReadBufferSize:      32 * 1024,        // 32KB read buffer
+			MaxConnsPerHost:       50,               // Increase from default 100
+			MaxIdleConns:          100,              // Increase from default 100
+			MaxIdleConnsPerHost:   20,               // Increase from default 2
+			IdleConnTimeout:       90 * time.Second, // Keep connections alive longer
+			ResponseHeaderTimeout: 5 * time.Second,  // Wait max 5s for response headers
+			ExpectContinueTimeout: 1 * time.Second,  // Wait 1s for "100 Continue" response
+			DisableCompression:    true,             // DynamoDB responses are already compressed
+			WriteBufferSize:       32 * 1024,        // 32KB write buffer
+			ReadBufferSize:        32 * 1024,        // 32KB read buffer
 			// TLS Configuration - Force TLS 1.2 minimum for all AWS services including SES
 			TLSHandshakeTimeout: 3 * time.Second,
 			ForceAttemptHTTP2:   true, // Use HTTP/2 when possible

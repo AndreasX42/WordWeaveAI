@@ -1,5 +1,5 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -36,6 +36,7 @@ export class WordCard implements OnInit {
   translationService = inject(TranslationService);
   wordService = inject(WordService);
   route = inject(ActivatedRoute);
+  router = inject(Router);
 
   word: VocabularyWord | null = null;
   loading = true;
@@ -74,36 +75,64 @@ export class WordCard implements OnInit {
 
   get hasIndicativo() {
     const targetLang = this.word?.target_language;
+    const conjugationTable = this.getConjugationTable();
+
     if (targetLang === 'es') {
-      return !!this.word?.conjugation_table?.['indicativo'];
+      return !!conjugationTable?.['indicativo'];
     } else if (targetLang === 'en') {
-      return !!this.word?.conjugation_table?.['indicative'];
+      return !!conjugationTable?.['indicative'];
     } else if (targetLang === 'de') {
-      return !!this.word?.conjugation_table?.['indikativ'];
+      return !!conjugationTable?.['indikativ'];
     }
     return false;
   }
 
   get hasSubjuntivo() {
     const targetLang = this.word?.target_language;
+    const conjugationTable = this.getConjugationTable();
+
     if (targetLang === 'es') {
-      return !!this.word?.conjugation_table?.['subjuntivo'];
+      return !!conjugationTable?.['subjuntivo'];
     } else if (targetLang === 'en') {
-      return !!this.word?.conjugation_table?.['subjunctive'];
+      return !!conjugationTable?.['subjunctive'];
     } else if (targetLang === 'de') {
-      return !!this.word?.conjugation_table?.['konjunktiv'];
+      return !!conjugationTable?.['konjunktiv'];
     }
     return false;
   }
 
   get hasFormasNoPersonales() {
     const targetLang = this.word?.target_language;
+    const conjugationTable = this.getConjugationTable();
+
     if (targetLang === 'es') {
-      return !!this.word?.conjugation_table?.['formas_no_personales'];
+      return !!conjugationTable?.['formas_no_personales'];
     } else if (targetLang === 'en' || targetLang === 'de') {
-      return !!this.word?.conjugation_table?.['non_personal_forms'];
+      return !!conjugationTable?.['non_personal_forms'];
     }
     return false;
+  }
+
+  // Helper method to get properly parsed conjugation table
+  getConjugationTable(): any {
+    if (!this.word?.conjugation_table) return null;
+
+    // If it's already an object, return it
+    if (typeof this.word.conjugation_table === 'object') {
+      return this.word.conjugation_table;
+    }
+
+    // If it's a string, parse it
+    if (typeof this.word.conjugation_table === 'string') {
+      try {
+        return JSON.parse(this.word.conjugation_table);
+      } catch (error) {
+        console.error('Error parsing conjugation table JSON:', error);
+        return null;
+      }
+    }
+
+    return null;
   }
 
   // Helper methods to get correct mood names for each language
@@ -132,7 +161,8 @@ export class WordCard implements OnInit {
   // Get non-personal forms data dynamically based on language
   getNonPersonalForms(): any {
     const key = this.getNonPersonalFormsKey();
-    return this.word?.conjugation_table?.[key];
+    const conjugationTable = this.getConjugationTable();
+    return conjugationTable?.[key];
   }
 
   // Get specific non-personal form values
@@ -259,16 +289,41 @@ export class WordCard implements OnInit {
   }
 
   ngOnInit() {
-    // Get parameters from route
+    // First check if word data was passed through route state
+    const navigation = this.router.lastSuccessfulNavigation;
+    const routeState = navigation?.extras?.state;
+
+    if (routeState && routeState['word']) {
+      // Use the word data passed from search results
+      const wordFromSearch = routeState['word'] as VocabularyWord;
+
+      // If the search result doesn't have conjugation table, fetch full word data
+      if (!wordFromSearch.conjugation_table) {
+        this.loadWord(
+          wordFromSearch.source_language,
+          wordFromSearch.target_language,
+          wordFromSearch.source_word
+        );
+        return;
+      }
+
+      // Use search result data if it has conjugations
+      this.word = wordFromSearch;
+      this.loading = false;
+      return;
+    }
+
+    // Fallback: Get parameters from route and make API call
     const sourceLanguage = this.route.snapshot.paramMap.get('sourceLanguage');
     const targetLanguage = this.route.snapshot.paramMap.get('targetLanguage');
     const word = this.route.snapshot.paramMap.get('word');
 
-    if (false) {
-      //   this.loadWord(sourceLanguage, targetLanguage, word);
+    if (sourceLanguage && targetLanguage && word) {
+      this.loadWord(sourceLanguage, targetLanguage, word);
     } else {
-      // For development, load mock data
-      this.word = this.wordService.getMockWord();
+      // If parameters are missing, show error
+      this.error =
+        'Invalid parameters: missing source language, target language, or word';
       this.loading = false;
     }
   }
@@ -287,6 +342,7 @@ export class WordCard implements OnInit {
         this.loading = false;
       },
       error: (err) => {
+        console.error('API Error:', err);
         this.error = this.translationService.translate('wordCard.loadError');
         this.loading = false;
       },
@@ -307,10 +363,10 @@ export class WordCard implements OnInit {
   }
 
   getIndicativeTenses(): string[] {
-    if (!this.word?.conjugation_table) return [];
+    const conjugationTable = this.getConjugationTable();
+    if (!conjugationTable) return [];
 
-    const targetLang = this.word.target_language;
-    const conjugationTable = this.word.conjugation_table;
+    const targetLang = this.word?.target_language;
 
     // Get the main indicative mood key for each language
     if (targetLang === 'es' && conjugationTable['indicativo']) {
@@ -325,10 +381,10 @@ export class WordCard implements OnInit {
   }
 
   getSubjunctiveTenses(): string[] {
-    if (!this.word?.conjugation_table) return [];
+    const conjugationTable = this.getConjugationTable();
+    if (!conjugationTable) return [];
 
-    const targetLang = this.word.target_language;
-    const conjugationTable = this.word.conjugation_table;
+    const targetLang = this.word?.target_language;
 
     // Get the subjunctive mood key for each language
     if (targetLang === 'es' && conjugationTable['subjuntivo']) {
@@ -343,10 +399,10 @@ export class WordCard implements OnInit {
   }
 
   getConjugationPronouns(mood: string, tense: string): string[] {
-    if (!this.word?.conjugation_table) return [];
+    const conjugationTable = this.getConjugationTable();
+    if (!conjugationTable) return [];
 
-    const targetLang = this.word.target_language;
-    const conjugationTable = this.word.conjugation_table;
+    const targetLang = this.word?.target_language;
 
     // Get pronouns based on language and access the conjugation data
     let moodData: any = null;
@@ -405,6 +461,10 @@ export class WordCard implements OnInit {
         past_perfect_progressive: 'Past Perfect Progressive',
         future: 'Future',
         future_perfect: 'Future Perfect',
+        future_progressive: 'Future Progressive',
+        future_perfect_progressive: 'Future Perfect Progressive',
+        conditional: 'Conditional',
+        conditional_perfect: 'Conditional Perfect',
       };
       return englishLabels[tense] || tense;
     }
@@ -420,6 +480,7 @@ export class WordCard implements OnInit {
         futur_ii: 'Futur II',
         konjunktiv_i: 'Konjunktiv I',
         konjunktiv_ii: 'Konjunktiv II',
+        konjunktiv_perfekt: 'Konjunktiv Perfekt',
       };
       return germanLabels[tense] || tense;
     }
@@ -507,5 +568,18 @@ export class WordCard implements OnInit {
     };
 
     return flagMap[langCode.toLowerCase()] || langCode.toUpperCase();
+  }
+
+  // Helper methods for template to get conjugation values
+  getConjugationValue(mood: string, tense: string, pronoun: string): string {
+    const conjugationTable = this.getConjugationTable();
+    if (!conjugationTable) return '';
+
+    try {
+      return conjugationTable[mood]?.[tense]?.[pronoun] || '';
+    } catch (error) {
+      console.error('Error getting conjugation value:', error);
+      return '';
+    }
   }
 }

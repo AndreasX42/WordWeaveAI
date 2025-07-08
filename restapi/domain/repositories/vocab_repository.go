@@ -11,5 +11,6 @@ type VocabRepository interface {
 	SearchByNormalizedWord(ctx context.Context, normalizedQuery string, supportedLanguages []string, limit int) ([]entities.VocabWord, error)
 	SearchByWordWithLanguages(ctx context.Context, normalizedQuery, sourceLang, targetLang string, limit int) ([]entities.VocabWord, error)
 	GetByKeys(ctx context.Context, vocabPK, vocabSK string) (*entities.VocabWord, error)
+	GetByKeysWithPOS(ctx context.Context, sourceWord, sourceLang, targetLang, pos string) (*entities.VocabWord, error)
 	GetByKeysBatch(ctx context.Context, keys []entities.VocabKey) (map[string]*entities.VocabWord, error)
 }

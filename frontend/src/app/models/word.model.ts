@@ -1,46 +1,45 @@
 export interface VocabularyWord {
-  PK?: string;
-  SK?: string;
+  pk: string;
+  sk: string;
 
   // Source word information
   source_word: string;
   source_language: string;
   source_article?: string | null;
-  source_part_of_speech?: string;
-  source_definition?: string | string[];
+  source_pos: string;
+  source_definition: string[];
   source_additional_info?: string | null;
 
   // Target word information
   target_word: string;
   target_language: string;
-  target_part_of_speech?: string;
+  target_pos: string;
   target_article?: string | null;
-  target_syllables?: string[];
-  target_phonetic_guide?: string;
+  target_syllables: string[];
+  target_phonetic_guide: string;
   target_additional_info?: string | null;
 
   // Additional fields
   english_word?: string;
-  search_query?: string | string[];
-  synonyms?: Synonym[];
-  examples?: Example[];
-  conjugation?: string; // JSON string of conjugation table
-  conjugation_table?: ConjugationTable; // Parsed conjugation
-  pronunciation_url?: string;
-  pronunciations?: string;
-  media?: Media[];
+  synonyms: Synonym[];
+  examples: Example[];
+  conjugation_table?: ConjugationTable;
+  pronunciation_url: string;
+  media: Media[];
 
-  // Validation
-  validation_passed?: boolean;
-
-  // Lookup fields
+  // Reverse Lookup fields
   LKP?: string;
   SRC_LANG?: string;
 
   // Metadata
-  schema_version?: number;
-  created_at?: string;
-  created_by?: string;
+  created_at: string;
+  created_by: string;
+}
+
+export interface SearchResponse {
+  results: VocabularyWord[];
+  count: number;
+  query: string;
 }
 
 export interface Synonym {
