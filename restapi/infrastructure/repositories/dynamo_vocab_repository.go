@@ -30,9 +30,8 @@ type VocabRecord struct {
 	EnglishWord      string                 `dynamo:"english_word" index:"EnglishMediaLookupIndex,hash"`
 	Examples         []map[string]string    `dynamo:"examples"`
 	Media            map[string]interface{} `dynamo:"media"`
-	PronunciationURL map[string]string      `dynamo:"pronunciation_url"`
-	SchemaVersion    int                    `dynamo:"schema_version"`
-	SearchQuery      []string               `dynamo:"search_query"`
+	Pronunciations   map[string]string      `dynamo:"pronunciations"`
+	PhoneticGuide    string                 `dynamo:"phonetic_guide"`
 	SourceDefinition []string               `dynamo:"source_definition"`
 	SourceLanguage   string                 `dynamo:"source_language"`
 	SourcePos        string                 `dynamo:"source_pos"`
@@ -69,13 +68,12 @@ func (r *DynamoVocabRepository) toVocabRecord(vocab *entities.VocabWord) VocabRe
 		Examples:         vocab.Examples,
 		Synonyms:         vocab.Synonyms,
 		Media:            vocab.Media,
-		PronunciationURL: vocab.PronunciationURL,
+		Pronunciations:   vocab.Pronunciations,
+		PhoneticGuide:    vocab.PhoneticGuide,
 		EnglishWord:      vocab.EnglishWord,
 		ConjugationTable: vocab.ConjugationTable,
 		CreatedAt:        vocab.CreatedAt,
 		CreatedBy:        vocab.CreatedBy,
-		SchemaVersion:    vocab.SchemaVersion,
-		SearchQuery:      vocab.SearchQuery,
 		SourcePos:        vocab.SourcePos,
 		Syllables:        vocab.Syllables,
 		TargetPos:        vocab.TargetPos,
@@ -97,7 +95,8 @@ func (r *DynamoVocabRepository) toEntity(record VocabRecord) *entities.VocabWord
 		Examples:         record.Examples,
 		Synonyms:         record.Synonyms,
 		Media:            record.Media,
-		PronunciationURL: record.PronunciationURL,
+		Pronunciations:   record.Pronunciations,
+		PhoneticGuide:    record.PhoneticGuide,
 		EnglishWord:      record.EnglishWord,
 		ConjugationTable: record.ConjugationTable,
 		CreatedAt:        record.CreatedAt,

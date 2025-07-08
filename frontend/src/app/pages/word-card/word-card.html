@@ -31,7 +31,7 @@
           </h1>
           <h2 class="target-word">
             {{ word.target_word }}
-            @if (word.pronunciation_url) {
+            @if (word.pronunciations.audio) {
             <button
               mat-icon-button
               (click)="playPronunciation()"
@@ -48,6 +48,14 @@
             <span class="phonetic-guide">
               [{{ word.target_phonetic_guide }}]
             </span>
+            } @if (word.pronunciations.syllables) {
+            <button
+              mat-icon-button
+              (click)="playSyllables()"
+              class="pronunciation-button syllables-audio-button"
+            >
+              <mat-icon>volume_up</mat-icon>
+            </button>
             }
           </div>
           }
@@ -90,8 +98,8 @@
         @if (hasMedia) {
         <div class="media-section">
           <img
-            [src]="word.media![0].url"
-            [alt]="word.media![0].caption || word.target_word"
+            [src]="getS3Url(word.media!.src.large2x)"
+            [alt]="word.media!.alt"
             class="word-image"
           />
         </div>

@@ -196,10 +196,10 @@ func setupTestVocabularyData(vocabRepo *mocks.MockVocabRepository) {
 			Examples: []map[string]string{
 				{"source": "Hello world", "target": "Hola mundo"},
 			},
-			Synonyms:         []map[string]string{{"synonym": "hi", "explanation": "informal greeting"}, {"synonym": "greetings", "explanation": "formal greeting"}},
-			Media:            map[string]interface{}{"image": "hello.jpg"},
-			PronunciationURL: map[string]string{"audio": "hello.mp3"},
-			EnglishWord:      "hello",
+			Synonyms:       []map[string]string{{"synonym": "hi", "explanation": "informal greeting"}, {"synonym": "greetings", "explanation": "formal greeting"}},
+			Media:          map[string]any{"image": "hello.jpg"},
+			Pronunciations: map[string]string{"audio": "hello.mp3"},
+			EnglishWord:    "hello",
 		},
 		{
 			SourceWord:       "goodbye",
@@ -210,10 +210,10 @@ func setupTestVocabularyData(vocabRepo *mocks.MockVocabRepository) {
 			Examples: []map[string]string{
 				{"source": "Goodbye friend", "target": "Adiós amigo"},
 			},
-			Synonyms:         []map[string]string{{"synonym": "bye", "explanation": "informal farewell"}, {"synonym": "farewell", "explanation": "formal departure"}},
-			Media:            map[string]interface{}{"image": "goodbye.jpg"},
-			PronunciationURL: map[string]string{"audio": "goodbye.mp3"},
-			EnglishWord:      "goodbye",
+			Synonyms:       []map[string]string{{"synonym": "bye", "explanation": "informal farewell"}, {"synonym": "farewell", "explanation": "formal departure"}},
+			Media:          map[string]any{"image": "goodbye.jpg"},
+			Pronunciations: map[string]string{"audio": "goodbye.mp3"},
+			EnglishWord:    "goodbye",
 		},
 		{
 			SourceWord:       "house",
@@ -224,10 +224,10 @@ func setupTestVocabularyData(vocabRepo *mocks.MockVocabRepository) {
 			Examples: []map[string]string{
 				{"source": "My house", "target": "Mi casa"},
 			},
-			Synonyms:         []map[string]string{{"synonym": "home", "explanation": "place of residence"}, {"synonym": "dwelling", "explanation": "place to live"}},
-			Media:            map[string]interface{}{"image": "house.jpg"},
-			PronunciationURL: map[string]string{"audio": "house.mp3"},
-			EnglishWord:      "house",
+			Synonyms:       []map[string]string{{"synonym": "home", "explanation": "place of residence"}, {"synonym": "dwelling", "explanation": "place to live"}},
+			Media:          map[string]any{"image": "house.jpg"},
+			Pronunciations: map[string]string{"audio": "house.mp3"},
+			EnglishWord:    "house",
 		},
 	}
 

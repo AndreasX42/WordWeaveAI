@@ -70,16 +70,17 @@ type VocabListWordWithDataResponse struct {
 	IsLearned bool       `json:"is_learned"`
 
 	// Vocabulary data (if available)
-	SourceWord       *string                `json:"source_word,omitempty"`
-	SourceLanguage   *string                `json:"source_language,omitempty"`
-	SourceDefinition *[]string              `json:"source_definition,omitempty"`
-	TargetWord       *string                `json:"target_word,omitempty"`
-	TargetLanguage   *string                `json:"target_language,omitempty"`
-	Examples         []map[string]string    `json:"examples,omitempty"`
-	Synonyms         []map[string]string    `json:"synonyms,omitempty"`
-	Media            map[string]interface{} `json:"media,omitempty"`
-	PronunciationURL *map[string]string     `json:"pronunciation_url,omitempty"`
-	EnglishWord      *string                `json:"english_word,omitempty"`
+	SourceWord       *string             `json:"source_word,omitempty"`
+	SourceLanguage   *string             `json:"source_language,omitempty"`
+	SourceDefinition *[]string           `json:"source_definition,omitempty"`
+	TargetWord       *string             `json:"target_word,omitempty"`
+	TargetLanguage   *string             `json:"target_language,omitempty"`
+	Examples         []map[string]string `json:"examples,omitempty"`
+	Synonyms         []map[string]string `json:"synonyms,omitempty"`
+	Media            map[string]any      `json:"media,omitempty"`
+	Pronunciations   map[string]string   `json:"pronunciations,omitempty"`
+	PhoneticGuide    *string             `json:"phonetic_guide,omitempty"`
+	EnglishWord      *string             `json:"english_word,omitempty"`
 }
 
 // getPrincipal extracts the authenticated user from the JWT context
@@ -453,7 +454,8 @@ func (h *VocabListHandler) toWordWithDataResponse(word *services.VocabListWordWi
 		response.Examples = word.VocabWord.Examples
 		response.Synonyms = word.VocabWord.Synonyms
 		response.Media = word.VocabWord.Media
-		response.PronunciationURL = &word.VocabWord.PronunciationURL
+		response.Pronunciations = word.VocabWord.Pronunciations
+		response.PhoneticGuide = &word.VocabWord.PhoneticGuide
 		response.EnglishWord = &word.VocabWord.EnglishWord
 	}
 

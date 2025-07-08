@@ -30,9 +30,10 @@ type VocabularySearchResult struct {
 	Definition       []string            `json:"source_definition,omitempty"`
 	Examples         []map[string]string `json:"examples,omitempty"`
 	Synonyms         []map[string]string `json:"synonyms,omitempty"`
-	Syllables        []string            `json:"syllables,omitempty"`
+	Syllables        []string            `json:"target_syllables,omitempty"`
+	PhoneticGuide    string              `json:"target_phonetic_guide,omitempty"`
 	Media            map[string]any      `json:"media,omitempty"`
-	PronunciationURL map[string]string   `json:"pronunciation_url,omitempty"`
+	Pronunciations   map[string]string   `json:"target_pronunciations,omitempty"`
 	ConjugationTable string              `json:"conjugation_table,omitempty"`
 	CreatedAt        string              `json:"created_at,omitempty"`
 	CreatedBy        string              `json:"created_by,omitempty"`
@@ -119,8 +120,9 @@ func (h *SearchHandler) convertToSearchResult(vocab entities.VocabWord) Vocabula
 		Examples:         vocab.Examples,
 		Synonyms:         vocab.Synonyms,
 		Syllables:        vocab.Syllables,
+		PhoneticGuide:    vocab.PhoneticGuide,
 		Media:            vocab.Media,
-		PronunciationURL: vocab.PronunciationURL,
+		Pronunciations:   vocab.Pronunciations,
 		ConjugationTable: vocab.ConjugationTable,
 		CreatedAt:        vocab.CreatedAt,
 		CreatedBy:        vocab.CreatedBy,

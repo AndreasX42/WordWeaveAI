@@ -240,6 +240,11 @@ async def store_result(result: Dict[str, Any], req: VocabProcessRequestDto):
 
     pk = f"SRC#{lang_code(src_lang)}#{normalize_word(src_word)}"
     source_pos = getattr(result.get("source_part_of_speech"), "value", "unknown")
+
+    # in case of "masculine noun" or "feminine noun", we want to store it as "noun"
+    if len(source_pos.split(" ")) == 2:
+        source_pos = "noun"
+
     sk = f"TGT#{lang_code(tgt_lang)}#POS#{source_pos}"
 
     # Prepare search words for individual entries
@@ -263,23 +268,24 @@ async def store_result(result: Dict[str, Any], req: VocabProcessRequestDto):
         "target_pos": getattr(result.get("target_part_of_speech"), "value", None),
         "target_article": result.get("target_article"),
         # Additional fields
-        "syllables": result.get("target_syllables"),
+        "source_additional_info": result.get("source_additional_info"),
+        "target_additional_info": result.get("target_additional_info"),
+        "target_syllables": result.get("target_syllables"),
+        "target_phonetic_guide": result.get("target_phonetic_guide"),
         "synonyms": to_ddb(result.get("synonyms")),
         "examples": to_ddb(result.get("examples")),
         "conjugation_table": to_ddb(result.get("conjugation")),
-        "pronunciation_url": result.get("pronunciations"),
+        "pronunciations": result.get("pronunciations"),
         "media": to_ddb(result.get("media")),
         # GSI-1: Reverse lookup
         "LKP": f"LKP#{lang_code(tgt_lang)}#{normalize_word(tgt_word)}",
         "SRC_LANG": f"SRC#{lang_code(src_lang)}",
         # GSI-2: English word lookup for Media reuse
         "english_word": normalize_word(result.get("english_word", "")),
-        "search_query": search_query,
         # Metadata
         "schema_version": 1,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "created_by": req.user_id or "anonymous",
-        "request_id": req.request_id,
     }
 
     item = {k: v for k, v in item.items() if v not in (None, [], "")}

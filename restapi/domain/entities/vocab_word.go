@@ -14,13 +14,12 @@ type VocabWord struct {
 	Examples         []map[string]string
 	Synonyms         []map[string]string
 	Media            map[string]interface{}
-	PronunciationURL map[string]string
+	Pronunciations   map[string]string
+	PhoneticGuide    string
 	EnglishWord      string
 	ConjugationTable string
 	CreatedAt        string
 	CreatedBy        string
-	SchemaVersion    int
-	SearchQuery      []string
 	SourcePos        string
 	Syllables        []string
 	TargetPos        string

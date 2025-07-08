@@ -12,7 +12,14 @@ import { ThemeService } from '../../services/theme.service';
 import { TranslationService } from '../../services/translation.service';
 import { TranslatePipe } from '../../shared/pipes/translate.pipe';
 import { WordService } from '../../services/word.service';
-import { VocabularyWord } from '../../models/word.model';
+import {
+  VocabularyWord,
+  ConjugationTable,
+  NonPersonalForms,
+  Mood,
+} from '../../models/word.model';
+import { getLanguageConfig, LanguageConfig } from './conjugation.config';
+import { AppConfig } from '../../shared/config';
 
 @Component({
   selector: 'app-word-card',
@@ -41,6 +48,7 @@ export class WordCard implements OnInit {
   word: VocabularyWord | null = null;
   loading = true;
   error: string | null = null;
+  langConfig: LanguageConfig = getLanguageConfig(null);
 
   // Computed properties for performance optimization
   get indicativeTenses() {
@@ -58,7 +66,7 @@ export class WordCard implements OnInit {
   }
 
   get hasMedia() {
-    return !!(this.word?.media && this.word.media.length > 0);
+    return !!this.word?.media;
   }
 
   get hasSynonyms() {
@@ -74,58 +82,31 @@ export class WordCard implements OnInit {
   }
 
   get hasIndicativo() {
-    const targetLang = this.word?.target_language;
     const conjugationTable = this.getConjugationTable();
-
-    if (targetLang === 'es') {
-      return !!conjugationTable?.['indicativo'];
-    } else if (targetLang === 'en') {
-      return !!conjugationTable?.['indicative'];
-    } else if (targetLang === 'de') {
-      return !!conjugationTable?.['indikativ'];
-    }
-    return false;
+    return !!conjugationTable?.[this.langConfig.moods.indicative];
   }
 
   get hasSubjuntivo() {
-    const targetLang = this.word?.target_language;
     const conjugationTable = this.getConjugationTable();
-
-    if (targetLang === 'es') {
-      return !!conjugationTable?.['subjuntivo'];
-    } else if (targetLang === 'en') {
-      return !!conjugationTable?.['subjunctive'];
-    } else if (targetLang === 'de') {
-      return !!conjugationTable?.['konjunktiv'];
-    }
-    return false;
+    return !!conjugationTable?.[this.langConfig.moods.subjunctive];
   }
 
   get hasFormasNoPersonales() {
-    const targetLang = this.word?.target_language;
     const conjugationTable = this.getConjugationTable();
-
-    if (targetLang === 'es') {
-      return !!conjugationTable?.['formas_no_personales'];
-    } else if (targetLang === 'en' || targetLang === 'de') {
-      return !!conjugationTable?.['non_personal_forms'];
-    }
-    return false;
+    return !!conjugationTable?.[this.langConfig.nonPersonalForms.key];
   }
 
   // Helper method to get properly parsed conjugation table
-  getConjugationTable(): any {
+  getConjugationTable(): ConjugationTable | null {
     if (!this.word?.conjugation_table) return null;
 
-    // If it's already an object, return it
     if (typeof this.word.conjugation_table === 'object') {
-      return this.word.conjugation_table;
+      return this.word.conjugation_table as ConjugationTable;
     }
 
-    // If it's a string, parse it
     if (typeof this.word.conjugation_table === 'string') {
       try {
-        return JSON.parse(this.word.conjugation_table);
+        return JSON.parse(this.word.conjugation_table) as ConjugationTable;
       } catch (error) {
         console.error('Error parsing conjugation table JSON:', error);
         return null;
@@ -137,155 +118,67 @@ export class WordCard implements OnInit {
 
   // Helper methods to get correct mood names for each language
   getIndicativeMoodName(): string {
-    const targetLang = this.word?.target_language;
-    if (targetLang === 'es') return 'indicativo';
-    if (targetLang === 'en') return 'indicative';
-    if (targetLang === 'de') return 'indikativ';
-    return 'indicativo'; // fallback
+    return this.langConfig.moods.indicative;
   }
 
   getSubjunctiveMoodName(): string {
-    const targetLang = this.word?.target_language;
-    if (targetLang === 'es') return 'subjuntivo';
-    if (targetLang === 'en') return 'subjunctive';
-    if (targetLang === 'de') return 'konjunktiv';
-    return 'subjuntivo'; // fallback
+    return this.langConfig.moods.subjunctive;
   }
 
   getNonPersonalFormsKey(): string {
-    const targetLang = this.word?.target_language;
-    if (targetLang === 'es') return 'formas_no_personales';
-    return 'non_personal_forms'; // for English and German
+    return this.langConfig.nonPersonalForms.key;
   }
 
   // Get non-personal forms data dynamically based on language
-  getNonPersonalForms(): any {
+  getNonPersonalForms(): NonPersonalForms | null {
     const key = this.getNonPersonalFormsKey();
     const conjugationTable = this.getConjugationTable();
-    return conjugationTable?.[key];
+    return (conjugationTable?.[key] as NonPersonalForms) || null;
   }
 
   // Get specific non-personal form values
   getInfinitive(): string {
     const forms = this.getNonPersonalForms();
-    const targetLang = this.word?.target_language;
-
-    if (targetLang === 'es') {
-      return forms?.['infinitivo'] || '';
-    } else if (targetLang === 'en') {
-      return forms?.['infinitive'] || '';
-    } else if (targetLang === 'de') {
-      return forms?.['infinitive'] || '';
-    }
-    return '';
+    const infinitiveKey = this.langConfig.nonPersonalForms.infinitive;
+    return forms?.[infinitiveKey] || '';
   }
 
   getParticiple(): string {
     const forms = this.getNonPersonalForms();
-    const targetLang = this.word?.target_language;
-
-    if (targetLang === 'es') {
-      return forms?.['participio'] || '';
-    } else if (targetLang === 'en') {
-      return forms?.['past_participle'] || '';
-    } else if (targetLang === 'de') {
-      return forms?.['partizip_perfekt'] || '';
-    }
-    return '';
+    const participleKey = this.langConfig.nonPersonalForms.participle;
+    return forms?.[participleKey] || '';
   }
 
   getGerund(): string {
     const forms = this.getNonPersonalForms();
-    const targetLang = this.word?.target_language;
-
-    if (targetLang === 'es') {
-      return forms?.['gerundio'] || '';
-    } else if (targetLang === 'en') {
-      return forms?.['present_participle'] || '';
-    } else if (targetLang === 'de') {
-      return forms?.['partizip_praesens'] || '';
-    }
-    return '';
+    const gerundKey = this.langConfig.nonPersonalForms.gerund;
+    return forms?.[gerundKey] || '';
   }
 
   // Get section header labels based on target language
   getNonPersonalFormsLabel(): string {
-    const targetLang = this.word?.target_language;
-
-    if (targetLang === 'es') {
-      return 'Formas no personales';
-    } else if (targetLang === 'en') {
-      return 'Non-personal forms';
-    } else if (targetLang === 'de') {
-      return 'Unpersönliche Formen';
-    }
-    return 'Non-personal forms';
+    return this.langConfig.labels.nonPersonalForms;
   }
 
   getIndicativeMoodLabel(): string {
-    const targetLang = this.word?.target_language;
-
-    if (targetLang === 'es') {
-      return 'Indicativo';
-    } else if (targetLang === 'en') {
-      return 'Indicative';
-    } else if (targetLang === 'de') {
-      return 'Indikativ';
-    }
-    return 'Indicative';
+    return this.langConfig.labels.indicativeMood;
   }
 
   getSubjunctiveMoodLabel(): string {
-    const targetLang = this.word?.target_language;
-
-    if (targetLang === 'es') {
-      return 'Subjuntivo';
-    } else if (targetLang === 'en') {
-      return 'Subjunctive';
-    } else if (targetLang === 'de') {
-      return 'Konjunktiv';
-    }
-    return 'Subjunctive';
+    return this.langConfig.labels.subjunctiveMood;
   }
 
   // Get individual form labels
   getInfinitiveLabel(): string {
-    const targetLang = this.word?.target_language;
-
-    if (targetLang === 'es') {
-      return 'Infinitivo';
-    } else if (targetLang === 'en') {
-      return 'Infinitive';
-    } else if (targetLang === 'de') {
-      return 'Infinitiv';
-    }
-    return 'Infinitive';
+    return this.langConfig.labels.infinitive;
   }
 
   getParticipleLabel(): string {
-    const targetLang = this.word?.target_language;
-
-    if (targetLang === 'es') {
-      return 'Participio';
-    } else if (targetLang === 'en') {
-      return 'Participle';
-    } else if (targetLang === 'de') {
-      return 'Partizip';
-    }
-    return 'Participle';
+    return this.langConfig.labels.participle;
   }
 
   getGerundLabel(): string {
-    const targetLang = this.word?.target_language;
-
-    if (targetLang === 'es') {
-      return 'Gerundio';
-    } else if (targetLang === 'en') {
-      return 'Gerund';
-    } else if (targetLang === 'de') {
-      return 'Gerundium';
-    }
-    return 'Gerund';
+    return this.langConfig.labels.gerund;
   }
 
   ngOnInit() {
@@ -295,20 +188,8 @@ export class WordCard implements OnInit {
 
     if (routeState && routeState['word']) {
       // Use the word data passed from search results
-      const wordFromSearch = routeState['word'] as VocabularyWord;
-
-      // If the search result doesn't have conjugation table, fetch full word data
-      if (!wordFromSearch.conjugation_table) {
-        this.loadWord(
-          wordFromSearch.source_language,
-          wordFromSearch.target_language,
-          wordFromSearch.source_word
-        );
-        return;
-      }
-
-      // Use search result data if it has conjugations
-      this.word = wordFromSearch;
+      this.word = routeState['word'] as VocabularyWord;
+      this.langConfig = getLanguageConfig(this.word);
       this.loading = false;
       return;
     }
@@ -336,6 +217,7 @@ export class WordCard implements OnInit {
       next: (data) => {
         if (data) {
           this.word = data;
+          this.langConfig = getLanguageConfig(this.word);
         } else {
           this.error = this.translationService.translate('wordCard.notFound');
         }
@@ -350,10 +232,21 @@ export class WordCard implements OnInit {
   }
 
   playPronunciation() {
-    if (this.word?.pronunciation_url) {
-      const audio = new Audio(this.word.pronunciation_url);
+    const url = this.getS3Url(this.word?.pronunciations.audio);
+    if (url) {
+      const audio = new Audio(url);
       audio.play().catch((err) => {
         console.error('Error playing audio:', err);
+      });
+    }
+  }
+
+  playSyllables() {
+    const url = this.getS3Url(this.word?.pronunciations.syllables);
+    if (url) {
+      const audio = new Audio(url);
+      audio.play().catch((err) => {
+        console.error('Error playing syllable audio:', err);
       });
     }
   }
@@ -364,67 +257,26 @@ export class WordCard implements OnInit {
 
   getIndicativeTenses(): string[] {
     const conjugationTable = this.getConjugationTable();
-    if (!conjugationTable) return [];
-
-    const targetLang = this.word?.target_language;
-
-    // Get the main indicative mood key for each language
-    if (targetLang === 'es' && conjugationTable['indicativo']) {
-      return Object.keys(conjugationTable['indicativo']);
-    } else if (targetLang === 'en' && conjugationTable['indicative']) {
-      return Object.keys(conjugationTable['indicative']);
-    } else if (targetLang === 'de' && conjugationTable['indikativ']) {
-      return Object.keys(conjugationTable['indikativ']);
-    }
-
-    return [];
+    const indicativeMoodName = this.getIndicativeMoodName();
+    const moodData = conjugationTable?.[indicativeMoodName];
+    return moodData ? Object.keys(moodData) : [];
   }
 
   getSubjunctiveTenses(): string[] {
     const conjugationTable = this.getConjugationTable();
-    if (!conjugationTable) return [];
-
-    const targetLang = this.word?.target_language;
-
-    // Get the subjunctive mood key for each language
-    if (targetLang === 'es' && conjugationTable['subjuntivo']) {
-      return Object.keys(conjugationTable['subjuntivo']);
-    } else if (targetLang === 'en' && conjugationTable['subjunctive']) {
-      return Object.keys(conjugationTable['subjunctive']);
-    } else if (targetLang === 'de' && conjugationTable['konjunktiv']) {
-      return Object.keys(conjugationTable['konjunktiv']);
-    }
-
-    return [];
+    const subjunctiveMoodName = this.getSubjunctiveMoodName();
+    const moodData = conjugationTable?.[subjunctiveMoodName];
+    return moodData ? Object.keys(moodData) : [];
   }
 
   getConjugationPronouns(mood: string, tense: string): string[] {
     const conjugationTable = this.getConjugationTable();
-    if (!conjugationTable) return [];
-
-    const targetLang = this.word?.target_language;
-
-    // Get pronouns based on language and access the conjugation data
-    let moodData: any = null;
-
-    if (targetLang === 'es') {
-      moodData =
-        mood === 'indicativo'
-          ? conjugationTable['indicativo']
-          : conjugationTable['subjuntivo'];
-    } else if (targetLang === 'en') {
-      moodData =
-        mood === 'indicative'
-          ? conjugationTable['indicative']
-          : conjugationTable['subjunctive'];
-    } else if (targetLang === 'de') {
-      moodData =
-        mood === 'indikativ'
-          ? conjugationTable['indikativ']
-          : conjugationTable['konjunktiv'];
+    if (!conjugationTable) {
+      return [];
     }
 
-    if (moodData && moodData[tense]) {
+    const moodData = conjugationTable[mood] as Mood;
+    if (moodData?.[tense]) {
       return Object.keys(moodData[tense]);
     }
 
@@ -432,105 +284,11 @@ export class WordCard implements OnInit {
   }
 
   getConjugationTenseLabel(tense: string): string {
-    const targetLang = this.word?.target_language;
-
-    // Spanish tense labels
-    if (targetLang === 'es') {
-      const spanishLabels: { [key: string]: string } = {
-        presente: 'Presente',
-        preterito_perfecto_simple: 'Pretérito Perfecto Simple',
-        preterito_imperfecto: 'Pretérito Imperfecto',
-        preterito_perfecto_compuesto: 'Pretérito Perfecto Compuesto',
-        preterito_pluscuamperfecto: 'Pretérito Pluscuamperfecto',
-        futuro: 'Futuro',
-        futuro_perfecto: 'Futuro Perfecto',
-        condicional: 'Condicional',
-        condicional_perfecto: 'Condicional Perfecto',
-      };
-      return spanishLabels[tense] || tense;
-    }
-
-    // English tense labels
-    if (targetLang === 'en') {
-      const englishLabels: { [key: string]: string } = {
-        present: 'Present',
-        past: 'Past',
-        present_perfect: 'Present Perfect',
-        past_perfect: 'Past Perfect',
-        present_perfect_progressive: 'Present Perfect Progressive',
-        past_perfect_progressive: 'Past Perfect Progressive',
-        future: 'Future',
-        future_perfect: 'Future Perfect',
-        future_progressive: 'Future Progressive',
-        future_perfect_progressive: 'Future Perfect Progressive',
-        conditional: 'Conditional',
-        conditional_perfect: 'Conditional Perfect',
-      };
-      return englishLabels[tense] || tense;
-    }
-
-    // German tense labels
-    if (targetLang === 'de') {
-      const germanLabels: { [key: string]: string } = {
-        praesens: 'Präsens',
-        praeteritum: 'Präteritum',
-        perfekt: 'Perfekt',
-        plusquamperfekt: 'Plusquamperfekt',
-        futur_i: 'Futur I',
-        futur_ii: 'Futur II',
-        konjunktiv_i: 'Konjunktiv I',
-        konjunktiv_ii: 'Konjunktiv II',
-        konjunktiv_perfekt: 'Konjunktiv Perfekt',
-      };
-      return germanLabels[tense] || tense;
-    }
-
-    return tense;
+    return this.langConfig.labels.tenses[tense] || tense;
   }
 
   getPronounLabel(pronoun: string): string {
-    const targetLang = this.word?.target_language;
-
-    // Spanish pronoun labels
-    if (targetLang === 'es') {
-      const spanishLabels: { [key: string]: string } = {
-        yo: 'Yo',
-        tu: 'Tú',
-        el_ella_usted: 'Él/Ella/Usted',
-        nosotros_nosotras: 'Nosotros/Nosotras',
-        vosotros_vosotras: 'Vosotros/Vosotras',
-        ellos_ellas_ustedes: 'Ellos/Ellas/Ustedes',
-      };
-      return spanishLabels[pronoun] || pronoun;
-    }
-
-    // English pronoun labels
-    if (targetLang === 'en') {
-      const englishLabels: { [key: string]: string } = {
-        I: 'I',
-        you: 'You',
-        he_she_it: 'He/She/It',
-        we: 'We',
-        you_plural: 'You (plural)',
-        they: 'They',
-      };
-      return englishLabels[pronoun] || pronoun;
-    }
-
-    // German pronoun labels
-    if (targetLang === 'de') {
-      const germanLabels: { [key: string]: string } = {
-        ich: 'Ich',
-        du: 'Du',
-        er_sie_es: 'Er/Sie/Es',
-        wir: 'Wir',
-        ihr: 'Ihr',
-        sie: 'Sie',
-      };
-      return germanLabels[pronoun] || pronoun;
-    }
-
-    return pronoun;
+    return this.langConfig.labels.pronouns[pronoun] || pronoun;
   }
 
   formatDate(dateString: string | undefined): string {
@@ -576,10 +334,23 @@ export class WordCard implements OnInit {
     if (!conjugationTable) return '';
 
     try {
-      return conjugationTable[mood]?.[tense]?.[pronoun] || '';
+      const moodData = conjugationTable[mood] as Mood;
+      return moodData?.[tense]?.[pronoun] || '';
     } catch (error) {
       console.error('Error getting conjugation value:', error);
       return '';
     }
+  }
+
+  getS3Url(key: string | undefined): string {
+    if (!key) {
+      return '';
+    }
+    // If the key is already a full URL, return it
+    if (key.startsWith('http')) {
+      return key;
+    }
+    // Otherwise, construct the full URL
+    return `${AppConfig.s3BaseUrl}${key}`;
   }
 }

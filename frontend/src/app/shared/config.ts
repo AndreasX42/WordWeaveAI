@@ -26,3 +26,8 @@ export class Configs {
   // logging
   static readonly LOG_URL = '/log';
 }
+
+export const AppConfig = {
+  apiBaseUrl: 'http://localhost:3000',
+  s3BaseUrl: 'https://cfn-vocab-app-storage-bucket.s3.us-east-1.amazonaws.com/',
+};

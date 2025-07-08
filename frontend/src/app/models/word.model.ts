@@ -23,17 +23,18 @@ export interface VocabularyWord {
   english_word?: string;
   synonyms: Synonym[];
   examples: Example[];
-  conjugation_table?: ConjugationTable;
-  pronunciation_url: string;
-  media: Media[];
+  conjugation_table?: ConjugationTable | string;
+  pronunciations: Pronunciation;
+  media: Media;
 
   // Reverse Lookup fields
   LKP?: string;
   SRC_LANG?: string;
 
   // Metadata
-  created_at: string;
+  created_at?: string;
   created_by: string;
+  updated_at?: string;
 }
 
 export interface SearchResponse {
@@ -53,27 +54,36 @@ export interface Example {
   context?: string;
 }
 
+export interface NonPersonalForms {
+  [form: string]: string;
+}
+
+export interface Tense {
+  [pronoun: string]: string;
+}
+
+export interface Mood {
+  [tense: string]: Tense;
+}
+
 export interface ConjugationTable {
-  formas_no_personales?: {
-    infinitivo?: string;
-    participio?: string;
-    gerundio?: string;
-  };
-  indicativo?: {
-    [tense: string]: {
-      [pronoun: string]: string;
-    };
-  };
-  subjuntivo?: {
-    [tense: string]: {
-      [pronoun: string]: string;
-    };
-  };
-  [mode: string]: any;
+  [moodOrFormType: string]: Mood | NonPersonalForms;
+}
+
+export interface Pronunciation {
+  audio: string;
+  syllables: string;
+}
+
+export interface MediaSource {
+  large2x: string;
+  small: string;
 }
 
 export interface Media {
-  type: 'image' | 'video';
+  alt: string;
+  explanation: string;
+  memory_tip: string;
+  src: MediaSource;
   url: string;
-  caption?: string;
 }
