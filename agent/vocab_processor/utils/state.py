@@ -72,7 +72,6 @@ class VocabState(BaseModel):
     )
 
     # Fields from enrichment steps
-    # If Synonym, ExampleSentence, Media, etc. are Pydantic models, use them here for better type safety.
     english_word: Optional[str] = Field(
         None, description="The English word for the target word."
     )

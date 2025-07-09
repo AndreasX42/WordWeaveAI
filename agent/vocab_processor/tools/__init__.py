@@ -4,7 +4,7 @@ from vocab_processor.tools.base_tool import (
     create_llm_response,
     create_tool_error_response,
 )
-from vocab_processor.tools.categrization_tool import get_classification
+from vocab_processor.tools.classification_tool import get_classification
 from vocab_processor.tools.conjugation_tool import get_conjugation
 from vocab_processor.tools.examples_tool import get_examples
 from vocab_processor.tools.media_tool import get_media

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/AndreasX42/restapi/domain/entities"
@@ -42,24 +43,34 @@ func (s *VocabService) SearchVocabulary(ctx context.Context, req SearchVocabular
 
 	fmt.Println("1 - normalizedQuery", normalizedQuery)
 
-	// Choose search strategy based on language specification
+	var results []entities.VocabWord
+	var err error
+
+	fmt.Println("2 - start search")
+	now := time.Now()
+
+	// If language(s) are specified, use primary and sort keys
 	if req.SourceLang != "" || req.TargetLang != "" {
-		// Targeted search when languages are specified
-		results, err := s.vocabRepo.SearchByWordWithLanguages(ctx, normalizedQuery, req.SourceLang, req.TargetLang, req.Limit)
-		fmt.Println("4 - results", results)
+		results, err = s.vocabRepo.SearchByWordWithLanguages(ctx, normalizedQuery, req.SourceLang, req.TargetLang, req.Limit)
+		fmt.Println("3 - search time after lang search", time.Since(now))
 		if err != nil {
 			return nil, err
 		}
-		return results, nil
-	} else {
-		// Comprehensive search across all supported languages
-		supportedLanguages := []string{"en", "es", "de"}
-		results, err := s.vocabRepo.SearchByNormalizedWord(ctx, normalizedQuery, supportedLanguages, req.Limit)
-		if err != nil {
-			return nil, err
+
+		if len(results) > 0 {
+			return results, nil
 		}
-		return results, nil
 	}
+
+	// if no languages were specified, perform a comprehensive search across all supported languages.
+	supportedLanguages := []string{"en", "es", "de"}
+	results, err = s.vocabRepo.SearchByNormalizedWord(ctx, normalizedQuery, supportedLanguages, req.Limit)
+	fmt.Println("4 - search time after comprehensive search", time.Since(now))
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("-1 - results", results)
+	return results, nil
 }
 
 // normalizeWord matches the Python normalize_word function exactly

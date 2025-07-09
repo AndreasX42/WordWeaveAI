@@ -339,6 +339,7 @@ async def node_get_translation(state: VocabState) -> VocabState:
         "target_part_of_speech": result.get("target_part_of_speech"),
         "target_article": result.get("target_article"),
         "target_additional_info": result.get("target_additional_info"),
+        "english_word": result.get("english_word"),
         "translation_quality_approved": result.get(
             "translation_quality_approved", False
         ),
@@ -438,6 +439,7 @@ async def node_get_media(state: VocabState) -> VocabState:
     inputs = {
         "source_word": state.source_word,
         "target_word": state.target_word,
+        "english_word": state.english_word,
         "source_language": state.source_language,
         "target_language": state.target_language,
     }
@@ -451,7 +453,6 @@ async def node_get_media(state: VocabState) -> VocabState:
         "media_result",
         word=state.source_word,
         media=result.get("media", None),
-        english_word=result.get("english_word", None),
         search_query=result.get("search_query", []),
         media_reused=result.get("media_reused", False),
         quality_approved=result.get("media_quality_approved", False),
@@ -460,7 +461,6 @@ async def node_get_media(state: VocabState) -> VocabState:
 
     return {
         "media": result.get("media", None),
-        "english_word": result.get("english_word", None),
         "search_query": result.get("search_query", []),
         "media_reused": result.get("media_reused", False),
         "media_quality_approved": result.get("media_quality_approved", False),

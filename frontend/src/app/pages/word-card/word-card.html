@@ -31,10 +31,10 @@
           </h1>
           <h2 class="target-word">
             {{ word.target_word }}
-            @if (word.pronunciations.audio) {
+            @if (word.target_pronunciations?.audio) {
             <button
               mat-icon-button
-              (click)="playPronunciation()"
+              (click)="playCombinedAudio()"
               class="pronunciation-button"
             >
               <mat-icon>volume_up</mat-icon>
@@ -48,14 +48,6 @@
             <span class="phonetic-guide">
               [{{ word.target_phonetic_guide }}]
             </span>
-            } @if (word.pronunciations.syllables) {
-            <button
-              mat-icon-button
-              (click)="playSyllables()"
-              class="pronunciation-button syllables-audio-button"
-            >
-              <mat-icon>volume_up</mat-icon>
-            </button>
             }
           </div>
           }
@@ -86,20 +78,14 @@
             </div>
             }
           </div>
-
-          <!-- Usage Hint -->
-          <div class="usage-hint">
-            <mat-icon class="hint-icon">info</mat-icon>
-            <span>Commonly used in legal and financial contexts.</span>
-          </div>
         </div>
 
         <!-- Media Section -->
-        @if (hasMedia) {
+        @if (hasMedia && word.media?.src?.large) {
         <div class="media-section">
           <img
-            [src]="getS3Url(word.media!.src.large2x)"
-            [alt]="word.media!.alt"
+            [src]="getS3Url(word.media?.src?.large)"
+            [alt]="word.media?.alt"
             class="word-image"
           />
         </div>
@@ -116,7 +102,16 @@
           </ng-template>
 
           <div class="tab-content">
-            @if (word.source_definition) {
+            @if (word.target_additional_info) {
+            <div class="usage-hint">
+              <div class="hint-icon-wrapper">
+                <mat-icon class="hint-icon">info</mat-icon>
+              </div>
+              <div class="hint-text">
+                {{ word.target_additional_info }}
+              </div>
+            </div>
+            } @if (word.source_definition) {
             <div class="definitions">
               @if (isArray(word.source_definition)) {
               <ul>

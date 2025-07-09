@@ -36,10 +36,10 @@ export class HealthDashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadData();
-    // Auto-refresh every 10 seconds
+    // Auto-refresh every 60 seconds
     this.refreshInterval = window.setInterval(() => {
       this.loadData();
-    }, 10000);
+    }, 60000);
   }
 
   ngOnDestroy(): void {

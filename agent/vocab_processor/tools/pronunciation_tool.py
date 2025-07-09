@@ -1,3 +1,6 @@
+import asyncio
+import os
+import random
 from typing import Dict, Optional
 
 from aws_lambda_powertools import Logger
@@ -16,6 +19,28 @@ from vocab_processor.utils.s3_utils import (
 
 logger = Logger(service="vocab-processor")
 
+# Configuration constants
+MAX_AUDIO_SIZE_MB = 5  # Maximum audio file size in MB
+MAX_AUDIO_RETRIES = 3  # Maximum retry attempts for failed audio generation
+AUDIO_TIMEOUT_SECONDS = 30  # Timeout for audio generation requests
+
+# Voice configuration with environment variable support
+VOICE_CONFIG = {
+    "voice_id": os.getenv(
+        "ELEVENLABS_VOICE_ID", "94zOad0g7T7K4oa7zhDq"
+    ),  # Default: Mauricio
+    "model_id": os.getenv("ELEVENLABS_MODEL_ID", "eleven_flash_v2_5"),
+    "word_speed": float(os.getenv("ELEVENLABS_WORD_SPEED", "0.85")),
+    "syllables_speed": float(os.getenv("ELEVENLABS_SYLLABLES_SPEED", "0.7")),
+    "voice_settings": {
+        "stability": float(os.getenv("ELEVENLABS_STABILITY", "0.9")),
+        "similarity_boost": float(os.getenv("ELEVENLABS_SIMILARITY_BOOST", "0.9")),
+        "style": float(os.getenv("ELEVENLABS_STYLE", "0.9")),
+        "use_speaker_boost": os.getenv("ELEVENLABS_SPEAKER_BOOST", "true").lower()
+        == "true",
+    },
+}
+
 
 class PronunciationResult(BaseModel):
     """Result of pronunciation generation with audio URLs."""
@@ -25,19 +50,101 @@ class PronunciationResult(BaseModel):
     )
 
 
-# Voice configuration
-VOICE_CONFIG = {
-    "voice_id": "94zOad0g7T7K4oa7zhDq",  # Mauricio
-    "model_id": "eleven_flash_v2_5",
-    "word_speed": 0.85,
-    "syllables_speed": 0.7,
-    "voice_settings": {
-        "stability": 0.9,
-        "similarity_boost": 0.9,
-        "style": 0.9,
-        "use_speaker_boost": True,
-    },
-}
+async def generate_audio_with_retry(
+    client: AsyncElevenLabs,
+    text: str,
+    voice_id: str,
+    language_code: str,
+    model_id: str,
+    voice_settings: VoiceSettings,
+    max_retries: int = MAX_AUDIO_RETRIES,
+) -> any:
+    """Generate audio with retry logic and exponential backoff."""
+
+    for attempt in range(max_retries):
+        try:
+            # Generate audio stream with timeout
+            async def generate_audio():
+                audio_generator = client.text_to_speech.convert(
+                    text=text,
+                    voice_id=voice_id,
+                    language_code=language_code,
+                    model_id=model_id,
+                    output_format="mp3_44100_128",
+                    voice_settings=voice_settings,
+                )
+
+                # Validate audio size by collecting chunks
+                chunks = []
+                total_size = 0
+
+                async for chunk in audio_generator:
+                    chunks.append(chunk)
+                    total_size += len(chunk)
+
+                    # Check size limit during streaming
+                    if total_size > MAX_AUDIO_SIZE_MB * 1024 * 1024:
+                        raise RuntimeError(
+                            f"Audio file too large: {total_size / (1024*1024):.2f}MB > {MAX_AUDIO_SIZE_MB}MB"
+                        )
+
+                return chunks
+
+            # Apply timeout to audio generation
+            chunks = await asyncio.wait_for(
+                generate_audio(), timeout=AUDIO_TIMEOUT_SECONDS
+            )
+
+            # Validate audio quality
+            if not validate_audio_quality(chunks, text):
+                raise RuntimeError(f"Audio quality validation failed for text: {text}")
+
+            # Return async generator that yields the collected chunks
+            async def replay_chunks():
+                for chunk in chunks:
+                    yield chunk
+
+            return replay_chunks()
+
+        except asyncio.TimeoutError:
+            error_msg = f"Audio generation timed out after {AUDIO_TIMEOUT_SECONDS}s"
+            if attempt < max_retries - 1:
+                delay = (2**attempt) + random.uniform(0, 1)
+                logger.warning(
+                    f"Audio generation attempt {attempt + 1} timed out, retrying in {delay:.2f}s"
+                )
+                await asyncio.sleep(delay)
+            else:
+                raise RuntimeError(error_msg)
+        except Exception as e:
+            if attempt < max_retries - 1:
+                delay = (2**attempt) + random.uniform(
+                    0, 1
+                )  # Exponential backoff with jitter
+                logger.warning(
+                    f"Audio generation attempt {attempt + 1} failed: {str(e)}, retrying in {delay:.2f}s"
+                )
+                await asyncio.sleep(delay)
+            else:
+                raise e
+
+    raise RuntimeError(f"Max retries exceeded for audio generation")
+
+
+def validate_audio_quality(chunks: list, text: str) -> bool:
+    """Validate audio quality based on size and content."""
+    total_size = sum(len(chunk) for chunk in chunks)
+
+    # Audio file should be at least 1KB (very small files indicate errors)
+    if total_size < 1024:
+        logger.warning(f"Audio file too small: {total_size} bytes for text '{text}'")
+        return False
+
+    # Log audio size for monitoring
+    size_kb = total_size / 1024
+    logger.info(f"Generated audio: {size_kb:.2f}KB for text '{text[:50]}...'")
+
+    return True
 
 
 @tool
@@ -82,36 +189,76 @@ async def get_pronunciation(
                 use_speaker_boost=VOICE_CONFIG["voice_settings"]["use_speaker_boost"],
             )
 
-            # Generate audio stream
-            audio_generator = client.text_to_speech.convert(
+            # Generate audio stream with retry logic
+            audio_generator = await generate_audio_with_retry(
+                client=client,
                 text=text,
                 voice_id=VOICE_CONFIG["voice_id"],
                 language_code=language_code,
                 model_id=VOICE_CONFIG["model_id"],
-                output_format="mp3_44100_128",
                 voice_settings=voice_settings,
             )
 
             # Upload stream directly to S3
             return await upload_stream_to_s3(audio_generator, s3_key, "audio/mpeg")
 
-        # Generate pronunciation audio
-        audio_url = await generate_and_upload_audio(target_word, "pronunciation.mp3")
+        # Prepare all audio generation tasks
+        tasks = []
+        task_names = []
 
-        result = {
-            "audio": audio_url,
-        }
+        # Always generate word pronunciation
+        tasks.append(
+            generate_and_upload_audio(
+                target_word,
+                "pronunciation.mp3",
+            )
+        )
+        task_names.append("audio")
 
-        # Generate syllable audio if provided
+        # Generate syllables audio if provided
         if len(target_syllables) > 0:
             syllables_text = "\n\n".join(target_syllables)
-            syllables_url = await generate_and_upload_audio(
-                syllables_text, "syllables.mp3", is_syllables=True
+            tasks.append(
+                generate_and_upload_audio(
+                    syllables_text, "syllables.mp3", is_syllables=True
+                )
             )
-            result["syllables"] = syllables_url
+            task_names.append("syllables")
+
+        # Execute all audio generation tasks in parallel
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Process results
+        result = {}
+        failed_tasks = []
+
+        for i, (task_result, task_name) in enumerate(zip(results, task_names)):
+            if isinstance(task_result, Exception):
+                failed_tasks.append(f"{task_name}: {str(task_result)}")
+                logger.error(
+                    f"audio_generation_failed_{task_name}", error=str(task_result)
+                )
+            else:
+                result[task_name] = task_result
+
+        # Log results
+        if failed_tasks:
+            logger.warning(f"Some audio generation tasks failed: {failed_tasks}")
+
+        # Return results even if some tasks failed (partial success)
+        if not result:
+            # All tasks failed
+            logger.error("All audio generation tasks failed")
+            return PronunciationResult(
+                pronunciations={"error": "All audio generation failed"}
+            )
 
         if is_lambda_context():
-            logger.info(f"Audio files uploaded to S3: {audio_prefix}/")
+            logger.info(
+                f"Audio files uploaded to S3: {audio_prefix}/",
+                successful_count=len(result),
+                failed_count=len(failed_tasks),
+            )
         else:
             logger.info(
                 f"Local dev mode: mock audio URLs generated for {audio_prefix}/"
@@ -120,6 +267,7 @@ async def get_pronunciation(
         return PronunciationResult(pronunciations=result)
 
     except Exception as e:
+        logger.error(f"Pronunciation tool failed: {str(e)}")
         context = {
             "target_word": target_word,
             "target_syllables": target_syllables,

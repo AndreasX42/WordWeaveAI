@@ -24,8 +24,8 @@ export interface VocabularyWord {
   synonyms: Synonym[];
   examples: Example[];
   conjugation_table?: ConjugationTable | string;
-  pronunciations: Pronunciation;
-  media: Media;
+  target_pronunciations?: Pronunciation;
+  media?: Media;
 
   // Reverse Lookup fields
   LKP?: string;
@@ -77,7 +77,8 @@ export interface Pronunciation {
 
 export interface MediaSource {
   large2x: string;
-  small: string;
+  large: string;
+  medium: string;
 }
 
 export interface Media {

@@ -25,20 +25,23 @@
         <div class="language-selectors">
           <mat-form-field appearance="outline" class="language-select">
             <mat-label>{{ "search.sourceLanguage" | translate }}</mat-label>
-            <mat-select
-              [(ngModel)]="sourceLanguage"
-              (ngModelChange)="onLanguageChange()"
-            >
+            <mat-select [formControl]="sourceLanguageControl">
               <mat-option value="">{{
                 "search.selectLanguage" | translate
               }}</mat-option>
-              <mat-option value="en" [disabled]="targetLanguage === 'en'"
+              <mat-option
+                value="en"
+                [disabled]="targetLanguageControl.value === 'en'"
                 >English</mat-option
               >
-              <mat-option value="es" [disabled]="targetLanguage === 'es'"
+              <mat-option
+                value="es"
+                [disabled]="targetLanguageControl.value === 'es'"
                 >Spanish</mat-option
               >
-              <mat-option value="de" [disabled]="targetLanguage === 'de'"
+              <mat-option
+                value="de"
+                [disabled]="targetLanguageControl.value === 'de'"
                 >German</mat-option
               >
             </mat-select>
@@ -48,27 +51,32 @@
             mat-icon-button
             class="swap-button"
             (click)="swapLanguages()"
-            [disabled]="!sourceLanguage && !targetLanguage"
+            [disabled]="
+              !sourceLanguageControl.value && !targetLanguageControl.value
+            "
           >
             <mat-icon>swap_horiz</mat-icon>
           </button>
 
           <mat-form-field appearance="outline" class="language-select">
             <mat-label>{{ "search.targetLanguage" | translate }}</mat-label>
-            <mat-select
-              [(ngModel)]="targetLanguage"
-              (ngModelChange)="onLanguageChange()"
-            >
+            <mat-select [formControl]="targetLanguageControl">
               <mat-option value="">{{
                 "search.selectLanguage" | translate
               }}</mat-option>
-              <mat-option value="en" [disabled]="sourceLanguage === 'en'"
+              <mat-option
+                value="en"
+                [disabled]="sourceLanguageControl.value === 'en'"
                 >English</mat-option
               >
-              <mat-option value="es" [disabled]="sourceLanguage === 'es'"
+              <mat-option
+                value="es"
+                [disabled]="sourceLanguageControl.value === 'es'"
                 >Spanish</mat-option
               >
-              <mat-option value="de" [disabled]="sourceLanguage === 'de'"
+              <mat-option
+                value="de"
+                [disabled]="sourceLanguageControl.value === 'de'"
                 >German</mat-option
               >
             </mat-select>
@@ -79,76 +87,110 @@
         <div class="search-wrapper">
           <div class="search-input-group">
             <input
+              #searchInput
               type="text"
               class="search-input"
-              [(ngModel)]="searchTerm"
+              autocomplete="off"
+              aria-autocomplete="list"
+              aria-controls="searchResults"
+              [formControl]="searchControl"
               (keyup.enter)="search()"
-              (input)="onSearchInput()"
               [placeholder]="'search.inputPlaceholder' | translate"
-              [disabled]="loading"
             />
 
-            @if (searchTerm && !loading) {
-            <button
-              type="button"
-              class="clear-btn"
-              (click)="clearSearch()"
-              aria-label="Clear search"
-            >
-              <mat-icon>close</mat-icon>
-            </button>
-            } @if (loading) {
-            <div class="loading-spinner">
-              <mat-spinner diameter="20" strokeWidth="3"></mat-spinner>
+            <div class="input-adornments">
+              @if (loading) {
+              <div class="loading-spinner">
+                <mat-spinner diameter="20" strokeWidth="3"></mat-spinner>
+              </div>
+              } @else if (searchControl.value) {
+              <button
+                type="button"
+                class="clear-btn"
+                (click)="clearSearch()"
+                aria-label="Clear search"
+              >
+                <mat-icon>close</mat-icon>
+              </button>
+              }
             </div>
-            }
 
             <button
               type="button"
               class="search-btn"
               (click)="search()"
-              [disabled]="!searchTerm || loading"
+              [disabled]="!searchControl.value || loading"
               aria-label="Search"
             >
               <mat-icon>search</mat-icon>
             </button>
           </div>
 
-          <!-- Search Results Dropdown -->
-          @if (searchResults && searchResults.length > 0) {
-          <div class="results-dropdown">
-            @for (word of searchResults; track word.source_word +
-            word.target_word) {
-            <div class="result-item" (click)="openWord(word)">
-              <div class="result-row">
-                <div class="source-info">
-                  <span class="flag">{{
-                    getLanguageFlag(word.source_language)
-                  }}</span>
-                  @if (word.source_pos) {
-                  <span class="pos">{{ word.source_pos }}</span>
-                  <span class="word">{{ word.source_word }}</span>
-                  }
-                </div>
-                <mat-icon class="arrow">arrow_forward</mat-icon>
-                <div class="target-info">
-                  <span class="flag">{{
-                    getLanguageFlag(word.target_language)
-                  }}</span>
-                  <span class="word target">{{ word.target_word }}</span>
-                </div>
+          <!-- Search Results Dropdown (stable) -->
+          <div
+            id="searchResults"
+            class="results-dropdown"
+            role="listbox"
+            *ngIf="hasSearched && !loading"
+          >
+            <!-- Error state -->
+            <ng-container *ngIf="searchError; else resultsOrEmpty">
+              <div class="error-message">
+                <mat-icon>error_outline</mat-icon>
+                <span>{{ searchError }}</span>
               </div>
-            </div>
-            }
+            </ng-container>
+
+            <!-- Results or No-results -->
+            <ng-template #resultsOrEmpty>
+              <ng-container *ngIf="searchResults.length > 0; else noResults">
+                <div
+                  *ngFor="let word of searchResults; trackBy: trackWord"
+                  class="result-item"
+                  role="option"
+                  tabindex="0"
+                  (click)="openWord(word)"
+                  (keydown.enter)="openWord(word)"
+                  (keydown.space)="openWord(word)"
+                >
+                  <div class="result-row">
+                    <div class="source-info">
+                      <span class="flag">{{
+                        getLanguageFlag(word.source_language)
+                      }}</span>
+                      <ng-container *ngIf="word.source_pos">
+                        <span class="pos">{{ word.source_pos }}</span>
+                        <span
+                          class="word"
+                          [innerHTML]="
+                            word.source_word | highlight : searchControl.value
+                          "
+                        ></span>
+                      </ng-container>
+                    </div>
+                    <mat-icon class="arrow">arrow_forward</mat-icon>
+                    <div class="target-info">
+                      <span class="flag">{{
+                        getLanguageFlag(word.target_language)
+                      }}</span>
+                      <span
+                        class="word target"
+                        [innerHTML]="
+                          word.target_word | highlight : searchControl.value
+                        "
+                      ></span>
+                    </div>
+                  </div>
+                </div>
+              </ng-container>
+              <ng-template #noResults>
+                <div class="no-results">
+                  <mat-icon>search_off</mat-icon>
+                  <span>{{ "search.noResults" | translate }}</span>
+                </div>
+              </ng-template>
+            </ng-template>
           </div>
-          } @else if (hasSearched && !loading && searchResults.length === 0) {
-          <div class="results-dropdown">
-            <div class="no-results">
-              <mat-icon>search_off</mat-icon>
-              <span>{{ "search.noResults" | translate }}</span>
-            </div>
-          </div>
-          }
         </div>
       </div>
     </div>

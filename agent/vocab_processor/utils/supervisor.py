@@ -1,5 +1,3 @@
-import asyncio
-import logging
 from enum import Enum
 from typing import Any
 
@@ -8,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from vocab_processor.constants import LLMVariant
 from vocab_processor.tools.base_tool import SystemMessages, create_llm_response
-from vocab_processor.tools.categrization_tool import WordCategorization
+from vocab_processor.tools.classification_tool import WordCategorization
 from vocab_processor.tools.conjugation_tool import ConjugationResult
 from vocab_processor.tools.examples_tool import Examples
 from vocab_processor.tools.syllables_tool import SyllableBreakdown
@@ -687,7 +685,7 @@ def create_fallback_result(
             "media": {
                 "url": "",
                 "alt": f"Image unavailable for {inputs.get('target_word', 'word')}",
-                "src": {"large2x": "", "small": ""},
+                "src": {"large2x": "", "large": "", "medium": ""},
                 "explanation": "Unable to generate image at this time.",
                 "memory_tip": "Try visualizing the word concept in your mind.",
             },

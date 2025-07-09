@@ -23,6 +23,8 @@ type VocabWord struct {
 	SourcePos        string
 	Syllables        []string
 	TargetPos        string
+	SourceAddInfo    string
+	TargetAddInfo    string
 }
 
 // VocabKey represents a vocabulary table key pair

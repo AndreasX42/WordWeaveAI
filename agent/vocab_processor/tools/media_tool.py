@@ -1,4 +1,6 @@
+import asyncio
 import os
+import random
 from typing import Any, List, Optional
 
 import aiohttp
@@ -29,18 +31,19 @@ PEXELS_PHOTO_SEARCH_URL = "https://api.pexels.com/v1/search"
 HTTP_TIMEOUT = 30
 PHOTOS_PER_PAGE = 10
 
+# S3 Upload configuration
+MAX_IMAGE_SIZE_MB = 5
+MAX_UPLOAD_RETRIES = 3
+
 # HTTP session configuration
 _session_config = aiohttp.ClientTimeout(total=HTTP_TIMEOUT, connect=5)
 
 
-class TranslationResult(BaseModel):
-    english_word: str = Field(
-        description="The English translation of the target word including article if it is a proper noun or 'to' if it is a verb"
-    )
+class SearchQueryResult(BaseModel):
     search_query: list[str] = Field(
-        description="English search query plus 2 or 3 descriptive synonyms to find the most relevant photos in Pexels",
+        description="English search query to find the most relevant photos in Pexels, consisting of 2-5 english words.",
         min_length=2,
-        max_length=3,
+        max_length=5,
     )
 
 
@@ -80,7 +83,8 @@ async def fetch_photos(query: str | list[str], per_page: int = 3) -> list[PhotoO
             for photo in photos_data:
                 photo["src"] = {
                     "large2x": photo["src"]["large2x"],
-                    "small": photo["src"]["small"],
+                    "large": photo["src"]["large"],
+                    "medium": photo["src"]["medium"],
                 }
 
             return [PhotoOption(**photo) for photo in photos_data]
@@ -101,7 +105,8 @@ def _create_mock_photos(search_query: str, per_page: int) -> list[PhotoOption]:
             "avg_color": "#8B7355",
             "src": {
                 "large2x": f"https://mock-pexels.local/photo/{i+1}_large2x.jpg",
-                "small": f"https://mock-pexels.local/photo/{i+1}_small.jpg",
+                "large": f"https://mock-pexels.local/photo/{i+1}_large.jpg",
+                "medium": f"https://mock-pexels.local/photo/{i+1}_medium.jpg",
             },
             "liked": False,
             "alt": f"Mock photo {i+1} for {search_query}",
@@ -122,8 +127,33 @@ async def upload_to_s3(url: str, s3_key: str) -> str:
         async with aiohttp.ClientSession(timeout=_session_config) as session:
             async with session.get(url) as response:
                 if response.status == 200:
-                    # Read image data and upload directly to S3
+                    # Get content length for size validation
+                    content_length = response.headers.get("content-length")
+
+                    if content_length:
+                        size_mb = int(content_length) / (1024 * 1024)
+
+                        # Validate image size before download
+                        if size_mb > MAX_IMAGE_SIZE_MB:
+                            logger.warning(
+                                f"Image too large: {s3_key} ({size_mb:.2f}MB > {MAX_IMAGE_SIZE_MB}MB)"
+                            )
+                            return f"Error: Image too large ({size_mb:.2f}MB)"
+
+                    # Download image data
                     image_data = await response.read()
+
+                    # Validate size after download (fallback if no content-length header)
+                    if not content_length:
+                        size_mb = len(image_data) / (1024 * 1024)
+                        if size_mb > MAX_IMAGE_SIZE_MB:
+                            logger.warning(
+                                f"Downloaded image too large: {s3_key} ({size_mb:.2f}MB > {MAX_IMAGE_SIZE_MB}MB)"
+                            )
+                            return (
+                                f"Error: Downloaded image too large ({size_mb:.2f}MB)"
+                            )
+
                     return await upload_bytes_to_s3(image_data, s3_key, "image/jpeg")
                 else:
                     raise RuntimeError(
@@ -134,10 +164,46 @@ async def upload_to_s3(url: str, s3_key: str) -> str:
         return f"Error: {str(e)}"
 
 
+async def upload_to_s3_with_retry(
+    url: str, s3_key: str, max_retries: int = MAX_UPLOAD_RETRIES
+) -> str:
+    """Upload to S3 with retry logic and exponential backoff."""
+    for attempt in range(max_retries):
+        try:
+            result = await upload_to_s3(url, s3_key)
+            if not result.startswith("Error"):
+                return result
+
+            # If we get an error result, treat it as a failed attempt
+            if attempt < max_retries - 1:
+                delay = (2**attempt) + random.uniform(
+                    0, 1
+                )  # Exponential backoff with jitter
+                logger.warning(
+                    f"Upload attempt {attempt + 1} failed for {s3_key}, retrying in {delay:.2f}s"
+                )
+                await asyncio.sleep(delay)
+            else:
+                return result
+
+        except Exception as e:
+            if attempt < max_retries - 1:
+                delay = (2**attempt) + random.uniform(0, 1)
+                logger.warning(
+                    f"Upload attempt {attempt + 1} failed for {s3_key}: {str(e)}, retrying in {delay:.2f}s"
+                )
+                await asyncio.sleep(delay)
+            else:
+                return f"Error: {str(e)}"
+
+    return f"Error: Max retries exceeded for {s3_key}"
+
+
 @tool
 async def get_media(
     source_word: str,
     target_word: str,
+    english_word: str,
     source_language: Language,
     target_language: Language,
     quality_feedback: Optional[str] = None,
@@ -155,34 +221,36 @@ async def get_media(
 
     try:
         # First, translate target word to English and get search criteria
-        translation_prompt = f"For '{target_word}' ({target_language}): provide english_word + 2-3 descriptive English search terms."
+        search_query_prompt = f"For the english word '{english_word}' come up with the optimal search query to find the most relevant photos in Pexels. The search query should be in English."
 
-        translation_result = await create_llm_response(
-            response_model=TranslationResult,
-            user_prompt=translation_prompt,
+        search_query_result = await create_llm_response(
+            response_model=SearchQueryResult,
+            user_prompt=search_query_prompt,
         )
 
         # Check if we already have Media object for any similar search words
         existing_media = await get_existing_media_for_search_words(
-            translation_result.search_query
+            search_query_result.search_query
         )
         if existing_media:
             return await _adapt_existing_media(
                 existing_media,
                 source_word,
                 target_word,
+                english_word,
                 source_language,
                 target_language,
-                translation_result,
+                search_query_result,
             )
 
         # If no database entry, fetch from Pexels API
         return await _create_new_media(
             source_word,
             target_word,
+            english_word,
             source_language,
             target_language,
-            translation_result,
+            search_query_result,
             quality_feedback,
             previous_issues,
         )
@@ -201,14 +269,15 @@ async def _adapt_existing_media(
     existing_media: dict,
     source_word: str,
     target_word: str,
+    english_word: str,
     source_language: Language,
     target_language: Language,
-    translation_result: TranslationResult,
+    search_query_result: SearchQueryResult,
 ) -> dict[str, Any]:
     """Adapt existing media for the current word."""
     matched_word = existing_media.get("matched_word", "unknown")
     logger.info(
-        f"Found existing Media object for search word '{matched_word}' (from query {translation_result.search_query}), reusing it"
+        f"Found existing Media object for search word '{matched_word}' (from query {search_query_result.search_query}), reusing it"
     )
 
     # Pass raw DDB media data to LLM for translation and formatting
@@ -226,8 +295,8 @@ Translate alt, explanation, and memory_tip to {source_language}. Keep url and sr
 
     return {
         "media": media,
-        "english_word": translation_result.english_word,
-        "search_query": translation_result.search_query,
+        "english_word": english_word,
+        "search_query": search_query_result.search_query,
         "media_reused": True,
     }
 
@@ -235,26 +304,25 @@ Translate alt, explanation, and memory_tip to {source_language}. Keep url and sr
 async def _create_new_media(
     source_word: str,
     target_word: str,
+    english_word: str,
     source_language: Language,
     target_language: Language,
-    translation_result: TranslationResult,
+    search_query_result: SearchQueryResult,
     quality_feedback: Optional[str] = None,
     previous_issues: Optional[List[str]] = None,
 ) -> dict[str, Any]:
     """Create new media by fetching from Pexels API."""
-    image_paths = generate_english_image_s3_paths(translation_result.english_word)
-    large_key = image_paths["large_key"]
-    small_key = image_paths["small_key"]
+    image_paths = generate_english_image_s3_paths(english_word)
 
     logger.info(
-        f"No existing Media found for search words {translation_result.search_query}, fetching from Pexels"
+        f"No existing Media found for search words {english_word}, fetching from Pexels"
     )
 
     if not is_lambda_context():
         logger.info("Local dev mode: images will use mock URLs (not uploaded to S3)")
 
     photos = await fetch_photos(
-        translation_result.search_query, per_page=PHOTOS_PER_PAGE
+        search_query_result.search_query, per_page=PHOTOS_PER_PAGE
     )
 
     if not photos:
@@ -262,12 +330,12 @@ async def _create_new_media(
             "media": Media(
                 url="",
                 alt="No photos found matching the query.",
-                src={"large2x": "", "small": ""},
+                src={"large2x": "", "large": "", "medium": ""},
                 explanation="No suitable images were found for this word.",
                 memory_tip="Try visualizing the word concept in your mind.",
             ),
-            "english_word": translation_result.english_word,
-            "search_query": translation_result.search_query,
+            "english_word": english_word,
+            "search_query": search_query_result.search_query,
             "media_reused": False,
         }
 
@@ -289,12 +357,12 @@ async def _create_new_media(
         )
 
     # Upload images to S3
-    await _upload_media_to_s3(result_media, large_key, small_key, image_paths)
+    await _upload_media_to_s3(result_media, image_paths)
 
     return {
         "media": result_media,
-        "english_word": translation_result.english_word,
-        "search_query": translation_result.search_query,
+        "english_word": english_word,
+        "search_query": search_query_result.search_query,
         "media_reused": False,
     }
 
@@ -306,7 +374,8 @@ def _create_mock_media(photo: PhotoOption, target_word: str) -> Media:
         alt=f"Mock image for {target_word}",
         src={
             "large2x": photo.src["large2x"],
-            "small": photo.src["small"],
+            "large": photo.src["large"],
+            "medium": photo.src["medium"],
         },
         explanation=f"This is a mock image for the word '{target_word}'.",
         memory_tip=f"Remember '{target_word}' by visualizing this image.",
@@ -348,8 +417,6 @@ async def _select_best_photo(
 
 async def _upload_media_to_s3(
     result_media: Media,
-    large_key: str,
-    small_key: str,
     image_paths: dict,
 ) -> None:
     """Upload media images to S3."""
@@ -362,37 +429,78 @@ async def _upload_media_to_s3(
         k: v for k, v in result_media.src.items() if k is not None and v is not None
     }
 
-    if not cleaned_src.get("large2x") or not cleaned_src.get("small"):
+    if (
+        not cleaned_src.get("large2x")
+        or not cleaned_src.get("large")
+        or not cleaned_src.get("medium")
+    ):
         logger.info("Invalid src URLs for S3 upload")
         return
 
     try:
-        # Download and upload both versions directly to S3 using English-based paths
-        large_s3_url = await upload_to_s3(cleaned_src["large2x"], large_key)
-        small_s3_url = await upload_to_s3(cleaned_src["small"], small_key)
+        # Upload all image sizes in parallel
+        upload_tasks = []
+        size_mappings = [
+            ("large2x", "large2x_key"),
+            ("large", "large_key"),
+            ("medium", "medium_key"),
+        ]
 
-        # Update URLs if uploads were successful
-        if not large_s3_url.startswith("Error") and not small_s3_url.startswith(
-            "Error"
-        ):
-            result_media.src = {
-                "large2x": large_s3_url,
-                "small": small_s3_url,
-            }
+        for size_name, key_name in size_mappings:
+            if cleaned_src.get(size_name) and image_paths.get(key_name):
+                upload_tasks.append(
+                    upload_to_s3_with_retry(
+                        cleaned_src[size_name], image_paths[key_name]
+                    )
+                )
+
+        # Execute all uploads concurrently
+        upload_results = await asyncio.gather(*upload_tasks, return_exceptions=True)
+
+        # Process results and update URLs
+        successful_uploads = {}
+        failed_uploads = []
+
+        for i, (size_name, key_name) in enumerate(size_mappings):
+            if i < len(upload_results):
+                result = upload_results[i]
+                if isinstance(result, Exception):
+                    failed_uploads.append((size_name, str(result)))
+                    logger.error(f"S3_upload_failed_{size_name}", error=str(result))
+                elif not result.startswith("Error"):
+                    successful_uploads[size_name] = result
+                else:
+                    failed_uploads.append((size_name, result))
+
+        # Update URLs only for successful uploads
+        if successful_uploads:
+            updated_src = {}
+            for size_name, _ in size_mappings:
+                if size_name in successful_uploads:
+                    updated_src[size_name] = successful_uploads[size_name]
+                else:
+                    # Keep original URL if upload failed
+                    updated_src[size_name] = cleaned_src.get(size_name, "")
+
+            result_media.src = updated_src
+
             if is_lambda_context():
-                logger.info(f"Images uploaded to S3: {image_paths['image_prefix']}/")
+                logger.info(
+                    f"Images uploaded to S3: {image_paths['image_prefix']}/",
+                    successful_count=len(successful_uploads),
+                    failed_count=len(failed_uploads),
+                )
             else:
                 logger.info(
                     f"Local dev mode: mock image URLs generated for {image_paths['image_prefix']}/"
                 )
         else:
-            logger.info("Failed to upload images, keeping original URLs")
+            logger.warning("All S3 uploads failed, keeping original URLs")
 
     except Exception as e:
         logger.error(
             "S3_upload_failed",
             url=cleaned_src["large2x"],
-            s3_key=large_key,
+            s3_key=image_paths["large2x_key"],
             error=str(e),
         )
-        # Keep original URLs if S3 upload fails

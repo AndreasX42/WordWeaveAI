@@ -37,6 +37,8 @@ type VocabularySearchResult struct {
 	ConjugationTable string              `json:"conjugation_table,omitempty"`
 	CreatedAt        string              `json:"created_at,omitempty"`
 	CreatedBy        string              `json:"created_by,omitempty"`
+	SourceAddInfo    string              `json:"source_additional_info,omitempty"`
+	TargetAddInfo    string              `json:"target_additional_info,omitempty"`
 }
 
 type SearchRequest struct {
@@ -126,6 +128,8 @@ func (h *SearchHandler) convertToSearchResult(vocab entities.VocabWord) Vocabula
 		ConjugationTable: vocab.ConjugationTable,
 		CreatedAt:        vocab.CreatedAt,
 		CreatedBy:        vocab.CreatedBy,
+		SourceAddInfo:    vocab.SourceAddInfo,
+		TargetAddInfo:    vocab.TargetAddInfo,
 	}
 }
 

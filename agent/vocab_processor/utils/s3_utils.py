@@ -38,9 +38,6 @@ def generate_vocab_s3_paths(
 ) -> Dict[str, str]:
     """
     Generate standardized S3 paths for vocabulary content.
-
-    Returns:
-        Dict with keys: 'base_prefix', 'audio_prefix', 'image_prefix'
     """
     safe_target = generate_safe_word_key(target_word)
     base_prefix = f"vocabs/{target_language.code}/{safe_target}"
@@ -56,17 +53,15 @@ def generate_english_image_s3_paths(english_word: str) -> Dict[str, str]:
     """
     Generate English-based S3 paths for images.
     All images are stored under vocabs/en/{english_word}/images/* regardless of source/target language.
-
-    Returns:
-        Dict with keys: 'image_prefix', 'large_key', 'small_key'
     """
     safe_english = generate_safe_word_key(english_word)
     image_prefix = f"vocabs/en/{safe_english}/images"
 
     return {
         "image_prefix": image_prefix,
+        "large2x_key": f"{image_prefix}/large2x.jpg",
         "large_key": f"{image_prefix}/large.jpg",
-        "small_key": f"{image_prefix}/small.jpg",
+        "medium_key": f"{image_prefix}/medium.jpg",
     }
 
 

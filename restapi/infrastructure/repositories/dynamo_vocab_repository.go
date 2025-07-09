@@ -31,16 +31,18 @@ type VocabRecord struct {
 	Examples         []map[string]string    `dynamo:"examples"`
 	Media            map[string]interface{} `dynamo:"media"`
 	Pronunciations   map[string]string      `dynamo:"pronunciations"`
-	PhoneticGuide    string                 `dynamo:"phonetic_guide"`
+	PhoneticGuide    string                 `dynamo:"target_phonetic_guide"`
 	SourceDefinition []string               `dynamo:"source_definition"`
 	SourceLanguage   string                 `dynamo:"source_language"`
 	SourcePos        string                 `dynamo:"source_pos"`
 	SourceWord       string                 `dynamo:"source_word"`
-	Syllables        []string               `dynamo:"syllables"`
+	Syllables        []string               `dynamo:"target_syllables"`
 	Synonyms         []map[string]string    `dynamo:"synonyms"`
 	TargetLanguage   string                 `dynamo:"target_language"`
 	TargetPos        string                 `dynamo:"target_pos"`
 	TargetWord       string                 `dynamo:"target_word"`
+	SourceAddInfo    string                 `dynamo:"source_additional_info"`
+	TargetAddInfo    string                 `dynamo:"target_additional_info"`
 }
 
 // NewDynamoVocabRepository creates a new DynamoDB vocabulary repository
@@ -77,6 +79,8 @@ func (r *DynamoVocabRepository) toVocabRecord(vocab *entities.VocabWord) VocabRe
 		SourcePos:        vocab.SourcePos,
 		Syllables:        vocab.Syllables,
 		TargetPos:        vocab.TargetPos,
+		SourceAddInfo:    vocab.SourceAddInfo,
+		TargetAddInfo:    vocab.TargetAddInfo,
 	}
 }
 
@@ -104,6 +108,8 @@ func (r *DynamoVocabRepository) toEntity(record VocabRecord) *entities.VocabWord
 		SourcePos:        record.SourcePos,
 		Syllables:        record.Syllables,
 		TargetPos:        record.TargetPos,
+		SourceAddInfo:    record.SourceAddInfo,
+		TargetAddInfo:    record.TargetAddInfo,
 	}
 }
 
@@ -157,6 +163,10 @@ func (r *DynamoVocabRepository) SearchByNormalizedWord(ctx context.Context, norm
 						mu.Unlock()
 						return nil
 					}
+					// Only include actual vocab words (PK starts with "SRC#")
+					if !strings.HasPrefix(record.PK, "SRC#") {
+						continue
+					}
 					key := record.PK + record.SK
 					if _, exists := resultMap[key]; !exists {
 						entity := r.toEntity(record)
@@ -180,6 +190,10 @@ func (r *DynamoVocabRepository) SearchByNormalizedWord(ctx context.Context, norm
 					mu.Unlock()
 					return nil
 				}
+				// Only include actual vocab words (PK starts with "SRC#")
+				if !strings.HasPrefix(record.PK, "SRC#") {
+					continue
+				}
 				key := record.PK + record.SK
 				if _, exists := resultMap[key]; !exists {
 					entity := r.toEntity(record)
@@ -194,25 +208,55 @@ func (r *DynamoVocabRepository) SearchByNormalizedWord(ctx context.Context, norm
 	// Wait for all parallel queries to complete
 	_ = g.Wait() // Ignore errors as we want best-effort search
 
-	// Strategy 4: Fallback scan only if we have very few results
-	if len(resultMap) < limit/2 {
-		var records []VocabRecord
-		err := r.table.Scan().
-			Filter("contains(source_word, ?) OR contains(target_word, ?)", normalizedQuery, normalizedQuery).
-			Limit(limit).All(ctx, &records)
+	// Strategy 4: Optimized batch scan with early termination
+	if len(resultMap) == 0 {
+		batchSize := 1000
+		maxBatches := 10
+		batchCount := 0
 
-		if err == nil {
-			for _, record := range records {
-				if len(resultMap) >= limit {
-					break
+		// Use Scan with pagination for controlled batching
+		var lastEvaluatedKey dynamo.PagingKey
+
+		for batchCount < maxBatches && len(resultMap) < limit {
+			currentBatchSize := batchSize
+
+			scanOp := r.table.Scan().
+				Filter("(contains(source_word, ?) OR contains(target_word, ?)) AND begins_with(PK, ?)", normalizedQuery, normalizedQuery, "SRC#").
+				Limit(currentBatchSize)
+
+			// Continue from where we left off
+			if lastEvaluatedKey != nil {
+				scanOp = scanOp.StartFrom(lastEvaluatedKey)
+			}
+
+			iter := scanOp.Iter()
+			var record VocabRecord
+
+			for iter.Next(ctx, &record) {
+				if len(resultMap) > 0 {
+					goto scanComplete // Early termination when we have enough results
 				}
+
 				key := record.PK + record.SK
 				if _, exists := resultMap[key]; !exists {
 					entity := r.toEntity(record)
 					resultMap[key] = *entity
 				}
 			}
+
+			batchCount++
+
+			// Get the last evaluated key for pagination
+			lastEvaluatedKey, _ = iter.LastEvaluatedKey(ctx)
+
+			// Check if we've scanned all records (no more to scan)
+			if lastEvaluatedKey == nil {
+				break // No more records to scan
+			}
 		}
+
+	scanComplete:
+		// Scan optimization complete
 	}
 
 	// Convert map to slice and apply final limit
@@ -232,19 +276,15 @@ func (r *DynamoVocabRepository) SearchByWordWithLanguages(ctx context.Context, n
 	var allResults []entities.VocabWord
 	resultMap := make(map[string]entities.VocabWord)
 
-	// Direct PK query if source language is specified
+	// Strategy 1: Direct PK query if source language is specified
 	if sourceLang != "" {
 		pk := "SRC#" + sourceLang + "#" + normalizedQuery
-		fmt.Println("3.1 - pk", pk)
 		var records []VocabRecord
 
 		// If target language is also specified, query with SK prefix
 		if targetLang != "" {
 			skPrefix := "TGT#" + targetLang
-			fmt.Println("3.2 - skPrefix", skPrefix)
 			err := r.table.Get("PK", pk).Range("SK", dynamo.BeginsWith, skPrefix).Limit(limit).All(ctx, &records)
-			fmt.Println("3.3 - records count:", len(records))
-			fmt.Println("3.4 - err", err)
 			if err == nil {
 				for _, record := range records {
 					key := record.PK + record.SK
@@ -267,30 +307,36 @@ func (r *DynamoVocabRepository) SearchByWordWithLanguages(ctx context.Context, n
 				}
 			}
 		}
-	} else if targetLang != "" {
-		// Handle case where only target language is specified
-		// Use reverse lookup index to find words that translate to the target language
+	}
+
+	// Strategy 2: Reverse lookup if target language is specified AND no results found yet
+	if targetLang != "" && len(resultMap) == 0 {
 		lkpKey := "LKP#" + targetLang + "#" + normalizedQuery
-		fmt.Println("3.5 - lkpKey", lkpKey)
 		var records []VocabRecord
 
 		// Query the ReverseLookupIndex where LKP matches (hash key)
-		// This will return all records with this LKP regardless of SRC_LANG (range key)
 		err := r.table.Get("LKP", lkpKey).Index("ReverseLookupIndex").Limit(limit).All(ctx, &records)
-		fmt.Println("3.6 - records count:", len(records))
-		fmt.Println("3.7 - err", err)
 
-		if err == nil {
+		if err != nil {
+			fmt.Printf("Error querying ReverseLookupIndex: %v\n", err)
+		} else {
 			for _, record := range records {
+				// Only include actual vocab words (PK starts with "SRC#")
+				if !strings.HasPrefix(record.PK, "SRC#") {
+					continue
+				}
+
+				// If both languages are specified, filter by source language
+				if sourceLang != "" && !strings.HasPrefix(record.PK, "SRC#"+sourceLang+"#") {
+					continue
+				}
+
 				key := record.PK + record.SK
 				if _, exists := resultMap[key]; !exists {
 					entity := r.toEntity(record)
 					resultMap[key] = *entity
-					fmt.Println("3.8 - added record with PK:", record.PK, "SK:", record.SK, "LKP:", record.LKP)
 				}
 			}
-		} else {
-			fmt.Println("3.9 - reverse lookup error:", err)
 		}
 	}
 

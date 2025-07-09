@@ -9,6 +9,7 @@ import { Configs } from '../config';
 export class GlobalErrorHandler implements ErrorHandler {
   private messageService = inject(MessageService);
   private ngZone = inject(NgZone);
+  private lastErrorTime = 0;
 
   handleError(error: unknown): void {
     // Log error to console for debugging
@@ -282,30 +283,8 @@ export class GlobalErrorHandler implements ErrorHandler {
   }
 
   private isHandledByInterceptor(error: unknown): boolean {
-    // Check if this error is already handled by the auth interceptor
-    const errorWithInterceptorFlag = error as {
-      handledByInterceptor?: boolean;
-      message?: string;
-      status?: number;
-    };
-    if (errorWithInterceptorFlag?.handledByInterceptor === true) {
-      return true;
-    }
-
-    // Check for session expired errors
-    if (errorWithInterceptorFlag?.message === 'Session expired') {
-      return true;
-    }
-
-    // Also check for 401 errors that might bypass the interceptor check
-    if (
-      errorWithInterceptorFlag?.status === 401 &&
-      error instanceof HttpErrorResponse
-    ) {
-      return true;
-    }
-
-    return false;
+    // Look for a specific property that the interceptor adds
+    return !!(error as { handledByInterceptor?: boolean }).handledByInterceptor;
   }
 
   private isHandledByComponent(error: unknown): boolean {
@@ -316,24 +295,26 @@ export class GlobalErrorHandler implements ErrorHandler {
   }
 
   private isUpdateAccountValidationError(error: unknown): boolean {
-    // Check if this is a validation error from the update account endpoint
-    const errorWithUrl = error as { url?: string; status?: number };
-    const url = errorWithUrl?.url || '';
-    const status = errorWithUrl?.status;
-
-    // Skip validation errors from update endpoint - these are handled by components
-    if (
-      url.includes('/api/users/update') &&
-      (status === 409 || status === 400 || status === 422)
-    ) {
-      return true;
-    }
-
-    return false;
+    const errorObj = error as { url?: string; status?: number };
+    return !!(
+      errorObj.url?.includes('/update-account') && errorObj.status === 409
+    );
   }
 
   private async sendToMonitoring(error: unknown): Promise<void> {
-    const errorWithMessage = error as {
+    // Debounce to prevent infinite loops
+    const now = Date.now();
+    if (now - this.lastErrorTime < 1000) {
+      console.warn('Duplicate error suppressed from logging to prevent loop.');
+      return;
+    }
+    this.lastErrorTime = now;
+
+    // Sanitize and collect error details
+    const sanitizedError = this.sanitizeErrorForLogging(error);
+    const errorType = this.getErrorType(sanitizedError);
+
+    const errorWithMessage = sanitizedError as {
       message?: string;
       stack?: string;
       status?: number;
@@ -357,8 +338,8 @@ export class GlobalErrorHandler implements ErrorHandler {
         statusText: errorWithMessage?.statusText,
         url: errorWithMessage?.url || window.location.href,
         userAgent: navigator.userAgent,
-        type: this.getErrorType(error),
-        originalError: this.sanitizeErrorForLogging(error),
+        type: errorType,
+        originalError: sanitizedError,
       },
       context,
     };

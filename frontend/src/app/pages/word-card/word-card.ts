@@ -49,6 +49,8 @@ export class WordCard implements OnInit {
   loading = true;
   error: string | null = null;
   langConfig: LanguageConfig = getLanguageConfig(null);
+  private playSyllablesNext = false;
+  private audio: HTMLAudioElement | null = null;
 
   // Computed properties for performance optimization
   get indicativeTenses() {
@@ -231,23 +233,36 @@ export class WordCard implements OnInit {
     });
   }
 
-  playPronunciation() {
-    const url = this.getS3Url(this.word?.pronunciations.audio);
-    if (url) {
-      const audio = new Audio(url);
-      audio.play().catch((err) => {
+  playCombinedAudio() {
+    if (this.audio) {
+      this.audio.pause();
+    }
+
+    if (!this.word?.target_pronunciations) {
+      return;
+    }
+
+    let urlToPlay = this.playSyllablesNext
+      ? this.getS3Url(this.word.target_pronunciations.syllables)
+      : this.getS3Url(this.word.target_pronunciations.audio);
+
+    // Fallback to main pronunciation if syllables URL is next but not available
+    if (!urlToPlay && this.playSyllablesNext) {
+      urlToPlay = this.getS3Url(this.word.target_pronunciations.audio);
+    }
+
+    if (urlToPlay) {
+      this.audio = new Audio(urlToPlay);
+      this.audio.play().catch((err) => {
         console.error('Error playing audio:', err);
       });
-    }
-  }
 
-  playSyllables() {
-    const url = this.getS3Url(this.word?.pronunciations.syllables);
-    if (url) {
-      const audio = new Audio(url);
-      audio.play().catch((err) => {
-        console.error('Error playing syllable audio:', err);
-      });
+      // Toggle for the next click, only if syllable audio exists.
+      if (this.word.target_pronunciations.syllables) {
+        this.playSyllablesNext = !this.playSyllablesNext;
+      } else {
+        this.playSyllablesNext = false;
+      }
     }
   }
 

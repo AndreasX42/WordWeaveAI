@@ -27,6 +27,9 @@ class Translation(BaseModel):
         None,
         description="Additional information in the source language about the translation in the target language if needed. For example if the word is only common in a specific country or region, in what context the word is used, if it is colloquial or vulgar, etc.",
     )
+    english_word: str = Field(
+        description="The English translation of the target word including article if it is a proper noun or 'to' if it is a verb"
+    )
 
 
 @tool
@@ -75,6 +78,7 @@ Provide most common translation, appropriate POS, article if needed, and additio
         f"For slang/colloquial words, provide the most natural equivalent learners would encounter",
         f"Use target_additional_info to explain context, register, and regional usage in {source_language}",
         f"For informal/vulgar words like 'huevada', consider translations like 'bullshit', 'crap', 'nonsense' and explain the register.",
+        f"Provide the english translation of the target word, including article if it is a proper noun or 'to' if it is a verb",
     ]
 
     # Add quality feedback if provided

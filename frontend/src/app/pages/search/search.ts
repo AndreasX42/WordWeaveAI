@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,12 +13,25 @@ import { ThemeService } from '../../services/theme.service';
 import { TranslationService } from '../../services/translation.service';
 import { WordService } from '../../services/word.service';
 import { TranslatePipe } from '../../shared/pipes/translate.pipe';
+import { HighlightPipe } from '../../shared/pipes/highlight.pipe';
 import { VocabularyWord } from '../../models/word.model';
+import { Subject, of, combineLatest, merge } from 'rxjs';
+import {
+  debounceTime,
+  distinctUntilChanged,
+  switchMap,
+  catchError,
+  tap,
+  startWith,
+  filter,
+} from 'rxjs/operators';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-search',
   templateUrl: './search.html',
   styleUrls: ['./search.scss'],
+  standalone: true,
   imports: [
     MatButtonModule,
     MatIconModule,
@@ -28,22 +41,34 @@ import { VocabularyWord } from '../../models/word.model';
     MatProgressSpinnerModule,
     MatCardModule,
     FormsModule,
+    ReactiveFormsModule,
     CommonModule,
     TranslatePipe,
+    HighlightPipe,
   ],
 })
-export class SearchComponent {
+export class SearchComponent implements OnInit {
   themeService = inject(ThemeService);
   translationService = inject(TranslationService);
   wordService = inject(WordService);
   router = inject(Router);
 
-  searchTerm = '';
-  sourceLanguage = '';
-  targetLanguage = '';
+  searchControl = new FormControl<string>('', { nonNullable: true });
+  sourceLanguageControl = new FormControl<string>('', { nonNullable: true });
+  targetLanguageControl = new FormControl<string>('', { nonNullable: true });
+
+  // Manual search trigger for immediate searches (Enter key, search button)
+  private manualSearchTrigger = new Subject<void>();
+
+  // Flag to prevent searches during language swaps
+  private isSwappingLanguages = false;
+
   loading = false;
   searchResults: VocabularyWord[] = [];
   hasSearched = false;
+  searchError: string | null = null;
+
+  // Note: Using reactive forms throughout - no need for ngModel bridges
 
   private readonly STORAGE_KEY_SOURCE = 'source_language';
   private readonly STORAGE_KEY_TARGET = 'target_language';
@@ -53,71 +78,158 @@ export class SearchComponent {
     this.searchResults = [];
   }
 
+  ngOnInit(): void {
+    // Debounced search stream for automatic search (typing)
+    const debouncedSearchTrigger = combineLatest([
+      this.searchControl.valueChanges.pipe(
+        startWith(this.searchControl.value),
+        debounceTime(300),
+        distinctUntilChanged()
+      ),
+      this.sourceLanguageControl.valueChanges.pipe(
+        startWith(this.sourceLanguageControl.value),
+        debounceTime(100),
+        distinctUntilChanged()
+      ),
+      this.targetLanguageControl.valueChanges.pipe(
+        startWith(this.targetLanguageControl.value),
+        debounceTime(100),
+        distinctUntilChanged()
+      ),
+    ]).pipe(
+      // Filter out searches during language swaps
+      filter(() => !this.isSwappingLanguages)
+    );
+
+    // Immediate search stream for manual triggers (Enter key, search button)
+    const immediateSearchTrigger = this.manualSearchTrigger.pipe(
+      switchMap(() =>
+        of([
+          this.searchControl.value,
+          this.sourceLanguageControl.value,
+          this.targetLanguageControl.value,
+        ])
+      )
+    );
+
+    // Merge both streams - debounced and immediate
+    const allSearchTriggers = merge(
+      debouncedSearchTrigger,
+      immediateSearchTrigger
+    );
+
+    // Main search logic
+    allSearchTriggers
+      .pipe(
+        tap(([term]) => {
+          this.loading = true;
+          this.hasSearched = true;
+          this.searchResults = [];
+          this.searchError = null;
+        }),
+        switchMap(([term, sourceLanguage, targetLanguage]) => {
+          if (!term.trim()) {
+            this.hasSearched = false;
+            return of([]);
+          }
+
+          const sourceLanguageParam = sourceLanguage || undefined;
+          const targetLanguageParam = targetLanguage || undefined;
+
+          return this.wordService
+            .searchWords(term.trim(), sourceLanguageParam, targetLanguageParam)
+            .pipe(
+              catchError((error) => {
+                console.error('Search error:', error);
+                this.searchError =
+                  'An error occurred during search. Please try again later.';
+                return of([]);
+              })
+            );
+        }),
+        tap(() => {
+          this.loading = false;
+        })
+      )
+      .subscribe((results) => {
+        this.searchResults = results || [];
+      });
+
+    // Listen to language changes for preference saving
+    this.sourceLanguageControl.valueChanges.subscribe(() => {
+      this.saveLanguagePreferences();
+    });
+
+    this.targetLanguageControl.valueChanges.subscribe(() => {
+      this.saveLanguagePreferences();
+    });
+  }
+
   private loadLanguagePreferences() {
     const savedSourceLanguage = localStorage.getItem(this.STORAGE_KEY_SOURCE);
     const savedTargetLanguage = localStorage.getItem(this.STORAGE_KEY_TARGET);
 
     if (savedSourceLanguage !== null) {
-      this.sourceLanguage = savedSourceLanguage;
+      this.sourceLanguageControl.setValue(savedSourceLanguage);
     }
     if (savedTargetLanguage !== null) {
-      this.targetLanguage = savedTargetLanguage;
+      this.targetLanguageControl.setValue(savedTargetLanguage);
     }
   }
 
   private saveLanguagePreferences() {
-    localStorage.setItem(this.STORAGE_KEY_SOURCE, this.sourceLanguage);
-    localStorage.setItem(this.STORAGE_KEY_TARGET, this.targetLanguage);
+    localStorage.setItem(
+      this.STORAGE_KEY_SOURCE,
+      this.sourceLanguageControl.value
+    );
+    localStorage.setItem(
+      this.STORAGE_KEY_TARGET,
+      this.targetLanguageControl.value
+    );
   }
 
   onLanguageChange() {
-    this.saveLanguagePreferences();
+    // Clear cache when language preferences change to avoid stale results
+    this.wordService.clearCaches();
+
+    // Language changes are automatically handled by the reactive stream
+    // No need to trigger manual search
   }
 
   swapLanguages() {
-    [this.sourceLanguage, this.targetLanguage] = [
-      this.targetLanguage,
-      this.sourceLanguage,
-    ];
-    this.saveLanguagePreferences();
-  }
+    const currentSource = this.sourceLanguageControl.value;
+    const currentTarget = this.targetLanguageControl.value;
 
-  onSearchInput() {
-    // Optional: You can add real-time search here if needed
-    // For now, we'll just search on enter or arrow button click
+    // Set flag to prevent searches during swap
+    this.isSwappingLanguages = true;
+
+    this.sourceLanguageControl.setValue(currentTarget);
+    this.targetLanguageControl.setValue(currentSource);
+
+    // Clear cache when languages are swapped
+    this.wordService.clearCaches();
+
+    // Reset flag after a short delay to allow the debounced stream to settle
+    setTimeout(() => {
+      this.isSwappingLanguages = false;
+      // Trigger a manual search if there's a search term
+      if (this.searchControl.value?.trim()) {
+        this.manualSearchTrigger.next();
+      }
+    }, 150);
   }
 
   search() {
-    if (!this.searchTerm.trim()) {
-      return;
-    }
-
-    this.loading = true;
-    this.hasSearched = true;
-
-    const sourceLanguage = this.sourceLanguage || undefined;
-    const targetLanguage = this.targetLanguage || undefined;
-
-    this.wordService
-      .searchWords(this.searchTerm.trim(), sourceLanguage, targetLanguage)
-      .subscribe({
-        next: (results) => {
-          this.searchResults = results || [];
-          this.loading = false;
-        },
-        error: (error) => {
-          console.error('Search error:', error);
-          this.searchResults = [];
-          this.loading = false;
-        },
-      });
+    // Trigger immediate search via manual trigger
+    this.manualSearchTrigger.next();
   }
 
   clearSearch() {
-    this.searchTerm = '';
+    this.searchControl.setValue('');
     this.searchResults = [];
     this.hasSearched = false;
     this.loading = false;
+    this.searchError = null;
   }
 
   openWord(word: VocabularyWord) {
@@ -135,20 +247,21 @@ export class SearchComponent {
   }
 
   getLanguageName(code: string): string {
-    const languages: { [key: string]: string } = {
-      en: 'English',
-      es: 'Spanish',
-      de: 'German',
-    };
-    return languages[code] || code;
+    const language = this.translationService.languages.find(
+      (lang) => lang.code === code
+    );
+    return language?.name || code;
   }
 
   getLanguageFlag(code: string): string {
-    const flags: { [key: string]: string } = {
-      en: '🇺🇸',
-      es: '🇪🇸',
-      de: '🇩🇪',
-    };
-    return flags[code] || '🏳️';
+    const language = this.translationService.languages.find(
+      (lang) => lang.code === code
+    );
+    return language?.flag || '🏳️';
+  }
+
+  // TrackBy for result list
+  trackWord(index: number, word: VocabularyWord) {
+    return word.source_word + word.target_word;
   }
 }
