@@ -21,23 +21,24 @@ import (
 
 // Container holds all dependencies
 type Container struct {
-	UserRepository      repositories.UserRepository
-	VocabRepository     repositories.VocabRepository
-	VocabListRepository repositories.VocabListRepository
-	EmailService        repositories.EmailService
-	UserService         *services.UserService
-	VocabService        *services.VocabService
-	VocabListService    *services.VocabListService
-	UserHandler         *handlers.UserHandler
-	HealthHandler       *handlers.HealthHandler
-	SearchHandler       *handlers.SearchHandler
-	VocabListHandler    *handlers.VocabListHandler
-	OAuthHandler        *handlers.OAuthHandler
-	SentryHandler       *handlers.SentryHandler
-	DynamoDB            *dynamo.DB
-	SESClient           *ses.Client
-	GoogleOAuthConfig   *GoogleOAuthConfig
-	SentryConfig        *SentryConfig
+	UserRepository       repositories.UserRepository
+	VocabRepository      repositories.VocabRepository
+	VocabListRepository  repositories.VocabListRepository
+	VocabMediaRepository repositories.VocabMediaRepository
+	EmailService         repositories.EmailService
+	UserService          *services.UserService
+	VocabService         *services.VocabService
+	VocabListService     *services.VocabListService
+	UserHandler          *handlers.UserHandler
+	HealthHandler        *handlers.HealthHandler
+	SearchHandler        *handlers.SearchHandler
+	VocabListHandler     *handlers.VocabListHandler
+	OAuthHandler         *handlers.OAuthHandler
+	SentryHandler        *handlers.SentryHandler
+	DynamoDB             *dynamo.DB
+	SESClient            *ses.Client
+	GoogleOAuthConfig    *GoogleOAuthConfig
+	SentryConfig         *SentryConfig
 }
 
 // NewContainer creates and wires all dependencies
@@ -135,17 +136,19 @@ func (c *Container) initRepositories() {
 	usersTable := c.DynamoDB.Table(utils.GetTableName(os.Getenv("DYNAMODB_USER_TABLE_NAME")))
 	vocabTable := c.DynamoDB.Table(utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_TABLE_NAME")))
 	vocabListTable := c.DynamoDB.Table(utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_LIST_TABLE_NAME")))
+	vocabMediaTable := c.DynamoDB.Table(utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_MEDIA_TABLE_NAME")))
 
 	// Initialize repositories
 	c.UserRepository = infraRepos.NewDynamoUserRepository(usersTable)
 	c.VocabRepository = infraRepos.NewDynamoVocabRepository(vocabTable)
 	c.VocabListRepository = infraRepos.NewDynamoVocabListRepository(vocabListTable)
+	c.VocabMediaRepository = infraRepos.NewDynamoVocabMediaRepository(vocabMediaTable)
 }
 
 func (c *Container) initServices() {
 	c.EmailService = infraServices.NewSESEmailService(c.SESClient)
 	c.UserService = services.NewUserService(c.UserRepository, c.EmailService)
-	c.VocabService = services.NewVocabService(c.VocabRepository)
+	c.VocabService = services.NewVocabService(c.VocabRepository, c.VocabMediaRepository)
 	c.VocabListService = services.NewVocabListService(c.VocabListRepository, c.VocabRepository)
 }
 
@@ -169,6 +172,9 @@ func (c *Container) createTables() {
 
 	// Create Vocabulary List table
 	c.createVocabularyListTable(ctx)
+
+	// Create Vocabulary Media table
+	c.createVocabularyMediaTable(ctx)
 }
 
 func (c *Container) createUserTable(ctx context.Context) {
@@ -249,6 +255,31 @@ func (c *Container) createVocabularyListTable(ctx context.Context) {
 	// Wait for table to be active
 	c.waitForTable(ctx, tableName)
 	log.Printf("Vocabulary list table %s created successfully", tableName)
+}
+
+func (c *Container) createVocabularyMediaTable(ctx context.Context) {
+	tableName := utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_MEDIA_TABLE_NAME"))
+
+	// Check if table exists first
+	table := c.DynamoDB.Table(tableName)
+	_, err := table.Describe().Run(ctx)
+	if err == nil {
+		log.Printf("Table %s already exists", tableName)
+		return
+	}
+
+	// Create vocabulary media table with simple structure
+	err = c.DynamoDB.CreateTable(tableName, infraRepos.VocabMediaRecord{}).
+		Provision(5, 5). // Read/Write capacity units
+		Run(ctx)
+
+	if err != nil {
+		log.Fatalf("Failed to create vocabulary media table %s: %v", tableName, err)
+	}
+
+	// Wait for table to be active
+	c.waitForTable(ctx, tableName)
+	log.Printf("Vocabulary media table %s created successfully", tableName)
 }
 
 // waitForTable waits for a table to become active

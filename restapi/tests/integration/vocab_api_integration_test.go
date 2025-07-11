@@ -134,7 +134,8 @@ func setupVocabTestServer(t *testing.T) (*gin.Engine, string) {
 
 	// Create services
 	userService := services.NewUserService(userRepo, emailService)
-	vocabService := services.NewVocabService(vocabRepo)
+	// Create service with mock repository
+	vocabService := services.NewVocabService(vocabRepo, nil) // Pass nil for media repository in tests
 	vocabListService := services.NewVocabListService(vocabListRepo, vocabRepo)
 
 	// Create handlers

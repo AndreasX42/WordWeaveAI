@@ -461,6 +461,7 @@ async def node_get_media(state: VocabState) -> VocabState:
 
     return {
         "media": result.get("media", None),
+        "media_ref": result.get("media_ref", None),
         "search_query": result.get("search_query", []),
         "media_reused": result.get("media_reused", False),
         "media_quality_approved": result.get("media_quality_approved", False),

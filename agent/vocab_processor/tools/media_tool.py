@@ -16,7 +16,11 @@ from vocab_processor.tools.base_tool import (
     create_llm_response,
     create_tool_error_response,
 )
-from vocab_processor.utils.ddb_utils import get_existing_media_for_search_words
+from vocab_processor.utils.ddb_utils import (
+    get_existing_media_for_search_words,
+    lang_code,
+    normalize_word,
+)
 from vocab_processor.utils.s3_utils import (
     generate_english_image_s3_paths,
     is_lambda_context,
@@ -221,11 +225,24 @@ async def get_media(
 
     try:
         # First, translate target word to English and get search criteria
-        search_query_prompt = f"For the english word '{english_word}' come up with the optimal search query to find the most relevant photos in Pexels. The search query should be in English."
+        search_query_prompt = f"""For the English word '{english_word}' generate optimal search terms for finding relevant photos in Pexels.
+
+Requirements:
+- Use 2-5 English search terms
+- Focus on the core concept/meaning rather than exact word form
+- For word variations (swim/swimming/swimmer), use the base concept (like 'swimming', or 'water')
+- Prioritize terms that would work for related word forms
+- Terms should be concrete and visual
+
+Word: {english_word}"""
 
         search_query_result = await create_llm_response(
             response_model=SearchQueryResult,
             user_prompt=search_query_prompt,
+        )
+
+        logger.info(
+            f"Generated search terms for '{english_word}': {search_query_result.search_query}"
         )
 
         # Check if we already have Media object for any similar search words
@@ -276,9 +293,36 @@ async def _adapt_existing_media(
 ) -> dict[str, Any]:
     """Adapt existing media for the current word."""
     matched_word = existing_media.get("matched_word", "unknown")
+    requested_lang = lang_code(source_language)
+
     logger.info(
-        f"Found existing Media object for search word '{matched_word}' (from query {search_query_result.search_query}), reusing it"
+        f"Found existing Media object for search word '{matched_word}' (from query {search_query_result.search_query})"
     )
+
+    # Check if existing media is already in the requested language
+    existing_media_ref = existing_media.get("media_ref")
+    if existing_media_ref and existing_media_ref.startswith("MEDIA#"):
+        # Parse media_ref format: MEDIA#{lang}#{word} or MEDIA#{lang}#{word}#{hash}
+        parts = existing_media_ref.split("#")
+        if len(parts) >= 3:
+            existing_lang = parts[1]  # Second part is the language code
+
+            if existing_lang == requested_lang:
+                logger.info(
+                    f"Media already in requested language ({requested_lang}), returning as-is with existing media_ref: {existing_media_ref}"
+                )
+                # Return existing media directly without adaptation
+                return {
+                    "media": existing_media,
+                    "media_ref": existing_media_ref,
+                    "english_word": english_word,
+                    "search_query": search_query_result.search_query,
+                    "media_reused": True,
+                    "media_adapted": False,  # No adaptation needed
+                }
+
+    # If we get here, the media needs to be adapted to the new language
+    logger.info(f"Adapting media from existing language to {requested_lang}")
 
     # Pass raw DDB media data to LLM for translation and formatting
     adaptation_prompt = f"""Convert this existing media data to a Media object with texts translated to {source_language} for '{source_word}' ({source_language}) → '{target_word}' ({target_language}).
@@ -293,11 +337,23 @@ Translate alt, explanation, and memory_tip to {source_language}. Keep url and sr
         system_message=SystemMessages.MEDIA_SPECIALIST,
     )
 
+    # Generate consistent media reference based on search terms (not specific word)
+    search_terms_key = "_".join(
+        sorted([normalize_word(term) for term in search_query_result.search_query])
+    )
+    media_ref = f"MEDIA#{requested_lang}#{search_terms_key}"
+
+    logger.info(
+        f"Generated new media_ref for adapted media: {media_ref} from search terms: {search_query_result.search_query}"
+    )
+
     return {
         "media": media,
+        "media_ref": media_ref,
         "english_word": english_word,
         "search_query": search_query_result.search_query,
         "media_reused": True,
+        "media_adapted": True,
     }
 
 
@@ -359,8 +415,19 @@ async def _create_new_media(
     # Upload images to S3
     await _upload_media_to_s3(result_media, image_paths)
 
+    # Generate consistent media reference based on search terms (not specific word)
+    search_terms_key = "_".join(
+        sorted([normalize_word(term) for term in search_query_result.search_query])
+    )
+    media_ref = f"MEDIA#{lang_code(source_language)}#{search_terms_key}"
+
+    logger.info(
+        f"Generated new media_ref for new media: {media_ref} from search terms: {search_query_result.search_query}"
+    )
+
     return {
         "media": result_media,
+        "media_ref": media_ref,
         "english_word": english_word,
         "search_query": search_query_result.search_query,
         "media_reused": False,

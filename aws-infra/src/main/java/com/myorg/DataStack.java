@@ -12,6 +12,7 @@ public class DataStack extends Stack {
 	private final software.amazon.awscdk.services.dynamodb.Table vocabDataTable;
 	private final software.amazon.awscdk.services.dynamodb.Table vocabListTable;
 	private final software.amazon.awscdk.services.dynamodb.Table connectionsTable;
+	private final software.amazon.awscdk.services.dynamodb.Table vocabMediaTable;
 
 	public software.amazon.awscdk.services.s3.Bucket getVocabBucket() {
 		return vocabBucket;
@@ -31,6 +32,10 @@ public class DataStack extends Stack {
 
 	public software.amazon.awscdk.services.dynamodb.Table getConnectionsTable() {
 		return connectionsTable;
+	}
+
+	public software.amazon.awscdk.services.dynamodb.Table getVocabMediaTable() {
+		return vocabMediaTable;
 	}
 
 	public DataStack(final Construct scope, final String id, final StackProps props) {
@@ -168,9 +173,7 @@ public class DataStack extends Stack {
 				.projectionType(software.amazon.awscdk.services.dynamodb.ProjectionType.ALL)
 				.build());
 
-		// Add GSI-2: English word lookup for Media reuse
-		// Use case: Given English word, find existing vocabulary entry to reuse Media
-		// object
+		// Add GSI-2: English word for vocabulary search
 		vocabDataTable.addGlobalSecondaryIndex(software.amazon.awscdk.services.dynamodb.GlobalSecondaryIndexProps
 				.builder()
 				.indexName("EnglishMediaLookupIndex")
@@ -178,9 +181,21 @@ public class DataStack extends Stack {
 						.name("english_word") // Format: normalized English word
 						.type(software.amazon.awscdk.services.dynamodb.AttributeType.STRING)
 						.build())
-				.projectionType(software.amazon.awscdk.services.dynamodb.ProjectionType.INCLUDE)
-				.nonKeyAttributes(java.util.Arrays.asList("media", "target_word", "target_language"))
+				.projectionType(software.amazon.awscdk.services.dynamodb.ProjectionType.ALL)
 				.build());
+
+		// Create DynamoDB table for vocab media data
+		this.vocabMediaTable = software.amazon.awscdk.services.dynamodb.Table.Builder
+				.create(this, "VocabMediaTable")
+				.tableName(CfnStackApp.getRequiredVariable("DYNAMODB_VOCAB_MEDIA_TABLE_NAME"))
+				.partitionKey(software.amazon.awscdk.services.dynamodb.Attribute.builder()
+						.name("PK") // Format: MEDIA#{hash} or SEARCH#{normalized_word}
+						.type(software.amazon.awscdk.services.dynamodb.AttributeType.STRING)
+						.build())
+				.billingMode(software.amazon.awscdk.services.dynamodb.BillingMode.PAY_PER_REQUEST)
+				.encryption(software.amazon.awscdk.services.dynamodb.TableEncryption.AWS_MANAGED)
+				.removalPolicy(software.amazon.awscdk.RemovalPolicy.DESTROY)
+				.build();
 
 		// Create DynamoDB table for vocab list data
 		this.vocabListTable = software.amazon.awscdk.services.dynamodb.Table.Builder
@@ -210,6 +225,7 @@ public class DataStack extends Stack {
 			this.vocabDataTable.grantFullAccess(lambdaFunction);
 			this.vocabListTable.grantFullAccess(lambdaFunction);
 			this.connectionsTable.grantFullAccess(lambdaFunction);
+			this.vocabMediaTable.grantFullAccess(lambdaFunction);
 		}
 
 		// Grant ECS task role permissions to DynamoDB tables and S3 bucket
@@ -219,6 +235,7 @@ public class DataStack extends Stack {
 			this.vocabListTable.grantFullAccess(ecsTaskRole);
 			this.connectionsTable.grantFullAccess(ecsTaskRole);
 			this.vocabBucket.grantReadWrite(ecsTaskRole);
+			this.vocabMediaTable.grantFullAccess(ecsTaskRole);
 		}
 	}
 }

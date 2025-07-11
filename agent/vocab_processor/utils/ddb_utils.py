@@ -4,7 +4,7 @@ import re
 import unicodedata
 from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
-from typing import Any, Dict
+from typing import Any
 
 import boto3
 from aws_lambda_powertools import Logger
@@ -22,9 +22,20 @@ dynamodb = boto3.resource(
         max_pool_connections=50, retries={"max_attempts": 3, "mode": "adaptive"}
     ),
 )
+
 VOCAB_TABLE = dynamodb.Table(os.getenv("DYNAMODB_VOCAB_TABLE_NAME"))
+MEDIA_TABLE = dynamodb.Table(os.getenv("DYNAMODB_VOCAB_MEDIA_TABLE_NAME"))
 
 _NORMALISE_RGX = re.compile(r"[^a-z0-9]")
+
+
+def get_media_table():
+    """Get media table instance."""
+    try:
+        return MEDIA_TABLE
+    except Exception as exc:
+        logger.error("media_table_connection_failed", error=str(exc))
+        raise
 
 
 def is_lambda_context() -> bool:
@@ -66,90 +77,208 @@ def lang_code(lang_enum) -> str:
 
 async def get_existing_media_for_search_words(
     search_words: list[str],
-) -> Dict[str, Any] | None:
-    """Return the first Media object found for any of *search_words*.
-
-    The function fires all GSI look-ups concurrently (one per word) and returns
-    as soon as the *first* task comes back with a hit.  Because **all** items
-    – main vocabulary rows *and* SEARCH# fan-out rows – carry the same
-    ``english_word`` attribute and are projected into the
-    ``EnglishMediaLookupIndex`` GSI, a single query per word is sufficient.
+) -> dict[str, Any] | None:
     """
+    Get existing media for search words using the dedicated media table.
 
+    This function uses the separate media table to find matching search terms,
+    then selects the best match based on search term frequency and recency.
+    """
     if not is_lambda_context():
         logger.info(
-            f"Local dev mode: skipping DynamoDB media lookup for search words: {search_words}"
+            f"Local dev mode: skipping media lookup for search words: {search_words}"
         )
         return None
 
-    async def _query_gsi(word: str):
-        norm = normalize_word(word)
-        try:
-            resp = await asyncio.to_thread(
-                VOCAB_TABLE.query,
-                IndexName="EnglishMediaLookupIndex",
-                KeyConditionExpression="english_word = :w",
-                ExpressionAttributeValues={":w": norm},
-                ProjectionExpression="media",
-                Limit=1,
-            )
-            items = resp.get("Items", [])
-            if items and items[0].get("media"):
-                media = items[0]["media"]
-                logger.info(
-                    "existing_media_hit",
-                    matched_word=word,
-                )
-                # Attach bookkeeping fields so caller can log which word hit
-                media_copy = dict(media)  # shallow copy – DDB types are JSON-safe
-                media_copy["matched_word"] = word
-                return media_copy
-        except Exception as exc:
-            logger.warning("english_media_lookup_failed", word=word, error=str(exc))
+    if not search_words:
         return None
 
-    # Fire all queries concurrently and return on first hit
-    tasks = [asyncio.create_task(_query_gsi(w)) for w in search_words]
+    # Normalize all search words
+    normalized_words = [normalize_word(word) for word in search_words]
 
-    # Use asyncio.as_completed for early termination on first hit
-    for coro in asyncio.as_completed(tasks):
-        result = await coro
-        if result:
-            # Cancel remaining tasks to save resources
-            for task in tasks:
-                if not task.done():
-                    task.cancel()
-            return result
+    try:
+        media_table = get_media_table()
 
-    logger.info("no_media_for_search_words", words=search_words)
+        # Query each search term individually from the media table
+        async def _query_search_term(word: str):
+            try:
+                response = await asyncio.to_thread(
+                    media_table.get_item,
+                    Key={"PK": f"SEARCH#{word}"},
+                    ProjectionExpression="media_ref, search_term, usage_count, last_used",
+                )
+                return response.get("Item")
+            except Exception as exc:
+                logger.warning(
+                    "media_search_term_lookup_failed", word=word, error=str(exc)
+                )
+                return None
+
+        # Fire all queries concurrently
+        tasks = [
+            asyncio.create_task(_query_search_term(word)) for word in normalized_words
+        ]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Filter out None results and exceptions
+        items = [
+            item
+            for item in results
+            if item is not None and not isinstance(item, Exception)
+        ]
+
+        if not items:
+            return None
+
+        # Find the best match based on usage frequency and recency
+        best_match = None
+        best_score = 0
+
+        for item in items:
+            # Score based on usage count (higher is better) and recency
+            usage_count = int(item.get("usage_count", 0))
+            last_used = item.get("last_used", "2020-01-01")
+
+            # Simple scoring: usage_count * recency_factor
+            hours_since_last_used = (
+                datetime.now(timezone.utc) - datetime.fromisoformat(last_used)
+            ).total_seconds() / 3600
+            # More recent = higher factor (1.0 for 1 hour ago, 0.5 for 2 hours ago, etc.)
+            recency_factor = 1.0 / max(1.0, hours_since_last_used)
+            score = usage_count * recency_factor
+
+            if score > best_score:
+                best_score = score
+                best_match = item
+
+        if best_match:
+            media_ref = best_match["media_ref"]
+            search_term = best_match["search_term"]
+
+            # Fetch the actual media object from the media table
+            media_response = await asyncio.to_thread(
+                media_table.get_item,
+                Key={"PK": media_ref},
+                ProjectionExpression="media",
+            )
+
+            media_item = media_response.get("Item")
+            if media_item and media_item.get("media"):
+                media = media_item["media"]
+                media_copy = dict(media)
+                media_copy["matched_word"] = search_term
+
+                # Update usage statistics
+                await _update_search_term_usage_media_table(f"SEARCH#{search_term}")
+
+                logger.info(
+                    "media_hit",
+                    matched_word=search_term,
+                    usage_count=usage_count,
+                    score=best_score,
+                )
+
+                return media_copy
+
+    except Exception as exc:
+        logger.warning("media_lookup_failed", error=str(exc))
+
     return None
 
 
-def to_ddb(value: Any):
-    """Recursively convert *value* to something DynamoDB can store."""
-    if value is None or isinstance(value, (bool, str)):
-        return value
-    if isinstance(value, (int, Decimal)):
-        return Decimal(value)
-    if isinstance(value, float):
-        return Decimal(str(value)).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
-    if isinstance(value, list):
-        return [to_ddb(v) for v in value]
-    if isinstance(value, dict):
-        return {k: to_ddb(v) for k, v in value.items() if v is not None}
+async def _update_search_term_usage_media_table(search_term_pk: str):
+    """Update usage statistics for a search term in the media table."""
+    try:
+        media_table = get_media_table()
+        await asyncio.to_thread(
+            media_table.update_item,
+            Key={"PK": search_term_pk},
+            UpdateExpression="ADD usage_count :inc SET last_used = :now",
+            ExpressionAttributeValues={
+                ":inc": 1,
+                ":now": datetime.now(timezone.utc).isoformat(),
+            },
+            ReturnValues="NONE",
+        )
+    except Exception as exc:
+        logger.warning(
+            "media_search_term_usage_update_failed", pk=search_term_pk, error=str(exc)
+        )
 
-    # Handle objects with model_dump (Pydantic), __dict__, or value (Enum)
-    for attr in ("model_dump", "__dict__", "value"):
-        if hasattr(value, attr):
-            obj_value = getattr(value, attr)
-            return to_ddb(obj_value() if callable(obj_value) else obj_value)
 
-    return str(value)
+async def store_media_references(
+    media_ref: str, search_words: list[str], media_data: dict[str, Any]
+):
+    """
+    Store media references using the separate media table.
+
+    This creates:
+    1. One main media entry in media table: PK=MEDIA#{hash}
+    2. Multiple search term entries in media table: PK=SEARCH#{word}
+    """
+    if not search_words or not media_data:
+        return
+
+    try:
+        media_table = get_media_table()
+
+        # Store the main media entry in the media table
+        await asyncio.to_thread(
+            media_table.put_item,
+            Item={
+                "PK": media_ref,
+                "media": to_ddb(media_data),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "schema_version": 1,
+                "item_type": "media",
+            },
+            ConditionExpression="attribute_not_exists(PK)",
+        )
+
+        # Store search term references (with usage tracking) in the media table
+        async def _store_search_term_ref(word: str):
+            normalized_word = normalize_word(word)
+            await asyncio.to_thread(
+                media_table.update_item,
+                Key={"PK": f"SEARCH#{normalized_word}"},
+                UpdateExpression="SET media_ref = :ref, search_term = :term, last_used = :now, item_type = :type ADD usage_count :inc",
+                ExpressionAttributeValues={
+                    ":ref": media_ref,
+                    ":term": normalized_word,
+                    ":now": datetime.now(timezone.utc).isoformat(),
+                    ":type": "search_term",
+                    ":inc": 1,
+                },
+                ReturnValues="NONE",
+            )
+
+        # Store all search term references concurrently
+        await asyncio.gather(
+            *[_store_search_term_ref(word) for word in search_words],
+            return_exceptions=True,
+        )
+
+        logger.info(
+            "media_stored",
+            media_ref=media_ref,
+            search_words=search_words,
+            table_name=media_table.name,
+        )
+
+    except ClientError as err:
+        if err.response["Error"].get("Code") == "ConditionalCheckFailedException":
+            logger.info("duplicate_media_ignored", media_ref=media_ref)
+        else:
+            logger.exception("media_storage_failed", err=str(err))
+            raise
+    except Exception as exc:
+        logger.exception("media_storage_error", error=str(exc))
+        raise
 
 
 async def validate_and_check_exists(
     src_word: str, tgt_lang: str, src_lang: str | None = None
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Validate word and check if it exists in DDB.
 
@@ -223,7 +352,7 @@ async def validate_and_check_exists(
     }
 
 
-async def store_result(result: Dict[str, Any], req: VocabProcessRequestDto):
+async def store_result(result: dict[str, Any], req: VocabProcessRequestDto):
     src_lang = result.get("source_language")
     tgt_lang = result.get("target_language")
     src_word = result.get("source_word")
@@ -253,7 +382,7 @@ async def store_result(result: Dict[str, Any], req: VocabProcessRequestDto):
         normalize_word(word) for word in search_query if word.strip()
     ]
 
-    item: Dict[str, Any] = {
+    item: dict[str, Any] = {
         "PK": pk,
         "SK": sk,
         # Source word
@@ -276,7 +405,8 @@ async def store_result(result: Dict[str, Any], req: VocabProcessRequestDto):
         "examples": to_ddb(result.get("examples")),
         "conjugation_table": to_ddb(result.get("conjugation")),
         "pronunciations": result.get("pronunciations"),
-        "media": to_ddb(result.get("media")),
+        # Store media reference instead of full media object
+        "media_ref": result.get("media_ref"),  # Reference to media table
         # GSI-1: Reverse lookup
         "LKP": f"LKP#{lang_code(tgt_lang)}#{normalize_word(tgt_word)}",
         "SRC_LANG": f"SRC#{lang_code(src_lang)}",
@@ -300,15 +430,17 @@ async def store_result(result: Dict[str, Any], req: VocabProcessRequestDto):
         logger.info("ddb_put_ok", pk=pk, sk=sk, search_words=normalized_search_words)
         metrics.add_metric("VocabStored", MetricUnit.Count, 1)
 
-        # Store additional entries for each search word (for efficient lookup)
-        if (
-            normalized_search_words
-            and result.get("media")
-            and not result.get("media_reused", False)
-        ):
-            await _store_search_word_entries(
-                pk, sk, normalized_search_words, result, req
-            )
+        # Store media in separate table if new media was fetched or adapted to a new language
+        needs_storage = result.get("media") and (
+            not result.get("media_reused", False) or result.get("media_adapted", False)
+        )
+
+        if needs_storage:
+            media_ref = result.get("media_ref")
+            if media_ref:
+                await store_media_references(
+                    media_ref, normalized_search_words, result.get("media")
+                )
     except ClientError as err:
         if err.response["Error"].get("Code") == "ConditionalCheckFailedException":
             logger.info("duplicate_write_ignored", pk=pk, sk=sk)
@@ -318,34 +450,114 @@ async def store_result(result: Dict[str, Any], req: VocabProcessRequestDto):
             raise
 
 
-async def _store_search_word_entries(
-    main_pk: str,
-    main_sk: str,
-    search_words: list[str],
-    result: Dict[str, Any],
-    req: VocabProcessRequestDto,
-):
-    """Store additional entries for each search word to enable efficient media lookup."""
+async def get_media_usage_statistics() -> dict[str, Any]:
+    """
+    Get usage statistics for media reuse optimization from the media table.
 
-    async def _batch_write(words: list[str]):
-        def _sync_write():
-            with VOCAB_TABLE.batch_writer() as bw:
-                for w in words:
-                    bw.put_item(
-                        Item={
-                            "PK": f"SEARCH#{w}",
-                            "SK": f"REF#{main_pk}#{main_sk}",
-                            "english_word": w,
-                            "media": to_ddb(result.get("media")),
-                            "reference_pk": main_pk,
-                            "reference_sk": main_sk,
-                            "schema_version": 1,
-                            "created_at": datetime.now(timezone.utc).isoformat(),
-                        }
-                    )
+    Returns:
+        Dict containing usage statistics, top search terms, and reuse rates.
+    """
+    if not is_lambda_context():
+        logger.info("Local dev mode: returning mock media statistics")
+        return {
+            "total_media_objects": 100,
+            "total_search_terms": 500,
+            "average_reuse_rate": 0.65,
+            "top_search_terms": [
+                {"term": "dog", "usage_count": 25},
+                {"term": "house", "usage_count": 20},
+                {"term": "food", "usage_count": 18},
+            ],
+        }
 
-        await asyncio.to_thread(_sync_write)
-        logger.debug("search_word_entries_stored", count=len(words))
+    try:
+        media_table = get_media_table()
 
-    if search_words:
-        await _batch_write(search_words)
+        # Get search term statistics
+        search_term_stats = []
+        paginator = media_table.scan(
+            FilterExpression="item_type = :type",
+            ExpressionAttributeValues={":type": "search_term"},
+            ProjectionExpression="search_term, usage_count, last_used",
+        )
+
+        total_search_terms = 0
+        total_usage = 0
+
+        for page in paginator:
+            items = page.get("Items", [])
+            total_search_terms += len(items)
+
+            for item in items:
+                usage_count = int(item.get("usage_count", 0))
+                total_usage += usage_count
+
+                search_term_stats.append(
+                    {
+                        "term": item.get("search_term", ""),
+                        "usage_count": usage_count,
+                        "last_used": item.get("last_used", ""),
+                    }
+                )
+
+        # Sort by usage count
+        search_term_stats.sort(key=lambda x: x["usage_count"], reverse=True)
+
+        # Get media object count
+        media_paginator = media_table.scan(
+            FilterExpression="item_type = :type",
+            ExpressionAttributeValues={":type": "media"},
+            Select="COUNT",
+        )
+
+        total_media_objects = 0
+        for page in media_paginator:
+            total_media_objects += page.get("Count", 0)
+
+        # Calculate reuse rate
+        average_reuse_rate = (
+            total_usage / total_search_terms if total_search_terms > 0 else 0
+        )
+
+        return {
+            "total_media_objects": total_media_objects,
+            "total_search_terms": total_search_terms,
+            "total_usage": total_usage,
+            "average_reuse_rate": round(average_reuse_rate, 2),
+            "top_search_terms": search_term_stats[:10],  # Top 10
+            "reuse_efficiency": round(
+                (
+                    total_media_objects / total_search_terms
+                    if total_search_terms > 0
+                    else 0
+                ),
+                2,
+            ),
+            "table_name": media_table.name,
+        }
+
+    except Exception as exc:
+        logger.exception("media_stats_calculation_failed", error=str(exc))
+        return {"error": str(exc)}
+
+
+def to_ddb(value: Any):
+    """Recursively convert *value* to something DynamoDB can store."""
+    if value is None or isinstance(value, (bool, str)):
+        return value
+    if isinstance(value, (int, Decimal)):
+        return Decimal(value)
+    if isinstance(value, float):
+        return Decimal(str(value)).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+    if isinstance(value, list):
+        return [to_ddb(v) for v in value]
+    if isinstance(value, dict):
+        return {k: to_ddb(v) for k, v in value.items() if v is not None}
+
+    # Handle objects with model_dump (Pydantic), __dict__, or value (Enum)
+    for attr in ("model_dump", "__dict__", "value"):
+        if hasattr(value, attr):
+            obj_value = getattr(value, attr)
+            return to_ddb(obj_value() if callable(obj_value) else obj_value)
+
+    return str(value)

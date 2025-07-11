@@ -20,29 +20,29 @@ type DynamoVocabRepository struct {
 
 // VocabRecord represents the DynamoDB storage format for vocabulary entries
 type VocabRecord struct {
-	PK               string                 `dynamo:"PK,hash"`
-	SK               string                 `dynamo:"SK,range"`
-	LKP              string                 `dynamo:"LKP" index:"ReverseLookupIndex,hash"`
-	SrcLang          string                 `dynamo:"SRC_LANG" index:"ReverseLookupIndex,range"`
-	ConjugationTable string                 `dynamo:"conjugation_table"`
-	CreatedAt        string                 `dynamo:"created_at"`
-	CreatedBy        string                 `dynamo:"created_by"`
-	EnglishWord      string                 `dynamo:"english_word" index:"EnglishMediaLookupIndex,hash"`
-	Examples         []map[string]string    `dynamo:"examples"`
-	Media            map[string]interface{} `dynamo:"media"`
-	Pronunciations   map[string]string      `dynamo:"pronunciations"`
-	PhoneticGuide    string                 `dynamo:"target_phonetic_guide"`
-	SourceDefinition []string               `dynamo:"source_definition"`
-	SourceLanguage   string                 `dynamo:"source_language"`
-	SourcePos        string                 `dynamo:"source_pos"`
-	SourceWord       string                 `dynamo:"source_word"`
-	Syllables        []string               `dynamo:"target_syllables"`
-	Synonyms         []map[string]string    `dynamo:"synonyms"`
-	TargetLanguage   string                 `dynamo:"target_language"`
-	TargetPos        string                 `dynamo:"target_pos"`
-	TargetWord       string                 `dynamo:"target_word"`
-	SourceAddInfo    string                 `dynamo:"source_additional_info"`
-	TargetAddInfo    string                 `dynamo:"target_additional_info"`
+	PK               string              `dynamo:"PK,hash"`
+	SK               string              `dynamo:"SK,range"`
+	LKP              string              `dynamo:"LKP" index:"ReverseLookupIndex,hash"`
+	SrcLang          string              `dynamo:"SRC_LANG" index:"ReverseLookupIndex,range"`
+	ConjugationTable string              `dynamo:"conjugation_table"`
+	CreatedAt        string              `dynamo:"created_at"`
+	CreatedBy        string              `dynamo:"created_by"`
+	EnglishWord      string              `dynamo:"english_word" index:"EnglishMediaLookupIndex,hash"`
+	Examples         []map[string]string `dynamo:"examples"`
+	MediaRef         string              `dynamo:"media_ref"`
+	Pronunciations   map[string]string   `dynamo:"pronunciations"`
+	PhoneticGuide    string              `dynamo:"target_phonetic_guide"`
+	SourceDefinition []string            `dynamo:"source_definition"`
+	SourceLanguage   string              `dynamo:"source_language"`
+	SourcePos        string              `dynamo:"source_pos"`
+	SourceWord       string              `dynamo:"source_word"`
+	Syllables        []string            `dynamo:"target_syllables"`
+	Synonyms         []map[string]string `dynamo:"synonyms"`
+	TargetLanguage   string              `dynamo:"target_language"`
+	TargetPos        string              `dynamo:"target_pos"`
+	TargetWord       string              `dynamo:"target_word"`
+	SourceAddInfo    string              `dynamo:"source_additional_info"`
+	TargetAddInfo    string              `dynamo:"target_additional_info"`
 }
 
 // NewDynamoVocabRepository creates a new DynamoDB vocabulary repository
@@ -69,7 +69,7 @@ func (r *DynamoVocabRepository) toVocabRecord(vocab *entities.VocabWord) VocabRe
 		TargetLanguage:   vocab.TargetLanguage,
 		Examples:         vocab.Examples,
 		Synonyms:         vocab.Synonyms,
-		Media:            vocab.Media,
+		MediaRef:         vocab.MediaRef,
 		Pronunciations:   vocab.Pronunciations,
 		PhoneticGuide:    vocab.PhoneticGuide,
 		EnglishWord:      vocab.EnglishWord,
@@ -98,7 +98,7 @@ func (r *DynamoVocabRepository) toEntity(record VocabRecord) *entities.VocabWord
 		TargetLanguage:   record.TargetLanguage,
 		Examples:         record.Examples,
 		Synonyms:         record.Synonyms,
-		Media:            record.Media,
+		MediaRef:         record.MediaRef,
 		Pronunciations:   record.Pronunciations,
 		PhoneticGuide:    record.PhoneticGuide,
 		EnglishWord:      record.EnglishWord,
@@ -233,7 +233,7 @@ func (r *DynamoVocabRepository) SearchByNormalizedWord(ctx context.Context, norm
 			var record VocabRecord
 
 			for iter.Next(ctx, &record) {
-				if len(resultMap) > 0 {
+				if len(resultMap) >= limit {
 					goto scanComplete // Early termination when we have enough results
 				}
 
@@ -245,6 +245,10 @@ func (r *DynamoVocabRepository) SearchByNormalizedWord(ctx context.Context, norm
 			}
 
 			batchCount++
+
+			if len(resultMap) > 0 {
+				goto scanComplete
+			}
 
 			// Get the last evaluated key for pagination
 			lastEvaluatedKey, _ = iter.LastEvaluatedKey(ctx)

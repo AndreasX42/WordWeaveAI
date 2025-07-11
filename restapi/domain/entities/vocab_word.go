@@ -14,6 +14,7 @@ type VocabWord struct {
 	Examples         []map[string]string
 	Synonyms         []map[string]string
 	Media            map[string]interface{}
+	MediaRef         string
 	Pronunciations   map[string]string
 	PhoneticGuide    string
 	EnglishWord      string

@@ -78,6 +78,7 @@ type VocabListWordWithDataResponse struct {
 	Examples         []map[string]string `json:"examples,omitempty"`
 	Synonyms         []map[string]string `json:"synonyms,omitempty"`
 	Media            map[string]any      `json:"media,omitempty"`
+	MediaRef         *string             `json:"media_ref,omitempty"`
 	Pronunciations   map[string]string   `json:"pronunciations,omitempty"`
 	PhoneticGuide    *string             `json:"phonetic_guide,omitempty"`
 	EnglishWord      *string             `json:"english_word,omitempty"`
@@ -454,6 +455,7 @@ func (h *VocabListHandler) toWordWithDataResponse(word *services.VocabListWordWi
 		response.Examples = word.VocabWord.Examples
 		response.Synonyms = word.VocabWord.Synonyms
 		response.Media = word.VocabWord.Media
+		response.MediaRef = &word.VocabWord.MediaRef
 		response.Pronunciations = word.VocabWord.Pronunciations
 		response.PhoneticGuide = &word.VocabWord.PhoneticGuide
 		response.EnglishWord = &word.VocabWord.EnglishWord

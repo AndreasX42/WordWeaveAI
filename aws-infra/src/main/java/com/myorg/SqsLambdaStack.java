@@ -95,6 +95,8 @@ public class SqsLambdaStack extends Stack {
 						CfnStackApp.getRequiredVariable("DYNAMODB_USER_TABLE_NAME"),
 						"DYNAMODB_VOCAB_TABLE_NAME",
 						CfnStackApp.getRequiredVariable("DYNAMODB_VOCAB_TABLE_NAME"),
+						"DYNAMODB_VOCAB_MEDIA_TABLE_NAME",
+						CfnStackApp.getRequiredVariable("DYNAMODB_VOCAB_MEDIA_TABLE_NAME"),
 						"DYNAMODB_CONNECTIONS_TABLE_NAME",
 						CfnStackApp.getRequiredVariable("DYNAMODB_CONNECTIONS_TABLE_NAME"),
 						"S3_MEDIA_BUCKET_NAME", CfnStackApp.getRequiredVariable("S3_MEDIA_BUCKET_NAME")))

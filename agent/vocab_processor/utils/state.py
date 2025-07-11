@@ -83,6 +83,10 @@ class VocabState(BaseModel):
         None,
         description="True if media was reused from cache instead of fetched from Pexels.",
     )
+    media_adapted: Optional[bool] = Field(
+        None,
+        description="True if media was adapted from one language to another.",
+    )
 
     synonyms: Optional[List[Synonym]] = Field(
         None, description="List of synonyms for the target word."
@@ -94,6 +98,10 @@ class VocabState(BaseModel):
     media: Optional[Media] = Field(
         None,
         description="Visual media (e.g., image URLs or objects) related to the word.",
+    )
+    media_ref: Optional[str] = Field(
+        None,
+        description="Reference to media object in the ddb media table.",
     )
     examples: Optional[List[ExampleSentence]] = Field(
         None, description="Example sentences using the target word."

@@ -276,9 +276,11 @@
 }
 
 .result-item {
-  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  padding: 0.25rem 0.5rem;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
   border-bottom: 1px solid var(--border-color, #e0e0e0);
 
   &:last-child {
@@ -293,9 +295,8 @@
 .result-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 32px;
+  gap: 0.75rem;
+  padding: 0.1rem 0;
 }
 
 .source-info,
@@ -796,5 +797,77 @@ mark.hl {
       width: 12px;
       height: 12px;
     }
+  }
+}
+
+/* Dark Theme Adjustments */
+@media (max-width: 600px) {
+  .search-section {
+    padding: 1rem;
+  }
+
+  .search-content {
+    margin-top: 0;
+  }
+
+  .search-title {
+    font-size: 2rem;
+  }
+
+  .search-box {
+    padding: 1.5rem;
+  }
+
+  .language-selectors {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+
+  .language-select:first-child {
+    order: 1;
+  }
+
+  .swap-button {
+    order: 2;
+    margin: 0.2rem auto;
+    transform: rotate(90deg);
+  }
+
+  .language-select:last-of-type {
+    order: 3;
+  }
+
+  .result-row {
+    flex-wrap: nowrap;
+    overflow: hidden;
+    padding: 0;
+    gap: 0.5rem;
+  }
+
+  .result-item {
+    padding: 0.3rem 0.75rem;
+  }
+
+  .source-info,
+  .target-info {
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  .word {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.9rem;
+  }
+
+  .pos {
+    padding: 3px 6px;
+    font-size: 0.65rem;
+  }
+
+  .flag {
+    font-size: 1.2rem;
   }
 }

@@ -14,7 +14,8 @@ import (
 )
 
 type VocabService struct {
-	vocabRepo repositories.VocabRepository
+	vocabRepo      repositories.VocabRepository
+	vocabMediaRepo repositories.VocabMediaRepository
 }
 
 type SearchVocabularyRequest struct {
@@ -26,9 +27,10 @@ type SearchVocabularyRequest struct {
 
 var normalizeRgx = regexp.MustCompile(`[^a-z0-9]`)
 
-func NewVocabService(vocabRepo repositories.VocabRepository) *VocabService {
+func NewVocabService(vocabRepo repositories.VocabRepository, vocabMediaRepo repositories.VocabMediaRepository) *VocabService {
 	return &VocabService{
-		vocabRepo: vocabRepo,
+		vocabRepo:      vocabRepo,
+		vocabMediaRepo: vocabMediaRepo,
 	}
 }
 
@@ -58,6 +60,11 @@ func (s *VocabService) SearchVocabulary(ctx context.Context, req SearchVocabular
 		}
 
 		if len(results) > 0 {
+			// Fetch media for results with media_ref
+			results, err = s.enrichWithMedia(ctx, results)
+			if err != nil {
+				return nil, err
+			}
 			return results, nil
 		}
 	}
@@ -70,6 +77,60 @@ func (s *VocabService) SearchVocabulary(ctx context.Context, req SearchVocabular
 		return nil, err
 	}
 	fmt.Println("-1 - results", results)
+
+	// filter for source and target languages
+	if req.SourceLang != "" || req.TargetLang != "" {
+		results = filterByLanguages(results, req.SourceLang, req.TargetLang)
+	}
+
+	// Fetch media for results with media_ref
+	results, err = s.enrichWithMedia(ctx, results)
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func filterByLanguages(results []entities.VocabWord, sourceLang string, targetLang string) []entities.VocabWord {
+	var filteredResults []entities.VocabWord
+
+	for _, result := range results {
+		if result.SourceLanguage == sourceLang || result.TargetLanguage == targetLang {
+			filteredResults = append(filteredResults, result)
+		}
+	}
+
+	return filteredResults
+}
+
+// enrichWithMedia fetches media data for vocab words that have media_ref
+func (s *VocabService) enrichWithMedia(ctx context.Context, results []entities.VocabWord) ([]entities.VocabWord, error) {
+	// Skip if no media repository (e.g., in tests)
+	if s.vocabMediaRepo == nil {
+		return results, nil
+	}
+
+	for i, result := range results {
+		// Skip if no media_ref included
+		if result.MediaRef == "" {
+			continue
+		}
+
+		// Fetch media data using media_ref
+		media, err := s.vocabMediaRepo.GetMediaByRef(ctx, result.MediaRef)
+		if err != nil {
+			// Log the error but don't fail the entire search
+			fmt.Printf("Warning: Failed to fetch media for ref %s: %v\n", result.MediaRef, err)
+			continue
+		}
+
+		if media != nil {
+			// Update the result with media data
+			results[i].Media = media
+		}
+	}
+
 	return results, nil
 }
 
