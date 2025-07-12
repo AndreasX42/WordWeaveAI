@@ -350,8 +350,7 @@ export class GlobalErrorHandler implements ErrorHandler {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Add auth header if the endpoint requires authentication
-          // 'Authorization': `Bearer ${this.getAuthToken()}`
+          // Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
         },
         body: JSON.stringify(errorData),
       });

@@ -26,6 +26,8 @@ import {
   filter,
 } from 'rxjs/operators';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { ChangeDetectorRef } from '@angular/core';
+import { finalize } from 'rxjs/operators';
 
 @Component({
   selector: 'app-search',
@@ -52,6 +54,7 @@ export class SearchComponent implements OnInit {
   translationService = inject(TranslationService);
   wordService = inject(WordService);
   router = inject(Router);
+  cdr = inject(ChangeDetectorRef);
 
   searchControl = new FormControl<string>('', { nonNullable: true });
   sourceLanguageControl = new FormControl<string>('', { nonNullable: true });
@@ -72,6 +75,8 @@ export class SearchComponent implements OnInit {
 
   private readonly STORAGE_KEY_SOURCE = 'source_language';
   private readonly STORAGE_KEY_TARGET = 'target_language';
+
+  private noResultsTimer: any;
 
   constructor() {
     this.loadLanguagePreferences();
@@ -126,6 +131,7 @@ export class SearchComponent implements OnInit {
           this.hasSearched = true;
           this.searchResults = [];
           this.searchError = null;
+          this.cdr.detectChanges();
         }),
         switchMap(([term, sourceLanguage, targetLanguage]) => {
           if (!term.trim()) {
@@ -149,10 +155,28 @@ export class SearchComponent implements OnInit {
         }),
         tap(() => {
           this.loading = false;
+          this.cdr.detectChanges();
+        }),
+        finalize(() => {
+          this.loading = false;
+          this.cdr.detectChanges();
         })
       )
-      .subscribe((results) => {
-        this.searchResults = results || [];
+      .subscribe({
+        next: (results) => {
+          this.searchResults = results || [];
+          if (!results || results.length === 0) {
+            this.noResultsTimer = setTimeout(() => {
+              this.hasSearched = false;
+              this.cdr.detectChanges();
+            }, 3500);
+          }
+        },
+        error: (error) => {
+          this.searchError =
+            'An error occurred during search. Please try again later.';
+          this.cdr.detectChanges();
+        },
       });
 
     // Listen to language changes for preference saving
@@ -216,12 +240,14 @@ export class SearchComponent implements OnInit {
     this.manualSearchTrigger.next();
   }
 
-  clearSearch() {
+  clearSearch(): void {
     this.searchControl.setValue('');
     this.searchResults = [];
     this.hasSearched = false;
-    this.loading = false;
     this.searchError = null;
+    if (this.noResultsTimer) {
+      clearTimeout(this.noResultsTimer);
+    }
   }
 
   openWord(word: VocabularyWord) {

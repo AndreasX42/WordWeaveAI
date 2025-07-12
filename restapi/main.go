@@ -102,12 +102,14 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 		api.POST("/search", container.SearchHandler.SearchVocabulary)
 		api.GET("/vocab", container.SearchHandler.GetVocabularyByPkSk)
 		api.GET("/vocabs/:sourceLanguage/:targetLanguage/:pos/:word", container.SearchHandler.GetVocabularyByParams)
-		api.GET("/media/:mediaRef", container.SearchHandler.GetMediaByRef)
 
 		// JWT routes
 		api.POST("/auth/login", authMiddleware.LoginHandler)
 		api.POST("/auth/logout", authMiddleware.LogoutHandler)
 		api.POST("/auth/refresh", createRefreshHandler(authMiddleware, container))
+
+		// Logging routes
+		api.POST("/log", container.SentryHandler.LogEvent)
 
 		// Authenticated routes
 		authenticated := api.Group("/")
@@ -122,7 +124,11 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 			userRoutes.PUT("/update", container.UserHandler.Update)
 
 			// Logging routes
-			authenticated.POST("/log", container.SentryHandler.LogEvent)
+			// authenticated.POST("/log", container.SentryHandler.LogEvent)
+
+			// Media routes
+			authenticated.GET("/media/:mediaRef", container.SearchHandler.GetMediaByRef)
+
 		}
 	}
 }

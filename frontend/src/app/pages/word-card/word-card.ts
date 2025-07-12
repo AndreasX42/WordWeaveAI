@@ -17,6 +17,7 @@ import {
   ConjugationTable,
   NonPersonalForms,
   Mood,
+  Tense,
 } from '../../models/word.model';
 import { getLanguageConfig, LanguageConfig } from './conjugation.config';
 import { Configs } from '../../shared/config';
@@ -318,9 +319,14 @@ export class WordCard implements OnInit {
     return moodData ? Object.keys(moodData) : [];
   }
 
-  getConjugationPronouns(mood: string, tense: string): string[] {
-    const tenseData = this.getTense(mood, tense);
-    return tenseData ? Object.keys(tenseData) : [];
+  getConjugationPronouns(mood: string): string[] {
+    const conjugationTable = this.getConjugationTable();
+    const moodData = conjugationTable?.[mood] as Mood;
+    if (!moodData) return [];
+
+    // Get pronouns from the first available tense
+    const firstTense = Object.values(moodData)[0] as Tense;
+    return firstTense ? Object.keys(firstTense) : [];
   }
 
   getPronounLabel(pronoun: string): string {
@@ -372,8 +378,33 @@ export class WordCard implements OnInit {
 
   getConjugationValue(mood: string, tense: string, pronoun: string): string {
     const tenseData = this.getTense(mood, tense);
-    if (!tenseData) return '';
-    return tenseData[pronoun] || '';
+    return tenseData?.[pronoun] || '';
+  }
+
+  // New helper methods for restructured conjugation tables
+  getGroupedTenses(mood: string): string[][] {
+    const tenses =
+      mood === this.getIndicativeMoodName()
+        ? this.getIndicativeTenses()
+        : this.getSubjunctiveTenses();
+
+    // Group tenses into chunks of 3
+    const grouped: string[][] = [];
+    for (let i = 0; i < tenses.length; i += 3) {
+      grouped.push(tenses.slice(i, i + 3));
+    }
+    return grouped;
+  }
+
+  getConjugationValueForTense(
+    mood: string,
+    tense: string,
+    pronoun: string
+  ): string {
+    const conjugationTable = this.getConjugationTable();
+    const moodData = conjugationTable?.[mood] as Mood;
+    const tenseData = moodData?.[tense] as Tense;
+    return tenseData?.[pronoun] || '';
   }
 
   getS3Url(key: string | undefined): string {

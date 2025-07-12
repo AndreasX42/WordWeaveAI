@@ -235,26 +235,38 @@
                 <h3>
                   {{ getLabel("indicativeMood") }}
                 </h3>
-                @for (tense of indicativeTenses; track tense) {
+                @for (tenseGroup of getGroupedTenses(getIndicativeMoodName());
+                track $index) {
                 <div class="tense-subsection">
-                  <h4>{{ getLabel(tense) }}</h4>
-                  <table>
-                    @for (pronoun of
-                    getConjugationPronouns(getIndicativeMoodName(), tense);
-                    track pronoun) {
-                    <tr>
-                      <td class="pronoun">{{ getPronounLabel(pronoun) }}</td>
-                      <td class="conjugation">
-                        {{
-                          getConjugationValue(
-                            getIndicativeMoodName(),
-                            tense,
-                            pronoun
-                          )
-                        }}
-                      </td>
-                    </tr>
-                    }
+                  <table class="conjugation-table-grouped">
+                    <thead>
+                      <tr>
+                        <th class="pronoun-header">Pronoun</th>
+                        @for (tense of tenseGroup; track tense) {
+                        <th class="tense-header">{{ getLabel(tense) }}</th>
+                        }
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (pronoun of
+                      getConjugationPronouns(getIndicativeMoodName()); track
+                      pronoun) {
+                      <tr>
+                        <td class="pronoun">{{ getPronounLabel(pronoun) }}</td>
+                        @for (tense of tenseGroup; track tense) {
+                        <td class="conjugation">
+                          {{
+                            getConjugationValueForTense(
+                              getIndicativeMoodName(),
+                              tense,
+                              pronoun
+                            )
+                          }}
+                        </td>
+                        }
+                      </tr>
+                      }
+                    </tbody>
                   </table>
                 </div>
                 }
@@ -265,26 +277,38 @@
                 <h3>
                   {{ getLabel("subjunctiveMood") }}
                 </h3>
-                @for (tense of subjunctiveTenses; track tense) {
+                @for (tenseGroup of getGroupedTenses(getSubjunctiveMoodName());
+                track $index) {
                 <div class="tense-subsection">
-                  <h4>{{ getLabel(tense) }}</h4>
-                  <table>
-                    @for (pronoun of
-                    getConjugationPronouns(getSubjunctiveMoodName(), tense);
-                    track pronoun) {
-                    <tr>
-                      <td class="pronoun">{{ getPronounLabel(pronoun) }}</td>
-                      <td class="conjugation">
-                        {{
-                          getConjugationValue(
-                            getSubjunctiveMoodName(),
-                            tense,
-                            pronoun
-                          )
-                        }}
-                      </td>
-                    </tr>
-                    }
+                  <table class="conjugation-table-grouped">
+                    <thead>
+                      <tr>
+                        <th class="pronoun-header">Pronoun</th>
+                        @for (tense of tenseGroup; track tense) {
+                        <th class="tense-header">{{ getLabel(tense) }}</th>
+                        }
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (pronoun of
+                      getConjugationPronouns(getSubjunctiveMoodName()); track
+                      pronoun) {
+                      <tr>
+                        <td class="pronoun">{{ getPronounLabel(pronoun) }}</td>
+                        @for (tense of tenseGroup; track tense) {
+                        <td class="conjugation">
+                          {{
+                            getConjugationValueForTense(
+                              getSubjunctiveMoodName(),
+                              tense,
+                              pronoun
+                            )
+                          }}
+                        </td>
+                        }
+                      </tr>
+                      }
+                    </tbody>
                   </table>
                 </div>
                 }

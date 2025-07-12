@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -65,6 +66,8 @@ func (h *SentryHandler) LogEvent(c *gin.Context) {
 		return
 	}
 
+	fmt.Printf("c.Request.Body: %+v\n", c.Request.Body)
+
 	var logRequest map[string]any
 	if err := c.ShouldBindJSON(&logRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -73,6 +76,8 @@ func (h *SentryHandler) LogEvent(c *gin.Context) {
 		})
 		return
 	}
+
+	fmt.Printf("logRequest: %+v\n", logRequest)
 
 	// Determine if this is the enhanced frontend error structure or simple logging
 	isEnhancedError := h.isEnhancedErrorStructure(logRequest)

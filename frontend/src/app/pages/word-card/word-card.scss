@@ -82,7 +82,7 @@
 .add-to-list-button {
   position: absolute;
   top: 1rem;
-  right: 1rem;
+  right: 2rem;
   border: 1px solid #1976d2 !important;
   color: #1976d2;
   transition: all 0.2s ease-in-out;
@@ -204,9 +204,9 @@
 }
 
 .media-section {
-  width: 200px;
+  width: 250px;
   flex-shrink: 0;
-  margin-top: -3rem;
+  margin-top: -6rem;
   position: relative;
   z-index: 1;
 }
@@ -457,21 +457,105 @@
   margin-bottom: 1.5rem;
 }
 
-.tense-section h4 {
+.tense-subsection {
+  margin-bottom: 1.5rem;
+
+  &:last-of-type {
+    margin-bottom: 0;
+  }
+}
+
+.tense-section h4,
+.tense-subsection h4 {
   color: var(--text-primary);
   margin-bottom: 0.5rem;
   font-size: 1.1rem;
   font-weight: 500;
 }
 
-.tense-section table {
+.tense-section table,
+.tense-subsection table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.tense-section td {
+.tense-section td,
+.tense-subsection td {
   padding: 0.5rem;
   border-bottom: 1px solid var(--border-color);
+}
+
+/* New grouped conjugation table styles */
+.conjugation-table-grouped {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.conjugation-table-grouped thead {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.conjugation-table-grouped th {
+  padding: 0.75rem 0.5rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.conjugation-table-grouped th:last-child {
+  border-right: none;
+}
+
+.conjugation-table-grouped tbody tr {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.conjugation-table-grouped tbody tr:last-child {
+  border-bottom: none;
+}
+
+.conjugation-table-grouped tbody tr:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.conjugation-table-grouped td {
+  padding: 0.75rem 0.5rem;
+  border-right: 1px solid var(--border-color);
+  vertical-align: top;
+}
+
+.conjugation-table-grouped td:last-child {
+  border-right: none;
+}
+
+.conjugation-table-grouped .pronoun-header {
+  width: 15%;
+  min-width: 100px;
+}
+
+.conjugation-table-grouped .tense-header {
+  text-align: center;
+  font-size: 0.85rem;
+  padding-left: 0.75rem;
+}
+
+.conjugation-table-grouped .pronoun {
+  font-weight: 600;
+  color: var(--text-secondary);
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.conjugation-table-grouped .conjugation {
+  text-align: center;
+  color: var(--text-primary);
+  font-weight: 500;
+  padding-left: 0.75rem;
 }
 
 .pronoun {
@@ -615,11 +699,13 @@
     color: var(--primary-light, #64b5f6);
   }
 
-  .tense-section h4 {
+  .tense-section h4,
+  .tense-subsection h4 {
     color: rgba(255, 255, 255, 0.87);
   }
 
-  .tense-section td {
+  .tense-section td,
+  .tense-subsection td {
     border-bottom-color: rgba(255, 255, 255, 0.1);
   }
 
@@ -628,6 +714,39 @@
   }
 
   .conjugation {
+    color: rgba(255, 255, 255, 0.87);
+  }
+
+  .conjugation-table-grouped {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .conjugation-table-grouped thead {
+    background-color: var(--primary-light, #64b5f6);
+  }
+
+  .conjugation-table-grouped th {
+    border-right-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .conjugation-table-grouped tbody tr {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .conjugation-table-grouped tbody tr:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.03);
+  }
+
+  .conjugation-table-grouped td {
+    border-right-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .conjugation-table-grouped .pronoun {
+    color: rgba(255, 255, 255, 0.6);
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .conjugation-table-grouped .conjugation {
     color: rgba(255, 255, 255, 0.87);
   }
 
@@ -740,7 +859,7 @@
   }
 
   .target-word {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
   }
 
   .add-to-list-button {
@@ -791,8 +910,8 @@
       padding: 0 12px;
     }
 
-    .mat-mdc-tab-label-content {
-      font-size: 0.9rem;
+    .mdc-tab__text-label {
+      font-size: 0.8rem !important;
     }
 
     .mat-mdc-tab-header-pagination {
@@ -837,7 +956,7 @@
   }
 
   .target-word {
-    font-size: 1.25rem;
+    font-size: 1.75rem;
   }
 
   .pronunciation {
@@ -884,8 +1003,8 @@
       padding: 0 8px;
     }
 
-    .mat-mdc-tab-label-content {
-      font-size: 0.85rem;
+    .mdc-tab__text-label {
+      font-size: 0.75rem !important;
     }
 
     .mat-mdc-tab-header-pagination {
