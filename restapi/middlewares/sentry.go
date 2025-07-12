@@ -103,7 +103,7 @@ func SentryMiddleware(sentryConfig *config.SentryConfig) gin.HandlerFunc {
 }
 
 // CaptureErrorFromContext captures an error using the Sentry hub from the request context
-func CaptureErrorFromContext(c *gin.Context, err error, tags map[string]string, extra map[string]interface{}) {
+func CaptureErrorFromContext(c *gin.Context, err error, tags map[string]string, extra map[string]any) {
 	hub := sentry.GetHubFromContext(c.Request.Context())
 	if hub == nil {
 		return
@@ -125,7 +125,7 @@ func CaptureErrorFromContext(c *gin.Context, err error, tags map[string]string, 
 }
 
 // CaptureMessageFromContext captures a message using the Sentry hub from the request context
-func CaptureMessageFromContext(c *gin.Context, message string, level sentry.Level, tags map[string]string, extra map[string]interface{}) {
+func CaptureMessageFromContext(c *gin.Context, message string, level sentry.Level, tags map[string]string, extra map[string]any) {
 	hub := sentry.GetHubFromContext(c.Request.Context())
 	if hub == nil {
 		return

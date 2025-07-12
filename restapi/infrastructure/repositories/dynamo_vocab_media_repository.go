@@ -18,15 +18,15 @@ type DynamoVocabMediaRepository struct {
 
 // VocabMediaRecord represents the DynamoDB storage format for media entries
 type VocabMediaRecord struct {
-	PK            string                 `dynamo:"PK,hash"`
-	Media         map[string]interface{} `dynamo:"media,omitempty"`
-	SearchTerm    string                 `dynamo:"search_term,omitempty"`
-	MediaRef      string                 `dynamo:"media_ref,omitempty"`
-	UsageCount    int                    `dynamo:"usage_count,omitempty"`
-	LastUsed      string                 `dynamo:"last_used,omitempty"`
-	CreatedAt     string                 `dynamo:"created_at,omitempty"`
-	ItemType      string                 `dynamo:"item_type"`
-	SchemaVersion int                    `dynamo:"schema_version"`
+	PK            string         `dynamo:"PK,hash"`
+	Media         map[string]any `dynamo:"media,omitempty"`
+	SearchTerm    string         `dynamo:"search_term,omitempty"`
+	MediaRef      string         `dynamo:"media_ref,omitempty"`
+	UsageCount    int            `dynamo:"usage_count,omitempty"`
+	LastUsed      string         `dynamo:"last_used,omitempty"`
+	CreatedAt     string         `dynamo:"created_at,omitempty"`
+	ItemType      string         `dynamo:"item_type"`
+	SchemaVersion int            `dynamo:"schema_version"`
 }
 
 // NewDynamoVocabMediaRepository creates a new DynamoDB vocabulary media repository
@@ -37,7 +37,7 @@ func NewDynamoVocabMediaRepository(table dynamo.Table) repositories.VocabMediaRe
 }
 
 // GetMediaByRef retrieves media data by media reference
-func (r *DynamoVocabMediaRepository) GetMediaByRef(ctx context.Context, mediaRef string) (map[string]interface{}, error) {
+func (r *DynamoVocabMediaRepository) GetMediaByRef(ctx context.Context, mediaRef string) (map[string]any, error) {
 	var record VocabMediaRecord
 
 	err := r.table.Get("PK", mediaRef).One(ctx, &record)
@@ -52,7 +52,7 @@ func (r *DynamoVocabMediaRepository) GetMediaByRef(ctx context.Context, mediaRef
 }
 
 // GetMediaBySearchTerms finds media by searching through multiple search terms
-func (r *DynamoVocabMediaRepository) GetMediaBySearchTerms(ctx context.Context, searchTerms []string) (map[string]interface{}, error) {
+func (r *DynamoVocabMediaRepository) GetMediaBySearchTerms(ctx context.Context, searchTerms []string) (map[string]any, error) {
 	if len(searchTerms) == 0 {
 		return nil, nil
 	}

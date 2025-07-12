@@ -530,13 +530,13 @@ func testRegisterUser(t *testing.T, server *gin.Engine, req map[string]string) (
 		t.Fatalf("Expected status 200, got %d. Body: %s", recorder.Code, recorder.Body.String())
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse response: %v", err)
 	}
 
-	details := response["details"].(map[string]interface{})
+	details := response["details"].(map[string]any)
 	userID := details["user_id"].(string)
 
 	// Give time for async email sending
@@ -622,13 +622,13 @@ func testLoginUser(t *testing.T, server *gin.Engine, email, password string) str
 		t.Fatalf("Expected status 200, got %d. Body: %s", recorder.Code, recorder.Body.String())
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse login response: %v", err)
 	}
 
-	details := response["details"].(map[string]interface{})
+	details := response["details"].(map[string]any)
 	return details["token"].(string)
 }
 
@@ -784,7 +784,7 @@ func testRegisterValidationError(t *testing.T, server *gin.Engine, req map[strin
 		t.Fatalf("Expected status %d, got %d. Body: %s", http.StatusBadRequest, recorder.Code, recorder.Body.String())
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse response: %v", err)
@@ -795,12 +795,12 @@ func testRegisterValidationError(t *testing.T, server *gin.Engine, req map[strin
 		t.Errorf("Expected message 'Validation failed', got '%v'", response["message"])
 	}
 
-	details, ok := response["details"].(map[string]interface{})
+	details, ok := response["details"].(map[string]any)
 	if !ok {
 		t.Fatal("Expected 'details' field in response")
 	}
 
-	errors, ok := details["errors"].([]interface{})
+	errors, ok := details["errors"].([]any)
 	if !ok {
 		t.Fatal("Expected 'errors' array in details")
 	}
@@ -830,18 +830,18 @@ func testRegisterMultipleValidationErrors(t *testing.T, server *gin.Engine, req 
 		t.Fatalf("Expected status %d, got %d. Body: %s", http.StatusBadRequest, recorder.Code, recorder.Body.String())
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse response: %v", err)
 	}
 
-	details, ok := response["details"].(map[string]interface{})
+	details, ok := response["details"].(map[string]any)
 	if !ok {
 		t.Fatal("Expected 'details' field in response")
 	}
 
-	errors, ok := details["errors"].([]interface{})
+	errors, ok := details["errors"].([]any)
 	if !ok {
 		t.Fatal("Expected 'errors' array in details")
 	}
@@ -876,7 +876,7 @@ func testLoginValidationError(t *testing.T, server *gin.Engine, req map[string]s
 		t.Fatalf("Expected status %d, got %d. Body: %s", http.StatusBadRequest, recorder.Code, recorder.Body.String())
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse response: %v", err)
@@ -887,12 +887,12 @@ func testLoginValidationError(t *testing.T, server *gin.Engine, req map[string]s
 		t.Errorf("Expected message 'Validation failed', got '%v'", response["message"])
 	}
 
-	details, ok := response["details"].(map[string]interface{})
+	details, ok := response["details"].(map[string]any)
 	if !ok {
 		t.Fatal("Expected 'details' field in response")
 	}
 
-	errors, ok := details["errors"].([]interface{})
+	errors, ok := details["errors"].([]any)
 	if !ok {
 		t.Fatal("Expected 'errors' array in details")
 	}
@@ -922,7 +922,7 @@ func testConfirmEmailValidationError(t *testing.T, server *gin.Engine, req map[s
 		t.Fatalf("Expected status %d, got %d. Body: %s", http.StatusBadRequest, recorder.Code, recorder.Body.String())
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse response: %v", err)
@@ -933,12 +933,12 @@ func testConfirmEmailValidationError(t *testing.T, server *gin.Engine, req map[s
 		t.Errorf("Expected message 'Validation failed', got '%v'", response["message"])
 	}
 
-	details, ok := response["details"].(map[string]interface{})
+	details, ok := response["details"].(map[string]any)
 	if !ok {
 		t.Fatal("Expected 'details' field in response")
 	}
 
-	errors, ok := details["errors"].([]interface{})
+	errors, ok := details["errors"].([]any)
 	if !ok {
 		t.Fatal("Expected 'errors' array in details")
 	}
@@ -968,7 +968,7 @@ func testResetPasswordValidationError(t *testing.T, server *gin.Engine, req map[
 		t.Fatalf("Expected status %d, got %d. Body: %s", http.StatusBadRequest, recorder.Code, recorder.Body.String())
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse response: %v", err)
@@ -979,12 +979,12 @@ func testResetPasswordValidationError(t *testing.T, server *gin.Engine, req map[
 		t.Errorf("Expected message 'Validation failed', got '%v'", response["message"])
 	}
 
-	details, ok := response["details"].(map[string]interface{})
+	details, ok := response["details"].(map[string]any)
 	if !ok {
 		t.Fatal("Expected 'details' field in response")
 	}
 
-	errors, ok := details["errors"].([]interface{})
+	errors, ok := details["errors"].([]any)
 	if !ok {
 		t.Fatal("Expected 'errors' array in details")
 	}
@@ -1015,7 +1015,7 @@ func testUpdateValidationError(t *testing.T, server *gin.Engine, token string, r
 		t.Fatalf("Expected status %d, got %d. Body: %s", http.StatusBadRequest, recorder.Code, recorder.Body.String())
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse response: %v", err)
@@ -1026,12 +1026,12 @@ func testUpdateValidationError(t *testing.T, server *gin.Engine, token string, r
 		t.Errorf("Expected message 'Validation failed', got '%v'", response["message"])
 	}
 
-	details, ok := response["details"].(map[string]interface{})
+	details, ok := response["details"].(map[string]any)
 	if !ok {
 		t.Fatal("Expected 'details' field in response")
 	}
 
-	errors, ok := details["errors"].([]interface{})
+	errors, ok := details["errors"].([]any)
 	if !ok {
 		t.Fatal("Expected 'errors' array in details")
 	}
@@ -1062,18 +1062,18 @@ func testUpdateMultipleValidationErrors(t *testing.T, server *gin.Engine, token 
 		t.Fatalf("Expected status %d, got %d. Body: %s", http.StatusBadRequest, recorder.Code, recorder.Body.String())
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse response: %v", err)
 	}
 
-	details, ok := response["details"].(map[string]interface{})
+	details, ok := response["details"].(map[string]any)
 	if !ok {
 		t.Fatal("Expected 'details' field in response")
 	}
 
-	errors, ok := details["errors"].([]interface{})
+	errors, ok := details["errors"].([]any)
 	if !ok {
 		t.Fatal("Expected 'errors' array in details")
 	}

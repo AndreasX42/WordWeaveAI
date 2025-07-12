@@ -51,7 +51,7 @@ func TestVocabAPI_Integration(t *testing.T) {
 		server, _ := setupVocabTestServer(t)
 
 		// Test empty query
-		testSearchValidationError(t, server, map[string]interface{}{}, "Field Query failed on the 'required' rule")
+		testSearchValidationError(t, server, map[string]any{}, "Field Query failed on the 'required' rule")
 
 		// Test invalid request body
 		testSearchInvalidBody(t, server)
@@ -80,7 +80,7 @@ func TestVocabAPI_Integration(t *testing.T) {
 		testAddWordValidationError(t, server, userToken, listID, map[string]string{"vocab_pk": "test"}, "Field VocabSK failed on the 'required' rule")
 
 		// Test update word status validation
-		testUpdateWordStatusValidationError(t, server, userToken, listID, map[string]interface{}{}, "Field IsLearned failed on the 'required' rule")
+		testUpdateWordStatusValidationError(t, server, userToken, listID, map[string]any{}, "Field IsLearned failed on the 'required' rule")
 	})
 
 	t.Run("unauthorized access", func(t *testing.T) {
@@ -290,14 +290,14 @@ func setupTestUserAndGetToken(t *testing.T, server *gin.Engine, userRepo reposit
 		t.Fatalf("Failed to login: %d - %s", recorder.Code, recorder.Body.String())
 	}
 
-	var loginResponse map[string]interface{}
+	var loginResponse map[string]any
 	json.Unmarshal(recorder.Body.Bytes(), &loginResponse)
 	return loginResponse["token"].(string)
 }
 
 // Vocabulary search tests
 func testVocabularySearch(t *testing.T, server *gin.Engine) {
-	searchReq := map[string]interface{}{
+	searchReq := map[string]any{
 		"query": "hello",
 		"limit": 5,
 	}
@@ -313,13 +313,13 @@ func testVocabularySearch(t *testing.T, server *gin.Engine) {
 		t.Fatalf("Expected status 200, got %d. Body: %s", recorder.Code, recorder.Body.String())
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse search response: %v", err)
 	}
 
-	results := response["results"].([]interface{})
+	results := response["results"].([]any)
 	if len(results) == 0 {
 		t.Error("Expected search results, got none")
 	}
@@ -335,7 +335,7 @@ func testVocabularySearch(t *testing.T, server *gin.Engine) {
 	}
 }
 
-func testSearchValidationError(t *testing.T, server *gin.Engine, req map[string]interface{}, expectedError string) {
+func testSearchValidationError(t *testing.T, server *gin.Engine, req map[string]any, expectedError string) {
 	reqBody, _ := json.Marshal(req)
 	request := httptest.NewRequest(http.MethodPost, "/search", bytes.NewBuffer(reqBody))
 	request.Header.Set("Content-Type", "application/json")
@@ -383,7 +383,7 @@ func testCreateVocabList(t *testing.T, server *gin.Engine, token string) string 
 		t.Fatalf("Expected status 201, got %d. Body: %s", recorder.Code, recorder.Body.String())
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse create list response: %v", err)
@@ -393,7 +393,7 @@ func testCreateVocabList(t *testing.T, server *gin.Engine, token string) string 
 		t.Errorf("Expected success message, got: %v", response["message"])
 	}
 
-	data := response["data"].(map[string]interface{})
+	data := response["data"].(map[string]any)
 	listID := data["id"].(string)
 	if listID == "" {
 		t.Error("Expected list ID in response")
@@ -421,7 +421,7 @@ func testGetVocabLists(t *testing.T, server *gin.Engine, token string, expectedC
 		t.Fatalf("Expected status 200, got %d. Body: %s", recorder.Code, recorder.Body.String())
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse get lists response: %v", err)
@@ -432,7 +432,7 @@ func testGetVocabLists(t *testing.T, server *gin.Engine, token string, expectedC
 		t.Errorf("Expected %d lists, got %d", expectedCount, count)
 	}
 
-	data := response["data"].([]interface{})
+	data := response["data"].([]any)
 	if len(data) != expectedCount {
 		t.Errorf("Expected %d lists in data, got %d", expectedCount, len(data))
 	}
@@ -449,13 +449,13 @@ func testGetVocabList(t *testing.T, server *gin.Engine, token, listID string) {
 		t.Fatalf("Expected status 200, got %d. Body: %s", recorder.Code, recorder.Body.String())
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse get list response: %v", err)
 	}
 
-	data := response["data"].(map[string]interface{})
+	data := response["data"].(map[string]any)
 	if data["id"] != listID {
 		t.Errorf("Expected list ID '%s', got '%v'", listID, data["id"])
 	}
@@ -479,13 +479,13 @@ func testUpdateVocabList(t *testing.T, server *gin.Engine, token, listID string)
 		t.Fatalf("Expected status 200, got %d. Body: %s", recorder.Code, recorder.Body.String())
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse update list response: %v", err)
 	}
 
-	data := response["data"].(map[string]interface{})
+	data := response["data"].(map[string]any)
 	if data["name"] != updateReq["name"] {
 		t.Errorf("Expected updated name '%s', got '%v'", updateReq["name"], data["name"])
 	}
@@ -502,7 +502,7 @@ func testDeleteVocabList(t *testing.T, server *gin.Engine, token, listID string)
 		t.Fatalf("Expected status 200, got %d. Body: %s", recorder.Code, recorder.Body.String())
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse delete list response: %v", err)
@@ -532,7 +532,7 @@ func testAddWordToList(t *testing.T, server *gin.Engine, token, listID string) {
 		t.Fatalf("Expected status 201, got %d. Body: %s", recorder.Code, recorder.Body.String())
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse add word response: %v", err)
@@ -554,7 +554,7 @@ func testGetWordsInList(t *testing.T, server *gin.Engine, token, listID string, 
 		t.Fatalf("Expected status 200, got %d. Body: %s", recorder.Code, recorder.Body.String())
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse get words response: %v", err)
@@ -565,14 +565,14 @@ func testGetWordsInList(t *testing.T, server *gin.Engine, token, listID string, 
 		t.Errorf("Expected %d words, got %d", expectedCount, count)
 	}
 
-	data := response["data"].([]interface{})
+	data := response["data"].([]any)
 	if len(data) != expectedCount {
 		t.Errorf("Expected %d words in data, got %d", expectedCount, len(data))
 	}
 
 	// Check word data structure
 	if expectedCount > 0 {
-		word := data[0].(map[string]interface{})
+		word := data[0].(map[string]any)
 		if word["vocab_pk"] == nil {
 			t.Error("Expected vocab_pk in word data")
 		}
@@ -602,7 +602,7 @@ func testUpdateWordStatus(t *testing.T, server *gin.Engine, token, listID string
 		t.Fatalf("Expected status 200, got %d. Body: %s", recorder.Code, recorder.Body.String())
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse update word status response: %v", err)
@@ -624,7 +624,7 @@ func testRemoveWordFromList(t *testing.T, server *gin.Engine, token, listID stri
 		t.Fatalf("Expected status 200, got %d. Body: %s", recorder.Code, recorder.Body.String())
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse remove word response: %v", err)
@@ -690,7 +690,7 @@ func testAddWordValidationError(t *testing.T, server *gin.Engine, token, listID 
 	}
 }
 
-func testUpdateWordStatusValidationError(t *testing.T, server *gin.Engine, token, listID string, req map[string]interface{}, expectedError string) {
+func testUpdateWordStatusValidationError(t *testing.T, server *gin.Engine, token, listID string, req map[string]any, expectedError string) {
 	reqBody, _ := json.Marshal(req)
 	request := httptest.NewRequest(http.MethodPut, "/vocabs/"+listID+"/words?vocab_pk=test&vocab_sk=test", bytes.NewBuffer(reqBody))
 	request.Header.Set("Content-Type", "application/json")

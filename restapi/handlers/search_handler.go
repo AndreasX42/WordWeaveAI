@@ -109,7 +109,7 @@ func (h *SearchHandler) GetVocabularyByPkSk(c *gin.Context) {
 		// Use channels for concurrent execution
 		type result struct {
 			vocab *entities.VocabWord
-			media map[string]interface{}
+			media map[string]any
 			err   error
 		}
 

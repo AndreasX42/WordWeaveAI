@@ -34,7 +34,7 @@ func JWTMiddleware(userService *services.UserService) (*jwt.GinJWTMiddleware, er
 		MaxRefresh:  time.Duration(24) * time.Hour,
 		IdentityKey: identityKey,
 
-		Authenticator: func(c *gin.Context) (interface{}, error) {
+		Authenticator: func(c *gin.Context) (any, error) {
 			var loginVals struct {
 				Email    string `json:"email" binding:"required,email"`
 				Password string `json:"password" binding:"required,min=8"`
@@ -60,7 +60,7 @@ func JWTMiddleware(userService *services.UserService) (*jwt.GinJWTMiddleware, er
 			return user, nil
 		},
 
-		Authorizator: func(data interface{}, c *gin.Context) bool {
+		Authorizator: func(data any, c *gin.Context) bool {
 			if user, ok := data.(*entities.User); ok {
 				// Set the user object in the context for handlers to use
 				c.Set("principal", user)
@@ -69,7 +69,7 @@ func JWTMiddleware(userService *services.UserService) (*jwt.GinJWTMiddleware, er
 			return false
 		},
 
-		PayloadFunc: func(data interface{}) jwt.MapClaims {
+		PayloadFunc: func(data any) jwt.MapClaims {
 			if user, ok := data.(*entities.User); ok {
 				return jwt.MapClaims{
 					identityKey: user.ID,
@@ -78,7 +78,7 @@ func JWTMiddleware(userService *services.UserService) (*jwt.GinJWTMiddleware, er
 			return jwt.MapClaims{}
 		},
 
-		IdentityHandler: func(c *gin.Context) interface{} {
+		IdentityHandler: func(c *gin.Context) any {
 			claims := jwt.ExtractClaims(c)
 			userID := claims[identityKey].(string)
 			user, err := userService.GetUserByID(c.Request.Context(), userID)

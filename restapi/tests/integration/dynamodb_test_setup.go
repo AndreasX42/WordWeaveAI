@@ -24,7 +24,7 @@ func SetupDynamoDBLocal() (*dynamo.DB, *dynamodb.Client, error) {
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 		config.WithRegion("us-east-1"),
 		config.WithEndpointResolverWithOptions(aws.EndpointResolverWithOptionsFunc(
-			func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+			func(service, region string, options ...any) (aws.Endpoint, error) {
 				return aws.Endpoint{URL: DynamoDBLocalEndpoint}, nil
 			})),
 		config.WithCredentialsProvider(credentials.StaticCredentialsProvider{

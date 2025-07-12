@@ -59,7 +59,7 @@ func NewSentryConfig() *SentryConfig {
 }
 
 // CaptureError captures an error with additional context
-func (sc *SentryConfig) CaptureError(err error, tags map[string]string, extra map[string]interface{}) {
+func (sc *SentryConfig) CaptureError(err error, tags map[string]string, extra map[string]any) {
 	if sc.Client == nil {
 		return
 	}
@@ -80,7 +80,7 @@ func (sc *SentryConfig) CaptureError(err error, tags map[string]string, extra ma
 }
 
 // CaptureMessage captures a message with level and context
-func (sc *SentryConfig) CaptureMessage(message string, level sentry.Level, tags map[string]string, extra map[string]interface{}) {
+func (sc *SentryConfig) CaptureMessage(message string, level sentry.Level, tags map[string]string, extra map[string]any) {
 	if sc.Client == nil {
 		return
 	}

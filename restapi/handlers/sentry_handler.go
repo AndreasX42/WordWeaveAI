@@ -65,7 +65,7 @@ func (h *SentryHandler) LogEvent(c *gin.Context) {
 		return
 	}
 
-	var logRequest map[string]interface{}
+	var logRequest map[string]any
 	if err := c.ShouldBindJSON(&logRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid request format",
@@ -95,10 +95,10 @@ func (h *SentryHandler) LogEvent(c *gin.Context) {
 }
 
 // isEnhancedErrorStructure determines if the request is using the enhanced frontend error structure
-func (h *SentryHandler) isEnhancedErrorStructure(data map[string]interface{}) bool {
+func (h *SentryHandler) isEnhancedErrorStructure(data map[string]any) bool {
 	// Check if it has the enhanced structure with nested error and context objects
 	if errorData, exists := data["error"]; exists {
-		if errorMap, ok := errorData.(map[string]interface{}); ok {
+		if errorMap, ok := errorData.(map[string]any); ok {
 			// Check for fields that are specific to the enhanced structure
 			_, hasType := errorMap["type"]
 			_, hasOriginalError := errorMap["originalError"]
@@ -110,7 +110,7 @@ func (h *SentryHandler) isEnhancedErrorStructure(data map[string]interface{}) bo
 }
 
 // handleEnhancedError processes the comprehensive frontend error structure
-func (h *SentryHandler) handleEnhancedError(hub *sentry.Hub, data map[string]interface{}, c *gin.Context) {
+func (h *SentryHandler) handleEnhancedError(hub *sentry.Hub, data map[string]any, c *gin.Context) {
 	hub.WithScope(func(scope *sentry.Scope) {
 		// Set level to error for enhanced error reports
 		scope.SetLevel(sentry.LevelError)
@@ -121,7 +121,7 @@ func (h *SentryHandler) handleEnhancedError(hub *sentry.Hub, data map[string]int
 
 		// Process error data
 		if errorData, exists := data["error"]; exists {
-			if errorMap, ok := errorData.(map[string]interface{}); ok {
+			if errorMap, ok := errorData.(map[string]any); ok {
 				// Set error type as tag
 				if errorType, exists := errorMap["type"]; exists {
 					scope.SetTag("error_type", errorType.(string))
@@ -144,7 +144,7 @@ func (h *SentryHandler) handleEnhancedError(hub *sentry.Hub, data map[string]int
 
 		// Process context data
 		if contextData, exists := data["context"]; exists {
-			if contextMap, ok := contextData.(map[string]interface{}); ok {
+			if contextMap, ok := contextData.(map[string]any); ok {
 				// Set user information if available
 				if userID, exists := contextMap["userId"]; exists && userID != nil {
 					scope.SetUser(sentry.User{
@@ -185,7 +185,7 @@ func (h *SentryHandler) handleEnhancedError(hub *sentry.Hub, data map[string]int
 		// Create error message
 		var message string
 		if errorData, exists := data["error"]; exists {
-			if errorMap, ok := errorData.(map[string]interface{}); ok {
+			if errorMap, ok := errorData.(map[string]any); ok {
 				if msg, exists := errorMap["message"]; exists {
 					message = msg.(string)
 				}
@@ -206,7 +206,7 @@ func (h *SentryHandler) handleEnhancedError(hub *sentry.Hub, data map[string]int
 }
 
 // handleSimpleLog processes the simple logging structure (backward compatibility)
-func (h *SentryHandler) handleSimpleLog(hub *sentry.Hub, data map[string]interface{}, c *gin.Context) {
+func (h *SentryHandler) handleSimpleLog(hub *sentry.Hub, data map[string]any, c *gin.Context) {
 	// Validate log level
 	levelStr, exists := data["level"]
 	if !exists {
@@ -247,7 +247,7 @@ func (h *SentryHandler) handleSimpleLog(hub *sentry.Hub, data map[string]interfa
 
 		// Add custom tags
 		if tags, exists := data["tags"]; exists {
-			if tagsMap, ok := tags.(map[string]interface{}); ok {
+			if tagsMap, ok := tags.(map[string]any); ok {
 				for key, value := range tagsMap {
 					scope.SetTag(key, value.(string))
 				}
@@ -257,7 +257,7 @@ func (h *SentryHandler) handleSimpleLog(hub *sentry.Hub, data map[string]interfa
 		// Add extra context
 		scope.SetExtra("timestamp", time.Now().UTC())
 		if extra, exists := data["extra"]; exists {
-			if extraMap, ok := extra.(map[string]interface{}); ok {
+			if extraMap, ok := extra.(map[string]any); ok {
 				for key, value := range extraMap {
 					scope.SetExtra(key, value)
 				}
@@ -280,7 +280,7 @@ func (h *SentryHandler) handleSimpleLog(hub *sentry.Hub, data map[string]interfa
 		// If it's an error with error details, capture as exception
 		if sentryLevel == sentry.LevelError {
 			if errorData, exists := data["error"]; exists {
-				if errorMap, ok := errorData.(map[string]interface{}); ok {
+				if errorMap, ok := errorData.(map[string]any); ok {
 					err := &FrontendError{
 						Message: message,
 						Data:    errorMap,

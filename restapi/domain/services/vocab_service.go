@@ -180,7 +180,7 @@ func (s *VocabService) GetVocabularyByKeysWithoutMedia(ctx context.Context, pk, 
 }
 
 // GetMediaByRef fetches media data by media reference
-func (s *VocabService) GetMediaByRef(ctx context.Context, mediaRef string) (map[string]interface{}, error) {
+func (s *VocabService) GetMediaByRef(ctx context.Context, mediaRef string) (map[string]any, error) {
 	if s.vocabMediaRepo == nil {
 		return nil, fmt.Errorf("media repository not available")
 	}
