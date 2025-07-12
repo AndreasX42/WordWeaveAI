@@ -1,0 +1,302 @@
+{
+  "header": {
+    "search": "Buscar",
+    "notifications": "Notificaciones",
+    "account": "Cuenta",
+    "profile": "Perfil",
+    "language": "Idioma",
+    "lightMode": "Modo claro",
+    "darkMode": "Modo oscuro",
+    "healthDashboard": "Panel de salud",
+    "signIn": "Iniciar sesión",
+    "signOut": "Cerrar sesión",
+    "register": "Registrarse",
+    "guestUser": "Invitado",
+    "notSignedIn": "No has iniciado sesión"
+  },
+  "footer": {
+    "brand": {
+      "title": "WordWeave",
+      "tagline": "Tu compañero inteligente de aprendizaje de idiomas",
+      "description": "Descubre, aprende y domina nuevas palabras con facilidad"
+    },
+    "quickLinks": {
+      "title": "Enlaces Rápidos",
+      "home": "Inicio",
+      "search": "Buscar Palabras",
+      "health": "Panel de Salud",
+      "profile": "Perfil"
+    },
+    "account": {
+      "title": "Cuenta",
+      "login": "Iniciar Sesión",
+      "register": "Registrarse",
+      "forgotPassword": "Olvidé mi Contraseña"
+    },
+    "support": {
+      "title": "Soporte",
+      "help": "Centro de Ayuda",
+      "contact": "Contáctanos",
+      "privacy": "Política de Privacidad",
+      "terms": "Términos de Servicio"
+    },
+    "navigation": {
+      "ariaLabel": "Navegar a"
+    },
+    "comingSoon": "Próximamente",
+    "copyright": "© {{year}} WordWeave. Todos los derechos reservados.",
+    "madeWith": "Hecho con ❤️ para estudiantes de idiomas en todo el mundo"
+  },
+  "common": {
+    "welcome": "¡Bienvenido!",
+    "home": "Inicio",
+    "loading": "Cargando…",
+    "error": "Error",
+    "success": "Éxito",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "save": "Guardar",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "close": "Cerrar",
+    "back": "Volver"
+  },
+  "messages": {
+    "unknownError": "Algo falló. Por favor, inténtalo de nuevo.",
+    "loginCredentialsIncorrect": "Usuario o contraseña inválidos. Revisa y prueba otra vez.",
+    "networkError": "Error de red. Verifica tu conexión e inténtalo de nuevo.",
+    "serverError": "Error del servidor. Inténtalo más tarde.",
+    "loginFirst": "Debes iniciar sesión para acceder.",
+    "sessionExpired": "Tu sesión expiró. Inicia sesión otra vez."
+  },
+  "health": {
+    "dashboard": {
+      "title": "Panel de salud",
+      "refresh": "Actualizar",
+      "lastUpdated": "Última actualización",
+      "status": {
+        "excellent": "Excelente",
+        "good": "Bueno",
+        "poor": "Malo"
+      },
+      "tiles": {
+        "backendHealth": "Estado backend",
+        "backendHealthDescription": "Uptime y errores del backend",
+        "backendResponseTime": "Latencia",
+        "backendResponseTimeDescription": "Latencia promedio del API",
+        "backendErrorRate": "Tasa de errores",
+        "backendErrorRateDescription": "Errores por minuto",
+        "jsErrorRate": "Errores JS",
+        "jsErrorRateDescription": "Errores de JavaScript por minuto"
+      },
+      "values": {
+        "offline": "Sin conexión",
+        "noErrors": "Sin errores",
+        "errorsPerMinute": "errores/min",
+        "milliseconds": "ms"
+      }
+    }
+  },
+  "auth": {
+    "signIn": "Iniciar sesión",
+    "signInSubtitle": "¡Bienvenido de nuevo! Ingresa a tu cuenta.",
+    "createAccount": "Crear cuenta",
+    "createAccountSubtitle": "¡Regístrate y empieza ya!",
+    "resetPassword": "Restablecer contraseña",
+    "resetPasswordSubtitle": "Ingresa tu correo para cambiar tu contraseña.",
+    "verifyEmail": "Verificar correo",
+    "verifyEmailSubtitle": "Te enviamos un código a {{email}}.",
+    "userProfile": "Tu perfil",
+    "username": "Usuario",
+    "emailAddress": "Correo electrónico",
+    "password": "Contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "verificationCode": "Código de verificación",
+    "enterUsername": "Ingresa tu usuario",
+    "enterEmail": "Ingresa tu correo",
+    "enterPassword": "Ingresa tu contraseña",
+    "confirmYourPassword": "Confirma tu contraseña",
+    "enterVerificationCode": "Código de 6 dígitos",
+    "signInButton": "Entrar",
+    "signingIn": "Ingresando…",
+    "createAccountButton": "Crear cuenta",
+    "creatingAccount": "Creando cuenta…",
+    "resetPasswordButton": "Enviar enlace",
+    "sending": "Enviando…",
+    "verifyEmailButton": "Verificar",
+    "verifying": "Verificando…",
+    "resendCode": "Reenviar código",
+    "resendingCode": "Reenviando…",
+    "resendInTime": "Reenviar en {{time}}",
+    "backToLogin": "Volver a iniciar sesión",
+    "updateAccount": "Actualizar cuenta",
+    "updateAccountButton": "Actualizar",
+    "updatingAccount": "Actualizando…",
+    "deleteAccount": "Eliminar cuenta",
+    "dontHaveAccount": "¿No tienes cuenta?",
+    "createAccountLink": "Regístrate",
+    "alreadyHaveAccount": "¿Ya tienes cuenta?",
+    "signInLink": "Iniciar sesión",
+    "forgotPasswordLink": "¿Olvidaste tu contraseña?",
+    "didntReceiveCode": "¿No llegó el código?",
+    "continueWithGoogle": "Continuar con Google",
+    "or": "o",
+    "manageAccount": "Administra tu configuración y preferencias",
+    "accountInformation": "Info de la cuenta",
+    "notAvailable": "No disponible",
+    "emailStatus": "Estado del correo",
+    "verified": "Verificado",
+    "notVerified": "No verificado",
+    "role": "Rol",
+    "sessionStatus": "Sesión",
+    "sessionExpiresIn": "Expira en",
+    "sessionExpired": "Sesión expirada",
+    "noSession": "Sin sesión",
+    "invalidSession": "Sesión inválida",
+    "preferences": "Preferencias",
+    "darkMode": "Modo oscuro",
+    "darkModeDescription": "Cambia entre claro y oscuro",
+    "accountActions": "Acciones",
+    "signOut": "Cerrar sesión",
+    "emailSentSuccessfully": "¡Correo enviado con éxito!",
+    "checkYourEmail": "¡Revisa tu correo!",
+    "newPasswordSent": "Te mandamos la nueva contraseña.",
+    "emailSentIfExists": "Si tienes cuenta, recibirás instrucciones pronto.",
+    "loginSuccessful": "¡Ingresaste correctamente!",
+    "registrationSuccessful": "¡Registro exitoso! Revisa tu correo.",
+    "emailVerifiedSuccessfully": "¡Correo verificado!",
+    "verificationCodeResent": "Código reenviado.",
+    "logoutSuccessful": "¡Sesión cerrada!",
+    "accountDeletedSuccessfully": "¡Cuenta eliminada!",
+    "updateAccountSuccess": "¡Cuenta actualizada!",
+    "invalidCredentials": "Datos inválidos. Intenta de nuevo.",
+    "loginFailed": "Error al ingresar. Intenta otra vez.",
+    "unexpectedError": "Error inesperado. Intenta más tarde.",
+    "emailNotVerified": "Verifica tu correo antes de entrar.",
+    "googleLoginFailed": "Error con inicio de Google.",
+    "registrationFailed": "No se pudo registrar.",
+    "usernameOrEmailExists": "Usuario o correo ya existe.",
+    "resetEmailFailed": "No se envió el correo.",
+    "verificationFailed": "Verificación fallida.",
+    "invalidVerificationCode": "Código inválido.",
+    "resendCodeFailed": "No se pudo reenviar código.",
+    "logoutFailed": "Error al cerrar sesión.",
+    "accountDeletionFailed": "No se pudo eliminar cuenta.",
+    "updateAccountFailed": "No se pudo actualizar cuenta.",
+    "deleteAccountConfirm": "¿Seguro quieres eliminar tu cuenta? No podrás recuperar nada.",
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña",
+    "resendVerificationCode": "Reenviar código de verificación",
+    "passwordOptional": "Contraseña (opcional)"
+  },
+  "home": {
+    "hero": {
+      "title": "Construye tu vocabulario con",
+      "titleHighlight": "aprendizaje comunitario impulsado por IA",
+      "subtitle": "Crea listas personalizadas o mira cómo nuestros agentes de IA generan nuevas palabras en tiempo real con audio, imágenes y ejemplos. Domina inglés, español y alemán con cuestionarios interactivos y aprendizaje colaborativo.",
+      "ctaButton": "Empieza ahora",
+      "stats": {
+        "wordsCreated": "Palabras creadas",
+        "publicLists": "Listas públicas",
+        "activeUsers": "Usuarios activos"
+      }
+    },
+    "howItWorks": {
+      "title": "Cómo funciona WordWeave",
+      "subtitle": "Aprendizaje comunitario de vocabulario en 3 pasos",
+      "step1": {
+        "title": "Crea tus listas",
+        "description": "Genera listas privadas o públicas usando palabras de nuestra base comunitaria. Elige cualquier combinación: inglés, español o alemán."
+      },
+      "step2": {
+        "title": "La IA completa palabras",
+        "description": "¿Falta una palabra? Nuestros agentes de IA crean tarjetas con pronunciación, imágenes y ejemplos al instante. Danos tu feedback para mejorar."
+      },
+      "step3": {
+        "title": "Aprende con quizzes",
+        "description": "Pon a prueba tu vocabulario con quizzes de opción múltiple basados en tus listas. Lleva el registro de tu progreso."
+      }
+    },
+    "features": {
+      "title": "Todo lo que necesitas para dominar vocabulario",
+      "subtitle": "Funciones potentes para aprender en comunidad",
+      "personalLists": {
+        "title": "Listas privadas y públicas",
+        "description": "Organiza tus propias listas o comparte con todos. Filtra por tema, nivel u objetivo."
+      },
+      "communityDatabase": {
+        "title": "Base comunitaria",
+        "description": "Cada palabra IA-generada se añade para todos. Aprovecha el trabajo de la comunidad y crece junto a ella."
+      },
+      "aiGeneration": {
+        "title": "IA en tiempo real",
+        "description": "Ve en vivo cómo la IA crea tarjetas de vocabulario con audio, imágenes y ejemplos. Tu feedback las perfecciona."
+      }
+    }
+  },
+  "search": {
+    "title": "Descubre",
+    "titleHighlight": "Nuevas Palabras",
+    "subtitle": "Busca palabras en nuestra base comunitaria o deja que nuestros agentes de IA las creen para ti",
+    "sourceLanguage": "De",
+    "targetLanguage": "A",
+    "selectLanguage": "Seleccionar idioma",
+    "inputPlaceholder": "Ingresa una palabra",
+    "button": "Buscar",
+    "noResults": "No se encontraron resultados"
+  },
+  "wordCard": {
+    "loading": "Cargando palabra...",
+    "errorTitle": "Palabra no encontrada",
+    "notFound": "No se pudo encontrar la palabra solicitada.",
+    "loadError": "Error al cargar. Por favor intenta de nuevo.",
+    "addToList": "Agregar a lista",
+    "dictionary": "Diccionario",
+    "examples": "Ejemplos",
+    "pronunciation": "Pronunciación",
+    "conjugation": "Conjugación",
+    "synonyms": "Sinónimos",
+    "definition": "Definición",
+    "noExamples": "No hay ejemplos disponibles para esta palabra.",
+    "clickToPlay": "Clic para escuchar",
+    "createdBy": "Creado por",
+    "pos": {
+      "noun": "sustantivo",
+      "verb": "verbo",
+      "adjective": "adjetivo",
+      "adverb": "adverbio",
+      "pronoun": "pronombre",
+      "preposition": "preposición",
+      "conjunction": "conjunción",
+      "interjection": "interjección",
+      "article": "artículo"
+    },
+    "conjugationData": {
+      "nonPersonalForms": "Formas no personales",
+      "infinitive": "Infinitivo",
+      "participle": "Participio",
+      "gerund": "Gerundio",
+      "indicative": "Indicativo",
+      "subjunctive": "Subjuntivo",
+      "tenses": {
+        "presente": "Presente",
+        "preterito_perfecto_simple": "Pretérito perfecto simple",
+        "preterito_imperfecto": "Pretérito imperfecto",
+        "preterito_perfecto_compuesto": "Pretérito perfecto compuesto",
+        "preterito_pluscuamperfecto": "Pretérito pluscuamperfecto",
+        "futuro": "Futuro",
+        "futuro_perfecto": "Futuro perfecto",
+        "condicional": "Condicional",
+        "condicional_perfecto": "Condicional perfecto"
+      },
+      "pronouns": {
+        "yo": "yo",
+        "tu": "tú",
+        "el_ella_usted": "él/ella/usted",
+        "nosotros_nosotras": "nosotros/nosotras",
+        "vosotros_vosotras": "vosotros/vosotras",
+        "ellos_ellas_ustedes": "ellos/ellas/ustedes"
+      }
+    }
+  }
+}

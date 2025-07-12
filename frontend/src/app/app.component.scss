@@ -1,1 +1,15 @@
+.app-frame {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
 
+main {
+  flex: 1;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}

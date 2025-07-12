@@ -1,0 +1,303 @@
+{
+  "header": {
+    "search": "Suchen",
+    "notifications": "Benachrichtigungen",
+    "account": "Konto",
+    "profile": "Profil",
+    "language": "Sprache",
+    "lightMode": "Heller Modus",
+    "darkMode": "Dunkler Modus",
+    "healthDashboard": "Health-Dashboard",
+    "signIn": "Anmelden",
+    "signOut": "Abmelden",
+    "register": "Registrieren",
+    "guestUser": "Gast",
+    "notSignedIn": "Nicht angemeldet"
+  },
+  "footer": {
+    "brand": {
+      "title": "WordWeave",
+      "tagline": "Ihr intelligenter Sprachlernbegleiter",
+      "description": "Entdecken, lernen und meistern Sie neue Wörter mit Leichtigkeit"
+    },
+    "quickLinks": {
+      "title": "Schnellzugriff",
+      "home": "Startseite",
+      "search": "Wörter Suchen",
+      "health": "Gesundheits-Dashboard",
+      "profile": "Profil"
+    },
+    "account": {
+      "title": "Konto",
+      "login": "Anmelden",
+      "register": "Registrieren",
+      "forgotPassword": "Passwort Vergessen"
+    },
+    "support": {
+      "title": "Unterstützung",
+      "help": "Hilfe-Center",
+      "contact": "Kontakt",
+      "privacy": "Datenschutzrichtlinie",
+      "terms": "Nutzungsbedingungen"
+    },
+    "navigation": {
+      "ariaLabel": "Navigieren zu"
+    },
+    "comingSoon": "Demnächst verfügbar",
+    "copyright": "© {{year}} WordWeave. Alle Rechte vorbehalten.",
+    "madeWith": "Mit ❤️ für Sprachlernende weltweit gemacht"
+  },
+  "common": {
+    "welcome": "Willkommen",
+    "home": "Startseite",
+    "loading": "Lädt…",
+    "error": "Fehler",
+    "success": "Erfolgreich",
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "save": "Speichern",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "close": "Schließen",
+    "back": "Zurück"
+  },
+  "messages": {
+    "unknownError": "Da ist etwas schiefgelaufen. Bitte versuche es erneut.",
+    "loginCredentialsIncorrect": "Ungültiger Benutzername oder Passwort. Bitte prüfe deine Daten und probiere es noch einmal.",
+    "networkError": "Netzwerkfehler. Bitte überprüfe deine Verbindung und versuche es erneut.",
+    "serverError": "Serverfehler. Bitte später noch einmal versuchen.",
+    "loginFirst": "Bitte melde dich zuerst an, um weiterzumachen.",
+    "sessionExpired": "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an."
+  },
+  "health": {
+    "dashboard": {
+      "title": "Health-Dashboard",
+      "refresh": "Aktualisieren",
+      "lastUpdated": "Zuletzt aktualisiert",
+      "status": {
+        "excellent": "Sehr gut",
+        "good": "Gut",
+        "poor": "Schwach"
+      },
+      "tiles": {
+        "backendHealth": "Backend-Status",
+        "backendHealthDescription": "Uptime & Fehler des Backends",
+        "backendResponseTime": "Antwortzeit",
+        "backendResponseTimeDescription": "Durchschnittliche API-Latenz",
+        "backendErrorRate": "Fehlerquote",
+        "backendErrorRateDescription": "Fehler pro Minute",
+        "jsErrorRate": "JS-Fehlerquote",
+        "jsErrorRateDescription": "JS-Fehler pro Minute"
+      },
+      "values": {
+        "offline": "Offline",
+        "noErrors": "Keine Fehler",
+        "errorsPerMinute": "Fehler/min",
+        "milliseconds": "ms"
+      }
+    }
+  },
+  "auth": {
+    "signIn": "Anmelden",
+    "signInSubtitle": "Schön, dass du da bist! Melde dich an.",
+    "createAccount": "Konto erstellen",
+    "createAccountSubtitle": "Lege jetzt dein Konto an!",
+    "resetPassword": "Passwort zurücksetzen",
+    "resetPasswordSubtitle": "Gib deine E-Mail ein, um dein Passwort zurückzusetzen.",
+    "verifyEmail": "E-Mail bestätigen",
+    "verifyEmailSubtitle": "Wir haben dir einen Code an {{email}} geschickt.",
+    "userProfile": "Profil",
+    "username": "Benutzername",
+    "email": "E-Mail",
+    "emailAddress": "E-Mail Adresse",
+    "password": "Passwort",
+    "confirmPassword": "Passwort bestätigen",
+    "verificationCode": "Verifizierungscode",
+    "enterEmail": "E-Mail eingeben",
+    "enterPassword": "Passwort eingeben",
+    "enterUsername": "Benutzernamen eingeben",
+    "confirmYourPassword": "Passwort noch einmal eingeben",
+    "enterVerificationCode": "6-stelligen Code eingeben",
+    "signInButton": "Anmelden",
+    "signingIn": "Anmeldung…",
+    "createAccountButton": "Konto erstellen",
+    "creatingAccount": "Erstelle Konto…",
+    "resetPasswordButton": "Link senden",
+    "sending": "Senden…",
+    "verifyEmailButton": "Bestätigen",
+    "verifying": "Bestätige…",
+    "resendCode": "Code erneut senden",
+    "resendingCode": "Erneut senden…",
+    "resendInTime": "Erneut senden in {{time}}",
+    "backToLogin": "Zur Anmeldung",
+    "updateAccount": "Konto aktualisieren",
+    "updateAccountButton": "Aktualisieren",
+    "updatingAccount": "Aktualisiere…",
+    "deleteAccount": "Konto löschen",
+    "dontHaveAccount": "Noch kein Konto?",
+    "createAccountLink": "Konto erstellen",
+    "alreadyHaveAccount": "Schon dabei?",
+    "signInLink": "Anmelden",
+    "forgotPasswordLink": "Passwort vergessen?",
+    "didntReceiveCode": "Code nicht erhalten?",
+    "continueWithGoogle": "Mit Google fortfahren",
+    "or": "oder",
+    "manageAccount": "Verwalte deine Einstellungen",
+    "accountInformation": "Kontoinfos",
+    "notAvailable": "Nicht verfügbar",
+    "emailStatus": "E-Mail-Status",
+    "verified": "Bestätigt",
+    "notVerified": "Noch nicht bestätigt",
+    "role": "Rolle",
+    "sessionStatus": "Sitzung",
+    "sessionExpiresIn": "Läuft ab in",
+    "sessionExpired": "Abgelaufen",
+    "noSession": "Keine Sitzung",
+    "invalidSession": "Ungültige Sitzung",
+    "preferences": "Einstellungen",
+    "darkMode": "Dunkler Modus",
+    "darkModeDescription": "Wechsle zwischen hell und dunkel",
+    "accountActions": "Aktionen",
+    "signOut": "Abmelden",
+    "emailSentSuccessfully": "E-Mail erfolgreich gesendet!",
+    "checkYourEmail": "Schau in dein Postfach!",
+    "newPasswordSent": "Neues Passwort geschickt.",
+    "emailSentIfExists": "Falls du ein Konto hast, bekommst du gleich Anweisungen.",
+    "loginSuccessful": "Angemeldet!",
+    "registrationSuccessful": "Registrierung erfolgreich! Check deine E-Mail.",
+    "emailVerifiedSuccessfully": "E-Mail bestätigt!",
+    "verificationCodeResent": "Code erneut gesendet.",
+    "logoutSuccessful": "Abgemeldet!",
+    "accountDeletedSuccessfully": "Konto gelöscht!",
+    "updateAccountSuccess": "Aktualisiert!",
+    "invalidCredentials": "Ungültige Daten. Versuch's noch mal.",
+    "loginFailed": "Anmeldung fehlgeschlagen. Versuch's erneut.",
+    "unexpectedError": "Unerwarteter Fehler. Versuch's erneut.",
+    "emailNotVerified": "Bitte bestätige zuerst deine E-Mail.",
+    "googleLoginFailed": "Google-Login fehlgeschlagen.",
+    "registrationFailed": "Registrierung fehlgeschlagen.",
+    "usernameOrEmailExists": "Benutzername oder E-Mail schon vergeben.",
+    "resetEmailFailed": "Link konnte nicht gesendet werden.",
+    "verificationFailed": "Bestätigung fehlgeschlagen.",
+    "invalidVerificationCode": "Ungültiger Code.",
+    "resendCodeFailed": "Code konnte nicht gesendet werden.",
+    "logoutFailed": "Abmeldung fehlgeschlagen.",
+    "accountDeletionFailed": "Löschen fehlgeschlagen.",
+    "updateAccountFailed": "Update fehlgeschlagen.",
+    "deleteAccountConfirm": "Willst du dein Konto wirklich löschen? Das kann nicht rückgängig gemacht werden.",
+    "showPassword": "Passwort anzeigen",
+    "hidePassword": "Passwort verbergen",
+    "resendVerificationCode": "Verifizierungscode erneut senden",
+    "passwordOptional": "Passwort (optional)"
+  },
+  "home": {
+    "hero": {
+      "title": "Erweitere deinen Wortschatz mit",
+      "titleHighlight": "KI-gestütztem Community-Lernen",
+      "subtitle": "Erstelle individuelle Vokabellisten aus unserer Community-Datenbank oder sieh zu, wie unsere KI-Agenten in Echtzeit neue Wörter mit Audio, Bildern und Beispielen erzeugen. Meistere Englisch, Spanisch und Deutsch dank interaktiver Quizze und gemeinsamer Lernerfahrung.",
+      "ctaButton": "Jetzt loslegen",
+      "stats": {
+        "wordsCreated": "Wörter erstellt",
+        "publicLists": "Öffentliche Listen",
+        "activeUsers": "Aktive Nutzer"
+      }
+    },
+    "howItWorks": {
+      "title": "So funktioniert WordWeave",
+      "subtitle": "Community-basiertes Vokabellernen in 3 Schritten",
+      "step1": {
+        "title": "Deine Listen erstellen",
+        "description": "Erstelle private oder öffentliche Vokabellisten mit Wörtern unserer Community. Kombiniere beliebige Sprachpaare: Englisch, Spanisch und Deutsch."
+      },
+      "step2": {
+        "title": "KI ergänzt Wörter",
+        "description": "Fehlt ein Wort? Unsere KI-Agenten erstellen in Echtzeit umfassende Vokabelkarten mit Aussprache, Bildern und Beispielen. Gib Feedback zur Verbesserung."
+      },
+      "step3": {
+        "title": "Mit Quiz lernen",
+        "description": "Teste dich mit Multiple-Choice-Quizzen basierend auf deinen Listen. Verfolge deinen Fortschritt und lerne effektiv."
+      }
+    },
+    "features": {
+      "title": "Alles, was du zum Vokabelnlernen brauchst",
+      "subtitle": "Starke Features für gemeinsames Lernen",
+      "personalLists": {
+        "title": "Private & Öffentliche Listen",
+        "description": "Pflege eigene Listen oder teile sie mit der Community. Sortiere nach Themen, Schwierigkeit oder Ziel."
+      },
+      "communityDatabase": {
+        "title": "Community-Datenbank",
+        "description": "Jedes KI-generierte Wort steht allen zur Verfügung. Baue auf den Listen anderer auf und erweitere den gemeinsamen Wortschatz."
+      },
+      "aiGeneration": {
+        "title": "Echtzeit-KI",
+        "description": "Erlebe live, wie KI-Agenten Vokabelkarten erstellen – mit Audio, Bildern und Beispielen. Gib Feedback, um jedes Wort zu perfektionieren."
+      }
+    }
+  },
+  "search": {
+    "title": "Entdecke",
+    "titleHighlight": "Neue Wörter",
+    "subtitle": "Suche Wörter in unserer Community-Datenbank oder lass sie von unseren KI-Agenten erstellen",
+    "sourceLanguage": "Von",
+    "targetLanguage": "Nach",
+    "selectLanguage": "Sprache wählen",
+    "inputPlaceholder": "Wort eingeben",
+    "button": "Suchen",
+    "noResults": "Keine Ergebnisse gefunden"
+  },
+  "wordCard": {
+    "loading": "Wort wird geladen...",
+    "errorTitle": "Wort nicht gefunden",
+    "notFound": "Das gesuchte Wort konnte nicht gefunden werden.",
+    "loadError": "Fehler beim Laden. Bitte erneut versuchen.",
+    "addToList": "Zur Liste hinzufügen",
+    "dictionary": "Wörterbuch",
+    "examples": "Beispiele",
+    "pronunciation": "Aussprache",
+    "conjugation": "Konjugation",
+    "synonyms": "Synonyme",
+    "definition": "Definition",
+    "noExamples": "Keine Beispiele für dieses Wort verfügbar.",
+    "clickToPlay": "Klicken zum Abspielen",
+    "createdBy": "Erstellt von",
+    "pos": {
+      "noun": "Substantiv",
+      "verb": "Verb",
+      "adjective": "Adjektiv",
+      "adverb": "Adverb",
+      "pronoun": "Pronomen",
+      "preposition": "Präposition",
+      "conjunction": "Konjunktion",
+      "interjection": "Interjektion",
+      "article": "Artikel"
+    },
+    "conjugationData": {
+      "nonPersonalForms": "Unpersönliche Formen",
+      "infinitive": "Infinitiv",
+      "participle": "Partizip",
+      "gerund": "Gerundium",
+      "indicative": "Indikativ",
+      "subjunctive": "Subjunktiv",
+      "tenses": {
+        "presente": "Präsens",
+        "preterito_perfecto_simple": "Präteritum",
+        "preterito_imperfecto": "Imperfekt",
+        "preterito_perfecto_compuesto": "Perfekt",
+        "preterito_pluscuamperfecto": "Plusquamperfekt",
+        "futuro": "Futur I",
+        "futuro_perfecto": "Futur II",
+        "condicional": "Konditional I",
+        "condicional_perfecto": "Konditional II"
+      },
+      "pronouns": {
+        "yo": "ich",
+        "tu": "du",
+        "el_ella_usted": "er/sie/Sie",
+        "nosotros_nosotras": "wir",
+        "vosotros_vosotras": "ihr",
+        "ellos_ellas_ustedes": "sie/Sie"
+      }
+    }
+  }
+}

@@ -1,0 +1,176 @@
+// CSS Custom Properties for theming
+:root {
+  --footer-text-light: #222b45;
+  --footer-text-dark: #e3e8f0;
+  --footer-link-light: #1976d2;
+  --footer-link-dark: #90caf9;
+  --footer-border-light: #e0e3e8;
+  --footer-border-dark: #232a36;
+  --footer-hover-light: #1565c0;
+  --footer-hover-dark: #fff;
+}
+
+// Main footer container
+.footer {
+  background: transparent !important;
+  color: var(--footer-text-light);
+  padding: 1.2rem 0 0.5rem;
+  margin-top: min(5vh, 3rem);
+  border-top: 1px solid var(--footer-border-light);
+  font-size: 0.98rem;
+  transition: color 0.3s ease;
+  border-radius: 0;
+  box-shadow: none;
+
+  // Debug: Add a visible background to see the footer position
+  // background: rgba(255, 0, 0, 0.1) !important;
+
+  // Dark mode support
+  body.dark-mode & {
+    color: var(--footer-text-dark);
+    border-top-color: var(--footer-border-dark);
+  }
+}
+
+// Footer content layout
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto 0.5rem;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2.5rem;
+  text-align: center;
+}
+
+// Individual footer sections
+.footer-section {
+  min-width: 120px;
+  flex: 1 1 0;
+
+  // Section headings
+  h3,
+  h4 {
+    font-size: 1.02rem;
+    font-weight: 600;
+    margin: 0 0 0.4rem 0;
+    color: inherit;
+    letter-spacing: 0.1px;
+  }
+
+  // Section paragraphs
+  p {
+    margin-bottom: 0.3rem;
+    line-height: 1.4;
+    color: inherit;
+    font-size: 0.97rem;
+    font-weight: 400;
+  }
+
+  // Lists
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  li {
+    margin-bottom: 0.3rem;
+    font-weight: 400;
+  }
+
+  // Links
+  a {
+    color: var(--footer-link-light);
+    text-decoration: none;
+    font-weight: 400;
+    transition: color 0.2s ease;
+
+    &:hover {
+      text-decoration: underline;
+      color: var(--footer-hover-light);
+    }
+
+    // Dark mode link colors
+    body.dark-mode & {
+      color: var(--footer-link-dark);
+
+      &:hover {
+        color: var(--footer-hover-dark);
+      }
+    }
+  }
+}
+
+// Brand section specific styles
+.brand-section {
+  p {
+    font-size: 0.95rem;
+    opacity: 0.9;
+  }
+}
+
+// Footer bottom section
+.footer-bottom {
+  padding-top: 0.2rem;
+  text-align: center;
+  font-size: 0.93rem;
+  color: inherit;
+
+  p {
+    margin: 0.15rem 0;
+    color: inherit;
+    font-weight: 400;
+  }
+}
+
+// Responsive design
+@media (max-width: 900px) {
+  .footer {
+    margin-top: min(3vh, 2rem);
+  }
+
+  .footer-content {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.7rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .footer-section {
+    min-width: 0;
+    text-align: center;
+  }
+}
+
+// For very short screens, use minimal spacing
+@media (max-height: 600px) {
+  .footer {
+    margin-top: min(2vh, 1rem);
+  }
+}
+
+// For very tall screens, limit maximum spacing
+@media (min-height: 1200px) {
+  .footer {
+    margin-top: min(4vh, 4rem);
+  }
+}
+
+// Performance optimization: reduce repaints
+.footer * {
+  box-sizing: border-box;
+}
+
+// Accessibility improvements
+.footer a:focus {
+  outline: 2px solid var(--footer-link-light);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+body.dark-mode .footer a:focus {
+  outline-color: var(--footer-link-dark);
+}

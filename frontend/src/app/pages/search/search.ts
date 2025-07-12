@@ -76,7 +76,7 @@ export class SearchComponent implements OnInit {
   private readonly STORAGE_KEY_SOURCE = 'source_language';
   private readonly STORAGE_KEY_TARGET = 'target_language';
 
-  private noResultsTimer: any;
+  private noResultsTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     this.loadLanguagePreferences();
@@ -131,6 +131,13 @@ export class SearchComponent implements OnInit {
           this.hasSearched = true;
           this.searchResults = [];
           this.searchError = null;
+
+          // Clear any existing timer when starting a new search
+          if (this.noResultsTimer) {
+            clearTimeout(this.noResultsTimer);
+            this.noResultsTimer = null;
+          }
+
           this.cdr.detectChanges();
         }),
         switchMap(([term, sourceLanguage, targetLanguage]) => {
@@ -165,6 +172,14 @@ export class SearchComponent implements OnInit {
       .subscribe({
         next: (results) => {
           this.searchResults = results || [];
+
+          // Clear any existing timer
+          if (this.noResultsTimer) {
+            clearTimeout(this.noResultsTimer);
+            this.noResultsTimer = null;
+          }
+
+          // Only set timer if no results found
           if (!results || results.length === 0) {
             this.noResultsTimer = setTimeout(() => {
               this.hasSearched = false;
@@ -172,7 +187,7 @@ export class SearchComponent implements OnInit {
             }, 3500);
           }
         },
-        error: (error) => {
+        error: () => {
           this.searchError =
             'An error occurred during search. Please try again later.';
           this.cdr.detectChanges();

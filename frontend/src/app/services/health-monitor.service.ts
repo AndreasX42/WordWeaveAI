@@ -1,7 +1,6 @@
 import { Injectable, DestroyRef, inject, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Configs } from '../shared/config';
-import { TranslationService } from './translation.service';
 
 export interface HealthTile {
   id: string;
@@ -23,47 +22,46 @@ export class HealthMonitorService implements OnDestroy {
   private readonly MAX_STORAGE_ENTRIES = 100; // Limit localStorage entries
   private destroyRef = inject(DestroyRef);
   private httpClient = inject(HttpClient);
-  private translationService = inject(TranslationService);
 
   private tiles: HealthTile[] = [
     {
       id: 'backend',
-      title: 'health.dashboard.tiles.backendHealth',
+      title: 'Backend Health',
       value: 0,
-      unit: 'health.dashboard.values.milliseconds',
+      unit: 'ms',
       status: 'excellent',
       icon: 'cloud',
-      description: 'health.dashboard.tiles.backendHealthDescription',
+      description: 'Backend API uptime & error rate',
       lastUpdated: Date.now(),
     },
     {
       id: 'api',
-      title: 'health.dashboard.tiles.backendResponseTime',
+      title: 'Response Time',
       value: 0,
-      unit: 'health.dashboard.values.milliseconds',
+      unit: 'ms',
       status: 'excellent',
       icon: 'api',
-      description: 'health.dashboard.tiles.backendResponseTimeDescription',
+      description: 'Average API response time',
       lastUpdated: Date.now(),
     },
     {
       id: 'api_errors',
-      title: 'health.dashboard.tiles.backendErrorRate',
+      title: 'Error Rate',
       value: 0,
-      unit: 'health.dashboard.values.errorsPerMinute',
+      unit: 'errors/min',
       status: 'excellent',
       icon: 'error_outline',
-      description: 'health.dashboard.tiles.backendErrorRateDescription',
+      description: 'Backend errors per minute',
       lastUpdated: Date.now(),
     },
     {
       id: 'errors',
-      title: 'health.dashboard.tiles.jsErrorRate',
+      title: 'JS Error Rate',
       value: 0,
-      unit: 'health.dashboard.values.errorsPerMinute',
+      unit: 'errors/min',
       status: 'excellent',
       icon: 'bug_report',
-      description: 'health.dashboard.tiles.jsErrorRateDescription',
+      description: 'JavaScript errors per minute',
       lastUpdated: Date.now(),
     },
   ];

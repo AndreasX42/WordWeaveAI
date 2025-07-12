@@ -1,0 +1,51 @@
+<footer class="footer">
+  <div class="footer-content">
+    <!-- Brand Section -->
+    <div class="footer-section brand-section">
+      <h3>{{ translate("footer.brand.title") }}</h3>
+      <p>{{ translate("footer.brand.tagline") }}</p>
+      <p>{{ translate("footer.brand.description") }}</p>
+    </div>
+
+    <!-- Dynamic Sections -->
+    <div
+      class="footer-section"
+      *ngFor="let section of footerSections; trackBy: trackBySection"
+    >
+      <h4>{{ translate(section.titleKey) }}</h4>
+      <ul>
+        <li *ngFor="let link of section.links; trackBy: trackByLink">
+          <a
+            *ngIf="!link.external; else externalLink"
+            [routerLink]="link.route"
+            [attr.aria-label]="
+              translate('footer.navigation.ariaLabel') +
+              ' ' +
+              translate(link.labelKey)
+            "
+          >
+            {{ translate(link.labelKey) }}
+          </a>
+          <ng-template #externalLink>
+            <a
+              href="#"
+              (click)="onExternalLinkClick($event)"
+              [attr.aria-label]="
+                translate(link.labelKey) +
+                ' - ' +
+                translate('footer.comingSoon')
+              "
+            >
+              {{ translate(link.labelKey) }}
+            </a>
+          </ng-template>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <p>{{ translate("footer.copyright", { year: currentYear.toString() }) }}</p>
+    <p>{{ translate("footer.madeWith") }}</p>
+  </div>
+</footer>

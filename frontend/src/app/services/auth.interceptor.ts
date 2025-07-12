@@ -10,17 +10,17 @@ import {
 import { Observable, throwError, BehaviorSubject, from } from 'rxjs';
 import { catchError, switchMap, filter, take, tap } from 'rxjs/operators';
 import { AuthService } from './auth.service';
-import { MessageService } from './message.service';
 import { HealthMonitorService } from './health-monitor.service';
 import { Configs } from '../shared/config';
 import { Router } from '@angular/router';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
   private authService = inject(AuthService);
-  private messageService = inject(MessageService);
   private healthService = inject(HealthMonitorService);
   private router = inject(Router);
+  private snackBar = inject(MatSnackBar);
 
   private isRefreshing = false;
   private refreshTokenSubject: BehaviorSubject<string | null> =
@@ -199,9 +199,12 @@ export class AuthInterceptor implements HttpInterceptor {
 
   private handleSessionExpired(): void {
     this.authService.logout();
-    this.messageService.showWarningMessage(
-      this.messageService.MSG_WARNING_SESSION_EXPIRED
-    );
+    this.snackBar.open('Session expired. Please sign in again.', 'Close', {
+      duration: 4000,
+      panelClass: ['error-snackbar'],
+      horizontalPosition: 'center',
+      verticalPosition: 'bottom',
+    });
     this.router.navigate(['login']);
   }
 }

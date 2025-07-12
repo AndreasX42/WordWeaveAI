@@ -1,0 +1,302 @@
+{
+  "header": {
+    "search": "Search",
+    "notifications": "Notifications",
+    "account": "Account",
+    "profile": "Profile",
+    "language": "Language",
+    "lightMode": "Light Mode",
+    "darkMode": "Dark Mode",
+    "healthDashboard": "Health Dashboard",
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "register": "Register",
+    "guestUser": "Guest User",
+    "notSignedIn": "Not Signed In"
+  },
+  "footer": {
+    "brand": {
+      "title": "WordWeave",
+      "tagline": "Your intelligent language learning companion",
+      "description": "Discover, learn, and master new words with ease"
+    },
+    "quickLinks": {
+      "title": "Quick Links",
+      "home": "Home",
+      "search": "Search Words",
+      "health": "Health Dashboard",
+      "profile": "Profile"
+    },
+    "account": {
+      "title": "Account",
+      "login": "Login",
+      "register": "Register",
+      "forgotPassword": "Forgot Password"
+    },
+    "support": {
+      "title": "Support",
+      "help": "Help Center",
+      "contact": "Contact Us",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service"
+    },
+    "navigation": {
+      "ariaLabel": "Navigate to"
+    },
+    "comingSoon": "Coming soon",
+    "copyright": "© {{year}} WordWeave. All rights reserved.",
+    "madeWith": "Made with ❤️ for language learners worldwide"
+  },
+  "common": {
+    "welcome": "Welcome",
+    "home": "Home",
+    "loading": "Loading…",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "close": "Close",
+    "back": "Back"
+  },
+  "messages": {
+    "unknownError": "Something went wrong. Please try again.",
+    "loginCredentialsIncorrect": "Invalid username or password. Please check your credentials and try again.",
+    "networkError": "Network error. Please check your connection and try again.",
+    "serverError": "Server error. Please try again later.",
+    "loginFirst": "Please sign in to continue.",
+    "sessionExpired": "Your session has expired. Please sign in again."
+  },
+  "health": {
+    "dashboard": {
+      "title": "Health Dashboard",
+      "refresh": "Refresh",
+      "lastUpdated": "Last Updated",
+      "status": {
+        "excellent": "Excellent",
+        "good": "Good",
+        "poor": "Poor"
+      },
+      "tiles": {
+        "backendHealth": "Backend Health",
+        "backendHealthDescription": "Backend API uptime & error rate",
+        "backendResponseTime": "Response Time",
+        "backendResponseTimeDescription": "Average API response time",
+        "backendErrorRate": "Error Rate",
+        "backendErrorRateDescription": "Backend errors per minute",
+        "jsErrorRate": "JS Error Rate",
+        "jsErrorRateDescription": "JavaScript errors per minute"
+      },
+      "values": {
+        "offline": "Offline",
+        "noErrors": "No Errors",
+        "errorsPerMinute": "errors/min",
+        "milliseconds": "ms"
+      }
+    }
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signInSubtitle": "Welcome back! Sign in to your account.",
+    "createAccount": "Create Account",
+    "createAccountSubtitle": "Create your account to get started!",
+    "resetPassword": "Reset Password",
+    "resetPasswordSubtitle": "Enter your email address to reset your password.",
+    "verifyEmail": "Verify Email",
+    "verifyEmailSubtitle": "We've sent a verification code to {{email}}",
+    "userProfile": "User Profile",
+    "username": "Username",
+    "emailAddress": "Email Address",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "verificationCode": "Verification Code",
+    "enterEmail": "Enter your email address",
+    "enterPassword": "Enter your password",
+    "enterUsername": "Enter your username",
+    "confirmYourPassword": "Confirm your password",
+    "enterVerificationCode": "Enter 6-digit code",
+    "signInButton": "Sign In",
+    "signingIn": "Signing In…",
+    "createAccountButton": "Create Account",
+    "creatingAccount": "Creating Account…",
+    "resetPasswordButton": "Reset Password",
+    "sending": "Sending…",
+    "verifyEmailButton": "Verify Email",
+    "verifying": "Verifying…",
+    "resendCode": "Resend Code",
+    "resendingCode": "Resending…",
+    "resendInTime": "Resend in {{time}}",
+    "backToLogin": "Back to Sign In",
+    "updateAccount": "Update Account",
+    "updateAccountButton": "Update Account",
+    "updatingAccount": "Updating…",
+    "deleteAccount": "Delete Account",
+    "dontHaveAccount": "Don't have an account?",
+    "createAccountLink": "Create account",
+    "alreadyHaveAccount": "Already have an account?",
+    "signInLink": "Sign in",
+    "forgotPasswordLink": "Forgot your password?",
+    "didntReceiveCode": "Didn't receive the code?",
+    "continueWithGoogle": "Continue with Google",
+    "or": "or",
+    "manageAccount": "Manage your account settings and preferences",
+    "accountInformation": "Account Information",
+    "notAvailable": "Not available",
+    "emailStatus": "Email Status",
+    "verified": "Verified",
+    "notVerified": "Not Verified",
+    "role": "Role",
+    "sessionStatus": "Session Status",
+    "sessionExpiresIn": "Session Expires In",
+    "sessionExpired": "Session Expired",
+    "noSession": "No Session",
+    "invalidSession": "Invalid Session",
+    "preferences": "Preferences",
+    "darkMode": "Dark Mode",
+    "darkModeDescription": "Switch between light and dark themes",
+    "accountActions": "Account Actions",
+    "signOut": "Sign Out",
+    "emailSentSuccessfully": "Email Sent Successfully!",
+    "checkYourEmail": "Check your email!",
+    "newPasswordSent": "We've sent you a new password.",
+    "emailSentIfExists": "If an account with that email exists, you'll receive password reset instructions shortly.",
+    "loginSuccessful": "Login successful!",
+    "registrationSuccessful": "Registration successful! Please check your email for verification code.",
+    "emailVerifiedSuccessfully": "Email verified successfully!",
+    "verificationCodeResent": "Verification code resent to your email.",
+    "logoutSuccessful": "Logout successful!",
+    "accountDeletedSuccessfully": "Account deleted successfully!",
+    "updateAccountSuccess": "Account updated successfully!",
+    "invalidCredentials": "Invalid credentials. Please try again.",
+    "loginFailed": "Login failed. Please try again.",
+    "unexpectedError": "An unexpected error occurred. Please try again.",
+    "emailNotVerified": "Please verify your email address before signing in.",
+    "googleLoginFailed": "Failed to initiate Google login. Please try again.",
+    "registrationFailed": "Registration failed. Please try again.",
+    "usernameOrEmailExists": "Username or email already exists. Please try different credentials.",
+    "resetEmailFailed": "Failed to send reset email. Please try again.",
+    "verificationFailed": "Verification failed. Please try again.",
+    "invalidVerificationCode": "Invalid verification code. Please try again.",
+    "resendCodeFailed": "Failed to resend code. Please try again.",
+    "logoutFailed": "Logout failed!",
+    "accountDeletionFailed": "Account deletion failed. Please try again.",
+    "updateAccountFailed": "Failed to update account. Please try again.",
+    "deleteAccountConfirm": "Are you sure you want to delete your account? This action cannot be undone.",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "resendVerificationCode": "Resend verification code",
+    "passwordOptional": "Password (optional)"
+  },
+  "home": {
+    "hero": {
+      "title": "Build your vocabulary with",
+      "titleHighlight": "AI-powered community learning",
+      "subtitle": "Create personalized vocabulary lists from our community database, or watch our AI Agents generate new words in real time with audio, images, and examples. Master any combination of English, Spanish, and German through interactive quizzes and collaborative learning.",
+      "ctaButton": "Start building",
+      "stats": {
+        "wordsCreated": "Words Created",
+        "publicLists": "Public Lists",
+        "activeUsers": "Active Users"
+      }
+    },
+    "howItWorks": {
+      "title": "How WordWeave Works",
+      "subtitle": "Community-driven vocabulary learning in 3 simple steps",
+      "step1": {
+        "title": "Create Your Lists",
+        "description": "Build private or public vocabulary lists using words from our community database. Choose any source–target language combination between English, Spanish, and German."
+      },
+      "step2": {
+        "title": "AI Creates Missing Words",
+        "description": "Need a word that doesn't exist yet? Watch our AI Agents generate comprehensive vocabulary cards in real time with audio, contextual images, and usage examples. Provide feedback to improve the results."
+      },
+      "step3": {
+        "title": "Learn with Quizzes",
+        "description": "Test your knowledge with multiple-choice quizzes based on your personal vocabulary lists. Track your progress and master new languages effectively."
+      }
+    },
+    "features": {
+      "title": "Everything You Need to Master Vocabulary",
+      "subtitle": "Powerful features for collaborative language learning",
+      "personalLists": {
+        "title": "Personal & Public Lists",
+        "description": "Create private vocabulary lists for personal study or share public lists with the community. Organize words by theme, difficulty, or learning goal."
+      },
+      "communityDatabase": {
+        "title": "Community Database",
+        "description": "Every word generated by our AI Agents becomes available to all users. Build on the work of others and contribute to a growing shared vocabulary resource."
+      },
+      "aiGeneration": {
+        "title": "Real-time AI Generation",
+        "description": "Watch our AI Agents create vocabulary cards live with audio pronunciation, contextual images, and usage examples. Provide feedback to perfect each word."
+      }
+    }
+  },
+  "search": {
+    "title": "Discover",
+    "titleHighlight": "New Words",
+    "subtitle": "Search for words in our community database or let our AI Agents create them for you",
+    "sourceLanguage": "From",
+    "targetLanguage": "To",
+    "selectLanguage": "Select Language",
+    "inputPlaceholder": "Enter a word to search",
+    "button": "Search",
+    "noResults": "No results found"
+  },
+  "wordCard": {
+    "loading": "Loading word...",
+    "errorTitle": "Word Not Found",
+    "notFound": "The requested word could not be found.",
+    "loadError": "Error loading word. Please try again.",
+    "addToList": "Add to list",
+    "dictionary": "Dictionary",
+    "examples": "Examples",
+    "pronunciation": "Pronunciation",
+    "conjugation": "Conjugation",
+    "synonyms": "Synonyms",
+    "definition": "Definition",
+    "noExamples": "No examples available for this word.",
+    "clickToPlay": "Click to play pronunciation",
+    "createdBy": "Created by",
+    "pos": {
+      "noun": "noun",
+      "verb": "verb",
+      "adjective": "adjective",
+      "adverb": "adverb",
+      "pronoun": "pronoun",
+      "preposition": "preposition",
+      "conjunction": "conjunction",
+      "interjection": "interjection",
+      "article": "article"
+    },
+    "conjugationData": {
+      "nonPersonalForms": "Non-personal forms",
+      "infinitive": "Infinitive",
+      "participle": "Participle",
+      "gerund": "Gerund",
+      "indicative": "Indicative",
+      "subjunctive": "Subjunctive",
+      "tenses": {
+        "presente": "Present",
+        "preterito_perfecto_simple": "Preterite",
+        "preterito_imperfecto": "Imperfect",
+        "preterito_perfecto_compuesto": "Present Perfect",
+        "preterito_pluscuamperfecto": "Past Perfect",
+        "futuro": "Future",
+        "futuro_perfecto": "Future Perfect",
+        "condicional": "Conditional",
+        "condicional_perfecto": "Conditional Perfect"
+      },
+      "pronouns": {
+        "yo": "I",
+        "tu": "you (informal)",
+        "el_ella_usted": "he/she/you (formal)",
+        "nosotros_nosotras": "we",
+        "vosotros_vosotras": "you all (informal)",
+        "ellos_ellas_ustedes": "they/you all (formal)"
+      }
+    }
+  }
+}
