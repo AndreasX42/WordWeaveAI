@@ -170,7 +170,9 @@ public class DataStack extends Stack {
 						.name("SRC_LANG") // Format: {source_lang}
 						.type(software.amazon.awscdk.services.dynamodb.AttributeType.STRING)
 						.build())
-				.projectionType(software.amazon.awscdk.services.dynamodb.ProjectionType.ALL)
+				.projectionType(software.amazon.awscdk.services.dynamodb.ProjectionType.INCLUDE)
+				.nonKeyAttributes(java.util.Arrays.asList("source_word", "target_word", "source_language",
+						"target_language", "source_pos", "media_ref"))
 				.build());
 
 		// Add GSI-2: English word for vocabulary search
@@ -181,7 +183,9 @@ public class DataStack extends Stack {
 						.name("english_word") // Format: normalized English word
 						.type(software.amazon.awscdk.services.dynamodb.AttributeType.STRING)
 						.build())
-				.projectionType(software.amazon.awscdk.services.dynamodb.ProjectionType.ALL)
+				.projectionType(software.amazon.awscdk.services.dynamodb.ProjectionType.INCLUDE)
+				.nonKeyAttributes(java.util.Arrays.asList("source_word", "target_word", "source_language",
+						"target_language", "source_pos", "media_ref"))
 				.build());
 
 		// Create DynamoDB table for vocab media data

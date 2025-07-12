@@ -2,14 +2,12 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"time"
+	"strings"
 
 	"github.com/AndreasX42/restapi/domain/entities"
 	"github.com/AndreasX42/restapi/domain/services"
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 )
 
 type SearchHandler struct {
@@ -17,29 +15,14 @@ type SearchHandler struct {
 }
 
 type VocabularySearchResult struct {
-	PK               string              `json:"pk" required:"true"`
-	SK               string              `json:"sk" required:"true"`
-	LKP              string              `json:"lkp" required:"true"`
-	SrcLang          string              `json:"src_lang" required:"true"`
-	SourceWord       string              `json:"source_word" required:"true"`
-	SourceLanguage   string              `json:"source_language" required:"true"`
-	SourcePos        string              `json:"source_pos" required:"true"`
-	TargetWord       string              `json:"target_word" required:"true"`
-	TargetLanguage   string              `json:"target_language" required:"true"`
-	TargetPos        string              `json:"target_pos,omitempty"`
-	Definition       []string            `json:"source_definition,omitempty"`
-	Examples         []map[string]string `json:"examples,omitempty"`
-	Synonyms         []map[string]string `json:"synonyms,omitempty"`
-	Syllables        []string            `json:"target_syllables,omitempty"`
-	PhoneticGuide    string              `json:"target_phonetic_guide,omitempty"`
-	Media            map[string]any      `json:"media,omitempty"`
-	MediaRef         string              `json:"media_ref,omitempty"`
-	Pronunciations   map[string]string   `json:"target_pronunciations,omitempty"`
-	ConjugationTable string              `json:"conjugation_table,omitempty"`
-	CreatedAt        string              `json:"created_at,omitempty"`
-	CreatedBy        string              `json:"created_by,omitempty"`
-	SourceAddInfo    string              `json:"source_additional_info,omitempty"`
-	TargetAddInfo    string              `json:"target_additional_info,omitempty"`
+	PK             string `json:"pk" required:"true"`
+	SK             string `json:"sk" required:"true"`
+	SourceWord     string `json:"source_word" required:"true"`
+	SourceLanguage string `json:"source_language" required:"true"`
+	SourcePos      string `json:"source_pos" required:"true"`
+	TargetWord     string `json:"target_word" required:"true"`
+	TargetLanguage string `json:"target_language" required:"true"`
+	MediaRef       string `json:"media_ref" optional:"true"`
 }
 
 type SearchRequest struct {
@@ -65,11 +48,11 @@ func NewSearchHandler(vocabService *services.VocabService) *SearchHandler {
 func (h *SearchHandler) SearchVocabulary(c *gin.Context) {
 	var req SearchRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.handleValidationError(c, err)
+		HandleValidationError(c, err)
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultRequestTimeout)
 	defer cancel()
 
 	// Create service request
@@ -107,47 +90,149 @@ func (h *SearchHandler) SearchVocabulary(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func (h *SearchHandler) convertToSearchResult(vocab entities.VocabWord) VocabularySearchResult {
-	return VocabularySearchResult{
-		PK:               vocab.PK,
-		SK:               vocab.SK,
-		LKP:              vocab.LKP,
-		SrcLang:          vocab.SrcLang,
-		SourceWord:       vocab.SourceWord,
-		SourceLanguage:   vocab.SourceLanguage,
-		SourcePos:        vocab.SourcePos,
-		TargetWord:       vocab.TargetWord,
-		TargetLanguage:   vocab.TargetLanguage,
-		TargetPos:        vocab.TargetPos,
-		Definition:       vocab.SourceDefinition,
-		Examples:         vocab.Examples,
-		Synonyms:         vocab.Synonyms,
-		Syllables:        vocab.Syllables,
-		PhoneticGuide:    vocab.PhoneticGuide,
-		Media:            vocab.Media,
-		MediaRef:         vocab.MediaRef,
-		Pronunciations:   vocab.Pronunciations,
-		ConjugationTable: vocab.ConjugationTable,
-		CreatedAt:        vocab.CreatedAt,
-		CreatedBy:        vocab.CreatedBy,
-		SourceAddInfo:    vocab.SourceAddInfo,
-		TargetAddInfo:    vocab.TargetAddInfo,
-	}
-}
+// GetVocabularyByPkSk handles direct PK/SK lookup (fast path)
+func (h *SearchHandler) GetVocabularyByPkSk(c *gin.Context) {
+	pk := c.Query("pk")
+	sk := c.Query("sk")
+	mediaRef := c.Query("media_ref")
 
-func (h *SearchHandler) handleValidationError(c *gin.Context, err error) {
-	if errs, ok := err.(validator.ValidationErrors); ok {
-		errMessages := make([]string, 0)
-		for _, e := range errs {
-			errMessages = append(errMessages, fmt.Sprintf("Field %s failed on the '%s' rule", e.Field(), e.Tag()))
+	if pk == "" || sk == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "pk and sk are required"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultRequestTimeout)
+	defer cancel()
+
+	// If media_ref is provided, fetch both vocab word and media concurrently
+	if mediaRef != "" {
+		// Use channels for concurrent execution
+		type result struct {
+			vocab *entities.VocabWord
+			media map[string]interface{}
+			err   error
 		}
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "Validation failed",
-			"details": gin.H{
-				"errors": errMessages,
-			},
+
+		vocabChan := make(chan result, 1)
+		mediaChan := make(chan result, 1)
+
+		// Fetch vocab word
+		go func() {
+			vocab, err := h.vocabService.GetVocabularyByKeysWithoutMedia(ctx, pk, sk)
+			vocabChan <- result{vocab: vocab, err: err}
+		}()
+
+		// Fetch media
+		go func() {
+			media, err := h.vocabService.GetMediaByRef(ctx, mediaRef)
+			mediaChan <- result{media: media, err: err}
+		}()
+
+		// Wait for both results
+		vocabResult := <-vocabChan
+		mediaResult := <-mediaChan
+
+		// Check for vocab error (critical)
+		if vocabResult.err != nil {
+			c.JSON(http.StatusNotFound, gin.H{
+				"message": "Vocabulary not found",
+				"details": gin.H{"error": vocabResult.err.Error()},
+			})
+			return
+		}
+
+		// Add media to vocab word (ignore media errors - not critical)
+		if mediaResult.err == nil && mediaResult.media != nil {
+			vocabResult.vocab.Media = mediaResult.media
+		}
+		// Media errors are non-critical and logged but not returned to client
+
+		c.JSON(http.StatusOK, vocabResult.vocab)
+		return
+	}
+
+	// Original logic for PK/SK only
+	vocab, err := h.vocabService.GetVocabularyByKeys(ctx, pk, sk)
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"message": "Vocabulary not found",
+			"details": gin.H{"error": err.Error()},
 		})
 		return
 	}
-	c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request body"})
+
+	c.JSON(http.StatusOK, vocab)
+}
+
+// GetVocabularyByParams handles fetching vocabulary words by source_language, target_language, and source_word
+func (h *SearchHandler) GetVocabularyByParams(c *gin.Context) {
+	sourceLanguage := c.Param("sourceLanguage")
+	targetLanguage := c.Param("targetLanguage")
+	word := c.Param("word")
+	pos := c.Param("pos")
+
+	if sourceLanguage == "" || targetLanguage == "" || word == "" || pos == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "sourceLanguage, targetLanguage, pos, and word are required"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultRequestTimeout)
+	defer cancel()
+
+	// Use direct repository access for better performance and multiple results
+	normalizedWord := h.vocabService.NormalizeWord(word)
+
+	// Direct PK/SK lookup for specific POS (fastest path)
+	pk := "SRC#" + sourceLanguage + "#" + normalizedWord
+	sk := "TGT#" + targetLanguage + "#POS#" + strings.ToLower(pos)
+
+	vocab, err := h.vocabService.GetVocabularyByKeys(ctx, pk, sk)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"message": "Vocabulary not found",
+			"details": gin.H{"error": err.Error()},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, vocab)
+}
+
+// GetMediaByRef handles fetching media data by media reference
+func (h *SearchHandler) GetMediaByRef(c *gin.Context) {
+	mediaRef := c.Param("mediaRef")
+
+	if mediaRef == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "mediaRef is required"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultRequestTimeout)
+	defer cancel()
+
+	// Use the vocab service to fetch media
+	media, err := h.vocabService.GetMediaByRef(ctx, mediaRef)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"message": "Media not found",
+			"details": gin.H{"error": err.Error()},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, media)
+}
+
+func (h *SearchHandler) convertToSearchResult(vocab entities.VocabWord) VocabularySearchResult {
+	return VocabularySearchResult{
+		PK:             vocab.PK,
+		SK:             vocab.SK,
+		SourceWord:     vocab.SourceWord,
+		SourceLanguage: vocab.SourceLanguage,
+		SourcePos:      vocab.SourcePos,
+		TargetWord:     vocab.TargetWord,
+		TargetLanguage: vocab.TargetLanguage,
+		MediaRef:       vocab.MediaRef,
+	}
 }

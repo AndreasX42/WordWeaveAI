@@ -11,16 +11,6 @@ export class MessageService {
   private dialog = inject(MatDialog);
   private translationService = inject(TranslationService);
 
-  // Message getters that use translations
-  get MSG_ERROR_UNKNOWN(): string {
-    return this.translationService.translate('messages.unknownError');
-  }
-
-  // Keep the old typo version for backward compatibility
-  get MSG_ERROR_UNKOWN(): string {
-    return this.translationService.translate('messages.unknownError');
-  }
-
   get MSG_ERROR_LOGIN_USERNAME_OR_PASSWORD_INCORRECT(): string {
     return this.translationService.translate(
       'messages.loginCredentialsIncorrect'

@@ -20,8 +20,8 @@
     </div>
     }
 
-    <!-- Word Card -->
-    @if (word && !loading) {
+    <!-- Single Word Card -->
+    @if (word && !loading && !error) {
     <div class="word-card">
       <!-- Header Section -->
       <div class="word-header">
@@ -199,12 +199,12 @@
               @if (hasFormasNoPersonales) {
               <div class="tense-section">
                 <h4>
-                  {{ getNonPersonalFormsLabel() }}
+                  {{ getLabel("nonPersonalForms") }}
                 </h4>
                 <table>
                   <tr>
                     <td class="pronoun">
-                      {{ getInfinitiveLabel() }}
+                      {{ getLabel("infinitive") }}
                     </td>
                     <td class="conjugation">
                       {{ getInfinitive() }}
@@ -212,7 +212,7 @@
                   </tr>
                   <tr>
                     <td class="pronoun">
-                      {{ getParticipleLabel() }}
+                      {{ getLabel("participle") }}
                     </td>
                     <td class="conjugation">
                       {{ getParticiple() }}
@@ -220,7 +220,7 @@
                   </tr>
                   <tr>
                     <td class="pronoun">
-                      {{ getGerundLabel() }}
+                      {{ getLabel("gerund") }}
                     </td>
                     <td class="conjugation">
                       {{ getGerund() }}
@@ -230,23 +230,20 @@
               </div>
               }
 
-              <!-- Indicative mood -->
-              @if (hasIndicativo) {
+              <!-- Indicative Mood -->
               <div class="mood-section">
                 <h3>
-                  {{ getIndicativeMoodLabel() }}
+                  {{ getLabel("indicativeMood") }}
                 </h3>
                 @for (tense of indicativeTenses; track tense) {
-                <div class="tense-section">
-                  <h4>{{ getConjugationTenseLabel(tense) }}</h4>
+                <div class="tense-subsection">
+                  <h4>{{ getLabel(tense) }}</h4>
                   <table>
                     @for (pronoun of
                     getConjugationPronouns(getIndicativeMoodName(), tense);
                     track pronoun) {
                     <tr>
-                      <td class="pronoun">
-                        {{ getPronounLabel(pronoun) }}
-                      </td>
+                      <td class="pronoun">{{ getPronounLabel(pronoun) }}</td>
                       <td class="conjugation">
                         {{
                           getConjugationValue(
@@ -262,25 +259,21 @@
                 </div>
                 }
               </div>
-              }
 
-              <!-- Subjunctive mood -->
-              @if (hasSubjuntivo) {
+              <!-- Subjunctive Mood -->
               <div class="mood-section">
                 <h3>
-                  {{ getSubjunctiveMoodLabel() }}
+                  {{ getLabel("subjunctiveMood") }}
                 </h3>
                 @for (tense of subjunctiveTenses; track tense) {
-                <div class="tense-section">
-                  <h4>{{ getConjugationTenseLabel(tense) }}</h4>
+                <div class="tense-subsection">
+                  <h4>{{ getLabel(tense) }}</h4>
                   <table>
                     @for (pronoun of
                     getConjugationPronouns(getSubjunctiveMoodName(), tense);
                     track pronoun) {
                     <tr>
-                      <td class="pronoun">
-                        {{ getPronounLabel(pronoun) }}
-                      </td>
+                      <td class="pronoun">{{ getPronounLabel(pronoun) }}</td>
                       <td class="conjugation">
                         {{
                           getConjugationValue(
@@ -296,7 +289,6 @@
                 </div>
                 }
               </div>
-              }
             </div>
           </div>
         </mat-tab>

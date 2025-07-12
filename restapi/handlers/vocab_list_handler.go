@@ -1,15 +1,12 @@
 package handlers
 
 import (
-	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/AndreasX42/restapi/domain/entities"
 	"github.com/AndreasX42/restapi/domain/services"
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 )
 
 type VocabListHandler struct {
@@ -84,30 +81,15 @@ type VocabListWordWithDataResponse struct {
 	EnglishWord      *string             `json:"english_word,omitempty"`
 }
 
-// getPrincipal extracts the authenticated user from the JWT context
-func (h *VocabListHandler) getPrincipal(c *gin.Context) (*entities.User, error) {
-	userPtr, exists := c.Get("principal")
-	if !exists {
-		return nil, errors.New("principal not set")
-	}
-
-	user, ok := userPtr.(*entities.User)
-	if !ok {
-		return nil, errors.New("principal invalid")
-	}
-
-	return user, nil
-}
-
 // CreateList creates a new vocabulary list
 func (h *VocabListHandler) CreateList(c *gin.Context) {
 	var req CreateVocabListRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.handleValidationError(c, err)
+		HandleValidationError(c, err)
 		return
 	}
 
-	user, err := h.getPrincipal(c)
+	user, err := GetPrincipal(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		return
@@ -136,7 +118,7 @@ func (h *VocabListHandler) CreateList(c *gin.Context) {
 
 // GetLists retrieves all vocabulary lists for the authenticated user
 func (h *VocabListHandler) GetLists(c *gin.Context) {
-	user, err := h.getPrincipal(c)
+	user, err := GetPrincipal(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		return
@@ -171,7 +153,7 @@ func (h *VocabListHandler) GetList(c *gin.Context) {
 		return
 	}
 
-	user, err := h.getPrincipal(c)
+	user, err := GetPrincipal(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		return
@@ -202,11 +184,11 @@ func (h *VocabListHandler) UpdateList(c *gin.Context) {
 
 	var req UpdateVocabListRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.handleValidationError(c, err)
+		HandleValidationError(c, err)
 		return
 	}
 
-	user, err := h.getPrincipal(c)
+	user, err := GetPrincipal(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		return
@@ -242,7 +224,7 @@ func (h *VocabListHandler) DeleteList(c *gin.Context) {
 		return
 	}
 
-	user, err := h.getPrincipal(c)
+	user, err := GetPrincipal(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		return
@@ -272,11 +254,11 @@ func (h *VocabListHandler) AddWordToList(c *gin.Context) {
 
 	var req AddWordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.handleValidationError(c, err)
+		HandleValidationError(c, err)
 		return
 	}
 
-	user, err := h.getPrincipal(c)
+	user, err := GetPrincipal(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		return
@@ -314,7 +296,7 @@ func (h *VocabListHandler) RemoveWordFromList(c *gin.Context) {
 		return
 	}
 
-	user, err := h.getPrincipal(c)
+	user, err := GetPrincipal(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		return
@@ -342,7 +324,7 @@ func (h *VocabListHandler) GetWordsInList(c *gin.Context) {
 		return
 	}
 
-	user, err := h.getPrincipal(c)
+	user, err := GetPrincipal(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		return
@@ -382,11 +364,11 @@ func (h *VocabListHandler) UpdateWordStatus(c *gin.Context) {
 
 	var req UpdateWordStatusRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.handleValidationError(c, err)
+		HandleValidationError(c, err)
 		return
 	}
 
-	user, err := h.getPrincipal(c)
+	user, err := GetPrincipal(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		return
@@ -462,21 +444,4 @@ func (h *VocabListHandler) toWordWithDataResponse(word *services.VocabListWordWi
 	}
 
 	return response
-}
-
-func (h *VocabListHandler) handleValidationError(c *gin.Context, err error) {
-	if errs, ok := err.(validator.ValidationErrors); ok {
-		errMessages := make([]string, 0)
-		for _, e := range errs {
-			errMessages = append(errMessages, fmt.Sprintf("Field %s failed on the '%s' rule", e.Field(), e.Tag()))
-		}
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "Validation failed",
-			"details": gin.H{
-				"errors": errMessages,
-			},
-		})
-		return
-	}
-	c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request body"})
 }

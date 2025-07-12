@@ -4,12 +4,19 @@ import { Observable, of, shareReplay, timeout, catchError, map } from 'rxjs';
 import { VocabularyWord, SearchResponse } from '../models/word.model';
 import { Configs } from '../shared/config';
 
+interface SearchRequestBody {
+  query: string;
+  limit: number;
+  source_lang?: string | null;
+  target_lang?: string | null;
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class WordService {
   private http = inject(HttpClient);
-  private apiUrl = `${Configs.BASE_URL}/words`;
+  private apiUrl = `${Configs.BASE_URL}/vocabs`;
 
   private static readonly CACHE_MS = 15000;
 
@@ -23,15 +30,13 @@ export class WordService {
     { obs: Observable<VocabularyWord | null>; ts: number }
   >();
 
-  getWord(
-    sourceLanguage: string,
-    targetLanguage: string,
-    word: string,
+  private getFromCacheOrFetch<T>(
+    key: string,
+    cache: Map<string, { obs: Observable<T>; ts: number }>,
+    fetchFn: () => Observable<T>,
     forceRefresh = false
-  ): Observable<VocabularyWord | null> {
-    const key = `${sourceLanguage}|${targetLanguage}|${word.toLowerCase()}`;
-
-    const cached = this.wordCache.get(key);
+  ): Observable<T> {
+    const cached = cache.get(key);
     if (
       !forceRefresh &&
       cached &&
@@ -40,16 +45,7 @@ export class WordService {
       return cached.obs;
     }
 
-    const url = `${
-      this.apiUrl
-    }/${sourceLanguage}/${targetLanguage}/${encodeURIComponent(word)}`;
-
-    const observable = this.http.get<VocabularyWord>(url).pipe(
-      timeout(3000),
-      catchError((error) => {
-        console.error('Error fetching word:', error);
-        return of(null);
-      }),
+    const observable = fetchFn().pipe(
       shareReplay({
         bufferSize: 1,
         refCount: false,
@@ -57,8 +53,34 @@ export class WordService {
       })
     );
 
-    this.wordCache.set(key, { obs: observable, ts: Date.now() });
+    cache.set(key, { obs: observable, ts: Date.now() });
     return observable;
+  }
+
+  getWord(
+    sourceLanguage: string,
+    targetLanguage: string,
+    word: string,
+    forceRefresh = false
+  ): Observable<VocabularyWord | null> {
+    const key = `${sourceLanguage}|${targetLanguage}|${word.toLowerCase()}`;
+    const url = `${
+      this.apiUrl
+    }/${sourceLanguage}/${targetLanguage}/${encodeURIComponent(word)}`;
+
+    return this.getFromCacheOrFetch(
+      key,
+      this.wordCache,
+      () =>
+        this.http.get<VocabularyWord>(url).pipe(
+          timeout(3000),
+          catchError((error) => {
+            console.error('Error fetching word:', error);
+            return of(null);
+          })
+        ),
+      forceRefresh
+    );
   }
 
   searchWords(
@@ -67,7 +89,7 @@ export class WordService {
     targetLanguage?: string
   ): Observable<VocabularyWord[]> {
     const url = `${Configs.BASE_URL}${Configs.SEARCH_URL}`;
-    const body: any = {
+    const body: SearchRequestBody = {
       query: query,
       limit: 3,
     };
@@ -87,28 +109,67 @@ export class WordService {
     // Generate a cache key based on parameters
     const key = `${query}|${sourceLanguage ?? ''}|${targetLanguage ?? ''}`;
 
-    const cachedSearch = this.searchCache.get(key);
-    if (cachedSearch && Date.now() - cachedSearch.ts < WordService.CACHE_MS) {
-      return cachedSearch.obs;
-    }
+    const fetchFn = () =>
+      this.http.post<SearchResponse>(url, body).pipe(
+        map((response) => response.results),
+        catchError((error) => {
+          console.error('Error searching words:', error);
+          return of([]);
+        })
+      );
 
-    const observable = this.http.post<SearchResponse>(url, body).pipe(
-      map((response) => {
-        return response.results;
-      }),
-      catchError((error) => {
-        console.error('Error searching words:', error);
-        return of([]);
-      }),
-      shareReplay({
-        bufferSize: 1,
-        refCount: false,
-        windowTime: WordService.CACHE_MS,
-      })
+    return this.getFromCacheOrFetch(key, this.searchCache, fetchFn);
+  }
+
+  getWordByPkSk(
+    pk: string,
+    sk: string,
+    forceRefresh = false
+  ): Observable<VocabularyWord | null> {
+    const key = `${pk}|${sk}`;
+    const url = `${Configs.BASE_URL}/vocab?pk=${encodeURIComponent(
+      pk
+    )}&sk=${encodeURIComponent(sk)}`;
+
+    return this.getFromCacheOrFetch(
+      key,
+      this.wordCache,
+      () =>
+        this.http.get<VocabularyWord>(url).pipe(
+          timeout(3000),
+          catchError((error) => {
+            console.error('Error fetching word by PK/SK:', error);
+            return of(null);
+          })
+        ),
+      forceRefresh
     );
+  }
 
-    this.searchCache.set(key, { obs: observable, ts: Date.now() });
-    return observable;
+  getWordByPkSkWithMedia(
+    pk: string,
+    sk: string,
+    mediaRef: string,
+    forceRefresh = false
+  ): Observable<VocabularyWord | null> {
+    const key = `${pk}|${sk}|${mediaRef}`;
+    const url = `${Configs.BASE_URL}/vocab?pk=${encodeURIComponent(
+      pk
+    )}&sk=${encodeURIComponent(sk)}&media_ref=${encodeURIComponent(mediaRef)}`;
+
+    return this.getFromCacheOrFetch(
+      key,
+      this.wordCache,
+      () =>
+        this.http.get<VocabularyWord>(url).pipe(
+          timeout(3000),
+          catchError((error) => {
+            console.error('Error fetching word by PK/SK with media:', error);
+            return of(null);
+          })
+        ),
+      forceRefresh
+    );
   }
 
   // Optionally expose method to clear caches

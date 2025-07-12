@@ -26,6 +26,7 @@ export interface VocabularyWord {
   conjugation_table?: ConjugationTable | string;
   target_pronunciations?: Pronunciation;
   media?: Media;
+  media_ref?: string;
 
   // Reverse Lookup fields
   LKP?: string;
@@ -54,21 +55,13 @@ export interface Example {
   context?: string;
 }
 
-export interface NonPersonalForms {
-  [form: string]: string;
-}
+export type NonPersonalForms = Record<string, string>;
 
-export interface Tense {
-  [pronoun: string]: string;
-}
+export type Tense = Record<string, string>;
 
-export interface Mood {
-  [tense: string]: Tense;
-}
+export type Mood = Record<string, Tense>;
 
-export interface ConjugationTable {
-  [moodOrFormType: string]: Mood | NonPersonalForms;
-}
+export type ConjugationTable = Record<string, Mood | NonPersonalForms>;
 
 export interface Pronunciation {
   audio: string;

@@ -19,7 +19,7 @@ import {
   Mood,
 } from '../../models/word.model';
 import { getLanguageConfig, LanguageConfig } from './conjugation.config';
-import { AppConfig } from '../../shared/config';
+import { Configs } from '../../shared/config';
 
 @Component({
   selector: 'app-word-card',
@@ -157,65 +157,99 @@ export class WordCard implements OnInit {
     return forms?.[gerundKey] || '';
   }
 
-  // Get section header labels based on target language
-  getNonPersonalFormsLabel(): string {
-    return this.langConfig.labels.nonPersonalForms;
-  }
-
-  getIndicativeMoodLabel(): string {
-    return this.langConfig.labels.indicativeMood;
-  }
-
-  getSubjunctiveMoodLabel(): string {
-    return this.langConfig.labels.subjunctiveMood;
-  }
-
-  // Get individual form labels
-  getInfinitiveLabel(): string {
-    return this.langConfig.labels.infinitive;
-  }
-
-  getParticipleLabel(): string {
-    return this.langConfig.labels.participle;
-  }
-
-  getGerundLabel(): string {
-    return this.langConfig.labels.gerund;
+  getLabel(key: string): string {
+    if (key in this.langConfig.labels) {
+      const labelKey = key as keyof LanguageConfig['labels'];
+      const labelValue = this.langConfig.labels[labelKey];
+      if (typeof labelValue === 'string') {
+        return labelValue;
+      }
+    }
+    if (key in this.langConfig.labels.tenses) {
+      return this.langConfig.labels.tenses[key];
+    }
+    return key;
   }
 
   ngOnInit() {
-    // First check if word data was passed through route state
+    // Get navigation state
     const navigation = this.router.lastSuccessfulNavigation;
     const routeState = navigation?.extras?.state;
 
+    // Case 1: Full word object in state (from search) - fastest path
     if (routeState && routeState['word']) {
-      // Use the word data passed from search results
-      this.word = routeState['word'] as VocabularyWord;
+      const wordFromState = routeState['word'] as VocabularyWord;
+
+      // If word has media_ref but no media, fetch complete word + media in one call
+      if (wordFromState.media_ref && !wordFromState.media) {
+        this.loadWordByPkSkWithMedia(
+          wordFromState.pk,
+          wordFromState.sk,
+          wordFromState.media_ref
+        );
+        return;
+      }
+
+      // Use word immediately if it already has media or no media_ref
+      this.word = wordFromState;
       this.langConfig = getLanguageConfig(this.word);
       this.loading = false;
       return;
     }
 
-    // Fallback: Get parameters from route and make API call
+    // Case 2: PK/SK in state for optimized fetch (fallback)
+    if (routeState && routeState['pk'] && routeState['sk']) {
+      this.loadWordByPkSk(routeState['pk'], routeState['sk']);
+      return;
+    }
+
+    // Extract parameters from route
     const sourceLanguage = this.route.snapshot.paramMap.get('sourceLanguage');
     const targetLanguage = this.route.snapshot.paramMap.get('targetLanguage');
     const word = this.route.snapshot.paramMap.get('word');
+    const pos = this.route.snapshot.paramMap.get('pos');
 
     if (sourceLanguage && targetLanguage && word) {
-      this.loadWord(sourceLanguage, targetLanguage, word);
+      // With POS - construct PK/SK and fetch directly
+      const pk = `SRC#${sourceLanguage}#${word.toLowerCase().trim()}`;
+      let sk = `TGT#${targetLanguage}`;
+      if (pos) {
+        sk += `#POS#${pos.toLowerCase().trim()}`;
+      }
+      this.loadWordByPkSk(pk, sk);
     } else {
-      // If parameters are missing, show error
       this.error =
         'Invalid parameters: missing source language, target language, or word';
       this.loading = false;
     }
   }
 
-  loadWord(sourceLanguage: string, targetLanguage: string, word: string) {
+  loadWordByPkSk(pk: string, sk: string) {
+    this.loading = true;
+    this.error = null;
+    this.wordService.getWordByPkSk(pk, sk).subscribe({
+      next: (data) => {
+        if (data) {
+          this.word = data;
+          this.langConfig = getLanguageConfig(this.word);
+        } else {
+          this.error = this.translationService.translate('wordCard.notFound');
+        }
+        this.loading = false;
+      },
+      error: (err) => {
+        console.error('API Error:', err);
+        this.error = this.translationService.translate('wordCard.error');
+        this.loading = false;
+      },
+    });
+  }
+
+  loadWordByPkSkWithMedia(pk: string, sk: string, mediaRef: string) {
     this.loading = true;
     this.error = null;
 
-    this.wordService.getWord(sourceLanguage, targetLanguage, word).subscribe({
+    this.wordService.getWordByPkSkWithMedia(pk, sk, mediaRef).subscribe({
       next: (data) => {
         if (data) {
           this.word = data;
@@ -234,7 +268,7 @@ export class WordCard implements OnInit {
   }
 
   playCombinedAudio() {
-    if (this.audio) {
+    if (this.audio && !this.audio.paused) {
       this.audio.pause();
     }
 
@@ -285,21 +319,8 @@ export class WordCard implements OnInit {
   }
 
   getConjugationPronouns(mood: string, tense: string): string[] {
-    const conjugationTable = this.getConjugationTable();
-    if (!conjugationTable) {
-      return [];
-    }
-
-    const moodData = conjugationTable[mood] as Mood;
-    if (moodData?.[tense]) {
-      return Object.keys(moodData[tense]);
-    }
-
-    return [];
-  }
-
-  getConjugationTenseLabel(tense: string): string {
-    return this.langConfig.labels.tenses[tense] || tense;
+    const tenseData = this.getTense(mood, tense);
+    return tenseData ? Object.keys(tenseData) : [];
   }
 
   getPronounLabel(pronoun: string): string {
@@ -307,7 +328,7 @@ export class WordCard implements OnInit {
   }
 
   formatDate(dateString: string | undefined): string {
-    if (!dateString) return '';
+    if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString(
       this.translationService.getCurrentLanguage()().code,
@@ -320,10 +341,10 @@ export class WordCard implements OnInit {
   }
 
   goBack() {
-    window.history.back();
+    this.router.navigate(['/search']);
   }
 
-  isArray(value: any): boolean {
+  isArray(value: unknown): value is unknown[] {
     return Array.isArray(value);
   }
 
@@ -331,10 +352,16 @@ export class WordCard implements OnInit {
     return value as string[];
   }
 
+  getTense(mood: string, tense: string): Record<string, string> | null {
+    const conjugationTable = this.getConjugationTable();
+    const moodData = conjugationTable?.[mood] as Mood;
+    return moodData?.[tense] || null;
+  }
+
   getLanguageFlag(langCode: string | undefined): string {
     if (!langCode) return '';
 
-    const flagMap: { [key: string]: string } = {
+    const flagMap: Record<string, string> = {
       en: '🇬🇧',
       es: '🇪🇸',
       de: '🇩🇪',
@@ -343,29 +370,23 @@ export class WordCard implements OnInit {
     return flagMap[langCode.toLowerCase()] || langCode.toUpperCase();
   }
 
-  // Helper methods for template to get conjugation values
   getConjugationValue(mood: string, tense: string, pronoun: string): string {
-    const conjugationTable = this.getConjugationTable();
-    if (!conjugationTable) return '';
-
-    try {
-      const moodData = conjugationTable[mood] as Mood;
-      return moodData?.[tense]?.[pronoun] || '';
-    } catch (error) {
-      console.error('Error getting conjugation value:', error);
-      return '';
-    }
+    const tenseData = this.getTense(mood, tense);
+    if (!tenseData) return '';
+    return tenseData[pronoun] || '';
   }
 
   getS3Url(key: string | undefined): string {
-    if (!key) {
-      return '';
-    }
-    // If the key is already a full URL, return it
-    if (key.startsWith('http')) {
+    if (!key) return '';
+
+    // If key is already a full URL, return it as is
+    if (key.startsWith('http://') || key.startsWith('https://')) {
       return key;
     }
-    // Otherwise, construct the full URL
-    return `${AppConfig.s3BaseUrl}${key}`;
+
+    // If key starts with a slash, remove it to avoid double slashes
+    const cleanKey = key.startsWith('/') ? key.slice(1) : key;
+
+    return `${Configs.S3_BASE_URL}${cleanKey}`;
   }
 }

@@ -41,7 +41,7 @@ func (s *VocabService) SearchVocabulary(ctx context.Context, req SearchVocabular
 	}
 
 	// Normalize the query
-	normalizedQuery := normalizeWord(req.Query)
+	normalizedQuery := s.NormalizeWord(req.Query)
 
 	fmt.Println("1 - normalizedQuery", normalizedQuery)
 
@@ -59,12 +59,7 @@ func (s *VocabService) SearchVocabulary(ctx context.Context, req SearchVocabular
 			return nil, err
 		}
 
-		if len(results) > 0 {
-			// Fetch media for results with media_ref
-			results, err = s.enrichWithMedia(ctx, results)
-			if err != nil {
-				return nil, err
-			}
+		if len(results) > 0 || (req.SourceLang != "" && req.TargetLang != "") {
 			return results, nil
 		}
 	}
@@ -83,12 +78,6 @@ func (s *VocabService) SearchVocabulary(ctx context.Context, req SearchVocabular
 		results = filterByLanguages(results, req.SourceLang, req.TargetLang)
 	}
 
-	// Fetch media for results with media_ref
-	results, err = s.enrichWithMedia(ctx, results)
-	if err != nil {
-		return nil, err
-	}
-
 	return results, nil
 }
 
@@ -104,7 +93,12 @@ func filterByLanguages(results []entities.VocabWord, sourceLang string, targetLa
 	return filteredResults
 }
 
-// enrichWithMedia fetches media data for vocab words that have media_ref
+// EnrichWithMedia fetches media data for vocab words that have media_ref (public method)
+func (s *VocabService) EnrichWithMedia(ctx context.Context, results []entities.VocabWord) ([]entities.VocabWord, error) {
+	return s.enrichWithMedia(ctx, results)
+}
+
+// enrichWithMedia fetches media data for vocab words that have media_ref (private method)
 func (s *VocabService) enrichWithMedia(ctx context.Context, results []entities.VocabWord) ([]entities.VocabWord, error) {
 	// Skip if no media repository (e.g., in tests)
 	if s.vocabMediaRepo == nil {
@@ -134,8 +128,8 @@ func (s *VocabService) enrichWithMedia(ctx context.Context, results []entities.V
 	return results, nil
 }
 
-// normalizeWord matches the Python normalize_word function exactly
-func normalizeWord(word string) string {
+// NormalizeWord matches the Python normalize_word function exactly
+func (v *VocabService) NormalizeWord(word string) string {
 	// Step 1: NFKC normalization and lowercase
 	word = strings.ToLower(word)
 	word = norm.NFKC.String(word)
@@ -153,4 +147,43 @@ func normalizeWord(word string) string {
 
 	// Step 3: Remove non-alphanumeric characters
 	return normalizeRgx.ReplaceAllString(word, "")
+}
+
+// GetVocabularyByKeys fetches a single vocabulary word by its PK and SK, enriching with media if available
+func (s *VocabService) GetVocabularyByKeys(ctx context.Context, pk, sk string) (*entities.VocabWord, error) {
+	vocab, err := s.vocabRepo.GetByKeys(ctx, pk, sk)
+	if err != nil {
+		return nil, err
+	}
+
+	// Enrich with media if media_ref exists
+	if vocab.MediaRef != "" && s.vocabMediaRepo != nil {
+		media, mediaErr := s.vocabMediaRepo.GetMediaByRef(ctx, vocab.MediaRef)
+		if mediaErr != nil {
+			fmt.Printf("Warning: Failed to fetch media for ref %s: %v\n", vocab.MediaRef, mediaErr)
+		} else {
+			vocab.Media = media
+		}
+	}
+
+	return vocab, nil
+}
+
+// GetVocabularyByKeysWithoutMedia fetches a single vocabulary word by its PK and SK, without enriching with media if available
+func (s *VocabService) GetVocabularyByKeysWithoutMedia(ctx context.Context, pk, sk string) (*entities.VocabWord, error) {
+	vocab, err := s.vocabRepo.GetByKeys(ctx, pk, sk)
+	if err != nil {
+		return nil, err
+	}
+
+	return vocab, nil
+}
+
+// GetMediaByRef fetches media data by media reference
+func (s *VocabService) GetMediaByRef(ctx context.Context, mediaRef string) (map[string]interface{}, error) {
+	if s.vocabMediaRepo == nil {
+		return nil, fmt.Errorf("media repository not available")
+	}
+
+	return s.vocabMediaRepo.GetMediaByRef(ctx, mediaRef)
 }

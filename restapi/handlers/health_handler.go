@@ -43,7 +43,7 @@ var startTime = time.Now()
 
 // HealthCheck performs comprehensive health check including DynamoDB
 func (h *HealthHandler) HealthCheck(c *gin.Context) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultRequestTimeout)
 	defer cancel()
 
 	startCheck := time.Now()

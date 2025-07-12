@@ -18,12 +18,12 @@ export interface LanguageConfig {
     infinitive: string;
     participle: string;
     gerund: string;
-    tenses: { [key: string]: string };
-    pronouns: { [key: string]: string };
+    tenses: Record<string, string>;
+    pronouns: Record<string, string>;
   };
 }
 
-export const languageConfigs: { [key: string]: LanguageConfig } = {
+export const languageConfigs: Record<string, LanguageConfig> = {
   es: {
     moods: {
       indicative: 'indicativo',

@@ -1,16 +1,12 @@
 package handlers
 
 import (
-	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/AndreasX42/restapi/domain/entities"
 	"github.com/AndreasX42/restapi/domain/services"
 	"github.com/AndreasX42/restapi/utils"
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 )
 
 type UserHandler struct {
@@ -53,27 +49,10 @@ type UpdateRequest struct {
 	Password string `json:"password" binding:"omitempty,min=8"`
 }
 
-func (h *UserHandler) handleValidationError(c *gin.Context, err error) {
-	if errs, ok := err.(validator.ValidationErrors); ok {
-		errMessages := make([]string, 0)
-		for _, e := range errs {
-			errMessages = append(errMessages, fmt.Sprintf("Field %s failed on the '%s' rule", e.Field(), e.Tag()))
-		}
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "Validation failed",
-			"details": gin.H{
-				"errors": errMessages,
-			},
-		})
-		return
-	}
-	c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request body"})
-}
-
 func (h *UserHandler) Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.handleValidationError(c, err)
+		HandleValidationError(c, err)
 		return
 	}
 
@@ -103,7 +82,7 @@ func (h *UserHandler) Register(c *gin.Context) {
 func (h *UserHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.handleValidationError(c, err)
+		HandleValidationError(c, err)
 		return
 	}
 
@@ -138,7 +117,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 }
 
 func (h *UserHandler) GetCurrentUser(c *gin.Context) {
-	user, err := h.getPrincipal(c)
+	user, err := GetPrincipal(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Not authenticated"})
 		return
@@ -166,7 +145,7 @@ func (h *UserHandler) GetCurrentUser(c *gin.Context) {
 }
 
 func (h *UserHandler) Delete(c *gin.Context) {
-	user, err := h.getPrincipal(c)
+	user, err := GetPrincipal(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		return
@@ -184,7 +163,7 @@ func (h *UserHandler) Delete(c *gin.Context) {
 func (h *UserHandler) ConfirmEmail(c *gin.Context) {
 	var req ConfirmEmailRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.handleValidationError(c, err)
+		HandleValidationError(c, err)
 		return
 	}
 
@@ -206,7 +185,7 @@ func (h *UserHandler) ConfirmEmail(c *gin.Context) {
 func (h *UserHandler) ResendConfirmationCode(c *gin.Context) {
 	var req ResendConfirmationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.handleValidationError(c, err)
+		HandleValidationError(c, err)
 		return
 	}
 
@@ -223,7 +202,7 @@ func (h *UserHandler) ResendConfirmationCode(c *gin.Context) {
 func (h *UserHandler) ResetPassword(c *gin.Context) {
 	var req ResetPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.handleValidationError(c, err)
+		HandleValidationError(c, err)
 		return
 	}
 
@@ -244,11 +223,11 @@ func (h *UserHandler) ResetPassword(c *gin.Context) {
 func (h *UserHandler) Update(c *gin.Context) {
 	var req UpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.handleValidationError(c, err)
+		HandleValidationError(c, err)
 		return
 	}
 
-	user, err := h.getPrincipal(c)
+	user, err := GetPrincipal(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		return
@@ -269,20 +248,6 @@ func (h *UserHandler) Update(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "User updated successfully"})
-}
-
-func (h *UserHandler) getPrincipal(c *gin.Context) (*entities.User, error) {
-	userPtr, exists := c.Get("principal")
-	if !exists {
-		return nil, errors.New("principal not set")
-	}
-
-	user, ok := userPtr.(*entities.User)
-	if !ok {
-		return nil, errors.New("principal invalid")
-	}
-
-	return user, nil
 }
 
 func getErrorStatusCode(err error) int {

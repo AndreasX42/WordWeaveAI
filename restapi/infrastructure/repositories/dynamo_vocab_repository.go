@@ -347,9 +347,6 @@ func (r *DynamoVocabRepository) SearchByWordWithLanguages(ctx context.Context, n
 	// Convert map to slice
 	for _, result := range resultMap {
 		allResults = append(allResults, result)
-		if len(allResults) >= limit {
-			break
-		}
 	}
 
 	return allResults, nil
@@ -368,14 +365,6 @@ func (r *DynamoVocabRepository) GetByKeys(ctx context.Context, vocabPK, vocabSK 
 	}
 
 	return r.toEntity(record), nil
-}
-
-// GetByKeysWithPOS gets a vocabulary entry by source word, target language, and specific POS
-func (r *DynamoVocabRepository) GetByKeysWithPOS(ctx context.Context, sourceWord, sourceLang, targetLang, pos string) (*entities.VocabWord, error) {
-	pk := "SRC#" + sourceLang + "#" + strings.ToLower(sourceWord)
-	sk := "TGT#" + targetLang + "#POS#" + pos
-
-	return r.GetByKeys(ctx, pk, sk)
 }
 
 // GetByKeysBatch gets multiple vocabulary entries by their PK/SK pairs

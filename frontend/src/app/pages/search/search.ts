@@ -121,7 +121,7 @@ export class SearchComponent implements OnInit {
     // Main search logic
     allSearchTriggers
       .pipe(
-        tap(([term]) => {
+        tap(() => {
           this.loading = true;
           this.hasSearched = true;
           this.searchResults = [];
@@ -188,14 +188,6 @@ export class SearchComponent implements OnInit {
     );
   }
 
-  onLanguageChange() {
-    // Clear cache when language preferences change to avoid stale results
-    this.wordService.clearCaches();
-
-    // Language changes are automatically handled by the reactive stream
-    // No need to trigger manual search
-  }
-
   swapLanguages() {
     const currentSource = this.sourceLanguageControl.value;
     const currentTarget = this.targetLanguageControl.value;
@@ -238,10 +230,15 @@ export class SearchComponent implements OnInit {
         '/words',
         word.source_language,
         word.target_language,
+        word.source_pos.toLowerCase().trim(),
         word.source_word.toLowerCase().trim(),
       ],
       {
-        state: { word: word },
+        state: {
+          pk: word.pk,
+          sk: word.sk,
+          word: word,
+        },
       }
     );
   }

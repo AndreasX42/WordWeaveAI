@@ -2,9 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/json"
-	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -15,6 +12,7 @@ import (
 
 	"github.com/AndreasX42/restapi/config"
 	"github.com/AndreasX42/restapi/middlewares"
+	"github.com/AndreasX42/restapi/utils"
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -100,11 +98,11 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 		api.GET("/auth/google/login", container.OAuthHandler.GoogleLogin)
 		api.GET("/auth/google/callback", container.OAuthHandler.GoogleCallback)
 
-		// Search routes
+		// Search and vocabularyroutes
 		api.POST("/search", container.SearchHandler.SearchVocabulary)
-
-		// Logging routes (public, but can be secured later if needed)
-		api.POST("/log", container.SentryHandler.LogEvent)
+		api.GET("/vocab", container.SearchHandler.GetVocabularyByPkSk)
+		api.GET("/vocabs/:sourceLanguage/:targetLanguage/:pos/:word", container.SearchHandler.GetVocabularyByParams)
+		api.GET("/media/:mediaRef", container.SearchHandler.GetMediaByRef)
 
 		// JWT routes
 		api.POST("/auth/login", authMiddleware.LoginHandler)
@@ -123,29 +121,33 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 			userRoutes.DELETE("/delete", container.UserHandler.Delete)
 			userRoutes.PUT("/update", container.UserHandler.Update)
 
-			// Vocabulary list routes
-			vocabListRoutes := authenticated.Group("/vocabs")
-			{
-				// List management
-				vocabListRoutes.POST("/", container.VocabListHandler.CreateList)
-				vocabListRoutes.GET("/", container.VocabListHandler.GetLists)
-				vocabListRoutes.GET("/:listId", container.VocabListHandler.GetList)
-				vocabListRoutes.PUT("/:listId", container.VocabListHandler.UpdateList)
-				vocabListRoutes.DELETE("/:listId", container.VocabListHandler.DeleteList)
-
-				// Word management within lists
-				vocabListRoutes.POST("/:listId/words", container.VocabListHandler.AddWordToList)
-				vocabListRoutes.GET("/:listId/words", container.VocabListHandler.GetWordsInList)
-				vocabListRoutes.DELETE("/:listId/words/:wordId", container.VocabListHandler.RemoveWordFromList)
-				vocabListRoutes.PUT("/:listId/words/:wordId/status", container.VocabListHandler.UpdateWordStatus)
-			}
+			// Logging routes
+			authenticated.POST("/log", container.SentryHandler.LogEvent)
 		}
 	}
 }
 
 func createRefreshHandler(authMiddleware *jwt.GinJWTMiddleware, container *config.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userID, err := extractUserIDFromToken(c)
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"message": "Unauthorized",
+				"details": gin.H{"error": "missing token"},
+			})
+			return
+		}
+
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		if tokenString == authHeader {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"message": "Unauthorized",
+				"details": gin.H{"error": "invalid token format"},
+			})
+			return
+		}
+
+		userID, err := utils.VerifyJWT(tokenString)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"message": "Unauthorized",
@@ -166,45 +168,6 @@ func createRefreshHandler(authMiddleware *jwt.GinJWTMiddleware, container *confi
 		// Delegate to the default refresh logic
 		authMiddleware.RefreshHandler(c)
 	}
-}
-
-func extractUserIDFromToken(c *gin.Context) (string, error) {
-	authHeader := c.GetHeader("Authorization")
-	if authHeader == "" {
-		return "", errors.New("missing token")
-	}
-
-	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-	if tokenString == authHeader {
-		return "", errors.New("invalid token format")
-	}
-
-	parts := strings.Split(tokenString, ".")
-	if len(parts) != 3 {
-		return "", errors.New("invalid token format")
-	}
-
-	payload := parts[1]
-	if len(payload)%4 != 0 {
-		payload += strings.Repeat("=", 4-len(payload)%4)
-	}
-
-	claimsBytes, err := base64.URLEncoding.DecodeString(payload)
-	if err != nil {
-		return "", errors.New("invalid token claims")
-	}
-
-	var claims map[string]interface{}
-	if err := json.Unmarshal(claimsBytes, &claims); err != nil {
-		return "", errors.New("invalid token claims")
-	}
-
-	userID, ok := claims["user_id"].(string)
-	if !ok {
-		return "", errors.New("user_id not found in claims")
-	}
-
-	return userID, nil
 }
 
 func initEnvs() {

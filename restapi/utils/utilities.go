@@ -7,10 +7,6 @@ import (
 	"os"
 )
 
-func AwsString(s string) *string {
-	return &s
-}
-
 func GetTableName(baseName string) string {
 	if prefix := os.Getenv("DYNAMODB_TABLE_PREFIX"); prefix != "" {
 		return prefix + "_" + baseName

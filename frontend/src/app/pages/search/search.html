@@ -148,6 +148,7 @@
                   *ngFor="let word of searchResults; trackBy: trackWord"
                   class="result-item"
                   role="option"
+                  [attr.aria-selected]="false"
                   tabindex="0"
                   (click)="openWord(word)"
                   (keydown.enter)="openWord(word)"

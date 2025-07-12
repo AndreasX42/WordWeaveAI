@@ -967,3 +967,64 @@
     padding: 0.25rem 0.5rem;
   }
 }
+
+.word-selection {
+  margin-bottom: 2rem;
+
+  h2 {
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+  }
+
+  .word-variants {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+
+    .word-variant-card {
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      .variant-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+
+        .source-word {
+          font-weight: 600;
+          color: var(--primary-color);
+        }
+
+        .arrow {
+          color: var(--text-secondary);
+        }
+
+        .target-word {
+          font-weight: 600;
+          color: var(--accent-color);
+        }
+      }
+
+      .variant-pos {
+        margin-bottom: 0.5rem;
+
+        mat-chip {
+          font-size: 0.75rem;
+        }
+      }
+
+      .variant-definition {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin: 0;
+        line-height: 1.4;
+      }
+    }
+  }
+}

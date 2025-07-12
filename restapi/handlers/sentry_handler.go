@@ -22,30 +22,17 @@ func NewSentryHandler(sentryClient *sentry.Client) *SentryHandler {
 // Supports both simple logging and enhanced error reporting
 type LogRequest struct {
 	// Simple logging format
-	Level     string                 `json:"level"`
-	Message   string                 `json:"message"`
-	Tags      map[string]string      `json:"tags,omitempty"`
-	Extra     map[string]interface{} `json:"extra,omitempty"`
-	UserAgent string                 `json:"user_agent,omitempty"`
-	URL       string                 `json:"url,omitempty"`
-	Error     *ErrorDetails          `json:"error,omitempty"`
+	Level     string            `json:"level"`
+	Message   string            `json:"message"`
+	Tags      map[string]string `json:"tags,omitempty"`
+	Extra     map[string]any    `json:"extra,omitempty"`
+	UserAgent string            `json:"user_agent,omitempty"`
+	URL       string            `json:"url,omitempty"`
 
 	// Enhanced frontend error structure
 	Timestamp string          `json:"timestamp,omitempty"`
-	ErrorData *FrontendError  `json:"error,omitempty"` // This will conflict with simple Error field, handled in logic
+	Error     map[string]any  `json:"error,omitempty"` // Unified error field
 	Context   *RequestContext `json:"context,omitempty"`
-}
-
-// FrontendError represents comprehensive error information from the frontend
-type FrontendError struct {
-	Message       string      `json:"message,omitempty"`
-	Stack         string      `json:"stack,omitempty"`
-	Status        int         `json:"status,omitempty"`
-	StatusText    string      `json:"statusText,omitempty"`
-	URL           string      `json:"url,omitempty"`
-	UserAgent     string      `json:"userAgent,omitempty"`
-	Type          string      `json:"type,omitempty"`
-	OriginalError interface{} `json:"originalError,omitempty"`
 }
 
 // RequestContext represents the context information from frontend
@@ -55,14 +42,18 @@ type RequestContext struct {
 	SessionID  string `json:"sessionId,omitempty"`
 }
 
-// ErrorDetails represents simple error information (for backward compatibility)
-type ErrorDetails struct {
-	Name       string `json:"name,omitempty"`
-	Message    string `json:"message,omitempty"`
-	Stack      string `json:"stack,omitempty"`
-	FileName   string `json:"filename,omitempty"`
-	LineNumber int    `json:"lineno,omitempty"`
-	ColNumber  int    `json:"colno,omitempty"`
+// FrontendError represents a unified error structure from frontend logging
+type FrontendError struct {
+	Message string
+	Data    map[string]any
+}
+
+// Error implements the error interface
+func (e *FrontendError) Error() string {
+	if e.Message != "" {
+		return e.Message
+	}
+	return "Frontend error"
 }
 
 // LogEvent handles logging events from the frontend
@@ -205,7 +196,7 @@ func (h *SentryHandler) handleEnhancedError(hub *sentry.Hub, data map[string]int
 		}
 
 		// Create custom error for better stack trace handling
-		err := &EnhancedFrontendError{
+		err := &FrontendError{
 			Message: message,
 			Data:    data,
 		}
@@ -290,9 +281,9 @@ func (h *SentryHandler) handleSimpleLog(hub *sentry.Hub, data map[string]interfa
 		if sentryLevel == sentry.LevelError {
 			if errorData, exists := data["error"]; exists {
 				if errorMap, ok := errorData.(map[string]interface{}); ok {
-					err := &SimpleFrontendError{
+					err := &FrontendError{
 						Message: message,
-						Details: errorMap,
+						Data:    errorMap,
 					}
 					scope.SetExtra("error_details", errorMap)
 					hub.CaptureException(err)
@@ -304,32 +295,4 @@ func (h *SentryHandler) handleSimpleLog(hub *sentry.Hub, data map[string]interfa
 		// Capture as message
 		hub.CaptureMessage(message)
 	})
-}
-
-// EnhancedFrontendError represents an error from the enhanced frontend structure
-type EnhancedFrontendError struct {
-	Message string
-	Data    map[string]interface{}
-}
-
-// Error implements the error interface
-func (e *EnhancedFrontendError) Error() string {
-	if e.Message != "" {
-		return e.Message
-	}
-	return "Enhanced frontend error"
-}
-
-// SimpleFrontendError represents an error from the simple frontend structure
-type SimpleFrontendError struct {
-	Message string
-	Details map[string]interface{}
-}
-
-// Error implements the error interface
-func (e *SimpleFrontendError) Error() string {
-	if e.Message != "" {
-		return e.Message
-	}
-	return "Frontend error"
 }
