@@ -24,18 +24,39 @@ def add_quality_feedback_to_prompt(
     base_prompt: str,
     quality_feedback: Optional[str] = None,
     previous_issues: Optional[List[str]] = None,
+    suggestions: Optional[List[str]] = None,
     quality_requirements: Optional[List[str]] = None,
 ) -> str:
     """Add quality feedback section to a prompt if provided."""
-    if not quality_feedback or not previous_issues:
+    if (
+        not quality_feedback
+        and not previous_issues
+        and not suggestions
+        and not quality_requirements
+    ):
         return base_prompt
 
-    issues_text = "\n".join(f"- {issue}" for issue in previous_issues)
+    quality_section = "\n\n--- QUALITY FEEDBACK & RETRY INSTRUCTIONS ---\n"
+    if quality_feedback:
+        quality_section += f"{quality_feedback}\n"
 
-    quality_section = f"\n\nPrevious issues:\n{issues_text}\n\nRequirements:"
+    if previous_issues:
+        issues_text = "\n".join(f"- {issue}" for issue in previous_issues)
+        quality_section += f"\n**Identified Issues:**\n{issues_text}\n"
+
+    if suggestions:
+        suggestions_text = "\n".join(f"- {suggestion}" for suggestion in suggestions)
+        quality_section += f"\n**MUST FOLLOW THESE SUGGESTIONS:**\n{suggestions_text}\n"
 
     if quality_requirements:
-        quality_section += "\n" + "\n".join(f"- {req}" for req in quality_requirements)
+        quality_section += "\n**Original Requirements:**\n" + "\n".join(
+            f"- {req}" for req in quality_requirements
+        )
+
+    if quality_feedback and suggestions:
+        print("-" * 100)
+        print("quality_section", quality_section)
+        print("-" * 100)
 
     return base_prompt + quality_section
 

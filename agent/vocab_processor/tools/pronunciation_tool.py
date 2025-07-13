@@ -42,11 +42,13 @@ VOICE_CONFIG = {
 }
 
 
-class PronunciationResult(BaseModel):
+class Pronunciations(BaseModel):
     """Result of pronunciation generation with audio URLs."""
 
-    pronunciations: Dict[str, str] = Field(
-        ..., description="Dictionary containing pronunciation audio URLs"
+    audio: str = Field(..., description="Url to audio file for normal pronunciation")
+    syllables: Optional[str] = Field(
+        default=None,
+        description="Url to audio file for syllables pronunciation if there is more than one syllable",
     )
 
 
@@ -152,7 +154,7 @@ async def get_pronunciation(
     target_word: str,
     target_syllables: list[str],
     target_language: Language,
-) -> PronunciationResult:
+) -> Pronunciations:
     """Generate pronunciation audio using ElevenLabs and upload directly to S3."""
 
     try:
@@ -202,69 +204,32 @@ async def get_pronunciation(
             # Upload stream directly to S3
             return await upload_stream_to_s3(audio_generator, s3_key, "audio/mpeg")
 
-        # Prepare all audio generation tasks
-        tasks = []
-        task_names = []
-
         # Always generate word pronunciation
-        tasks.append(
-            generate_and_upload_audio(
-                target_word,
-                "pronunciation.mp3",
-            )
+        audio_url = await generate_and_upload_audio(
+            target_word,
+            "pronunciation.mp3",
         )
-        task_names.append("audio")
 
-        # Generate syllables audio if provided
-        if len(target_syllables) > 0:
+        # Generate syllables audio if provided and more than one syllable
+        syllables_url = None
+        if len(target_syllables) > 1:
             syllables_text = "\n\n".join(target_syllables)
-            tasks.append(
-                generate_and_upload_audio(
-                    syllables_text, "syllables.mp3", is_syllables=True
-                )
-            )
-            task_names.append("syllables")
-
-        # Execute all audio generation tasks in parallel
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        # Process results
-        result = {}
-        failed_tasks = []
-
-        for i, (task_result, task_name) in enumerate(zip(results, task_names)):
-            if isinstance(task_result, Exception):
-                failed_tasks.append(f"{task_name}: {str(task_result)}")
-                logger.error(
-                    f"audio_generation_failed_{task_name}", error=str(task_result)
-                )
-            else:
-                result[task_name] = task_result
-
-        # Log results
-        if failed_tasks:
-            logger.warning(f"Some audio generation tasks failed: {failed_tasks}")
-
-        # Return results even if some tasks failed (partial success)
-        if not result:
-            # All tasks failed
-            logger.error("All audio generation tasks failed")
-            return PronunciationResult(
-                pronunciations={"error": "All audio generation failed"}
+            syllables_url = await generate_and_upload_audio(
+                syllables_text, "syllables.mp3", is_syllables=True
             )
 
         if is_lambda_context():
             logger.info(
                 f"Audio files uploaded to S3: {audio_prefix}/",
-                successful_count=len(result),
-                failed_count=len(failed_tasks),
+                audio_url=audio_url,
+                syllables_url=syllables_url,
             )
         else:
             logger.info(
                 f"Local dev mode: mock audio URLs generated for {audio_prefix}/"
             )
 
-        return PronunciationResult(pronunciations=result)
+        return Pronunciations(audio=audio_url, syllables=syllables_url)
 
     except Exception as e:
         logger.error(f"Pronunciation tool failed: {str(e)}")
@@ -274,4 +239,5 @@ async def get_pronunciation(
             "target_language": target_language,
         }
         error_response = create_tool_error_response(e, context)
-        return PronunciationResult(pronunciations={"error": str(error_response)})
+        # Return a Pronunciations object with error URLs
+        return Pronunciations(audio=f"error: {str(error_response)}", syllables=None)

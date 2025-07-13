@@ -40,6 +40,7 @@ async def get_translation(
     source_part_of_speech: PartOfSpeech,
     quality_feedback: Optional[str] = None,
     previous_issues: Optional[List[str]] = None,
+    suggestions: Optional[List[str]] = None,
 ) -> Translation:
     """Translate a word between supported languages English, German and Spanish and categorize the part of speech."""
 
@@ -48,42 +49,34 @@ async def get_translation(
 
 Source POS: {source_part_of_speech}
 
-IMPORTANT: For target_part_of_speech, use correct values for {target_language}:
-- English: "neuter noun" (English has no grammatical gender)
+IMPORTANT: For target_part_of_speech, use correct values for {target_language} if it is a noun:
+- English: "noun" (English has no grammatical gender)
 - German: "masculine noun", "feminine noun", or "neuter noun" 
 - Spanish: "masculine noun" or "feminine noun"
-- Other parts: "verb", "adjective", "adverb", "preposition", "conjunction", "pronoun", "article", "interjection"
 
-For target_article:
+For target_article in case of noun:
 - English: null (no articles needed)
-- German: der/die/das for nouns
-- Spanish: el/la/los/las for nouns
+- German: der/die/das
+- Spanish: el/la/los/las
 
 Provide most common translation, appropriate POS, article if needed, and additional info for register/context."""
 
     # Quality requirements for translation
     quality_requirements = [
-        f"Use correct part of speech for {target_language}:",
-        f'- English: "neuter noun" (English has no grammatical gender)',
-        f'- German: "masculine noun", "feminine noun", or "neuter noun" as appropriate',
-        f'- Spanish: "masculine noun" or "feminine noun" as appropriate',
-        f'- Other parts: "verb", "adjective", "adverb", "preposition", "conjunction", "pronoun", "article", "interjection"',
-        f"Set target_article appropriately:",
-        f"- For English: null (English doesn't use gendered articles)",
-        f"- For German: der/die/das if noun",
-        f"- For Spanish: el/la/los/las if noun",
+        f"Use correct part of speech for {target_language}",
         f"Match the register and tone of the source word:",
         f"- If source is informal/slang, provide informal translation",
         f"- If source is vulgar, note this and provide appropriate equivalent",
         f"For slang/colloquial words, provide the most natural equivalent learners would encounter",
         f"Use target_additional_info to explain context, register, and regional usage in {source_language}",
         f"For informal/vulgar words like 'huevada', consider translations like 'bullshit', 'crap', 'nonsense' and explain the register.",
-        f"Provide the english translation of the target word, including article if it is a proper noun or 'to' if it is a verb",
+        f"Provide the english translation of the target word in 'english_word', including article if it is a proper noun or 'to' if it is a verb",
+        f"Provide only the base form of the translated source word in 'target_word' without any articles or other modifiers",
     ]
 
     # Add quality feedback if provided
     enhanced_prompt = add_quality_feedback_to_prompt(
-        prompt, quality_feedback, previous_issues, quality_requirements
+        prompt, quality_feedback, previous_issues, suggestions, quality_requirements
     )
 
     return await create_llm_response(

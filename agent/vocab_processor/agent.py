@@ -1,8 +1,16 @@
 from langgraph.graph import END, StateGraph
 
-from vocab_processor.utils import *
 from vocab_processor.utils.nodes import (
     join_parallel_tasks,
+    node_get_classification,
+    node_get_conjugation,
+    node_get_examples,
+    node_get_media,
+    node_get_pronunciation,
+    node_get_syllables,
+    node_get_synonyms,
+    node_get_translation,
+    node_validate_source_word,
     supervisor_check_sequential_quality,
     supervisor_coordinate_parallel_tasks,
     supervisor_final_quality_check,
@@ -22,10 +30,23 @@ def should_proceed_after_validation(state: VocabState) -> str:
         return END
 
 
+# Conditional function to decide path after classification
+def should_proceed_after_classification(state: VocabState) -> str:
+    """
+    Determines the next step based on classification and existence check.
+    If word doesn't exist, proceeds to translation. Otherwise, ends the graph.
+    """
+    if state.word_exists is True:
+        return END
+    else:
+        return "get_translation"
+
+
 # Conditional function to decide path after sequential quality check
 def should_proceed_to_parallel_tasks(state: VocabState) -> str:
     """
-    Determines whether to proceed to parallel tasks based on sequential quality gates.
+    Determines whether to proceed to parallel tasks based on quality check.
+    If quality checks passed, proceeds to parallel tasks. Otherwise, ends the graph.
     """
     if state.sequential_quality_passed is True:
         return "supervisor_coordinate_parallel_tasks"
@@ -33,42 +54,13 @@ def should_proceed_to_parallel_tasks(state: VocabState) -> str:
         return END
 
 
-# Conditional function to decide which parallel tasks to execute
-def route_to_parallel_tasks(state: VocabState) -> list[str]:
-    """
-    Routes to the appropriate parallel tasks based on supervisor coordination.
-    """
-    tasks = getattr(state, "parallel_tasks_to_execute", [])
-
-    # Always include syllables as it's needed for pronunciation
-    if "get_syllables" not in tasks:
-        tasks.append("get_syllables")
-
-    # Add pronunciation after syllables
-    if "get_pronunciation" not in tasks:
-        tasks.append("get_pronunciation")
-
-    return (
-        tasks
-        if tasks
-        else [
-            "get_media",
-            "get_examples",
-            "get_synonyms",
-            "get_syllables",
-            "get_pronunciation",
-        ]
-    )
-
-
-# Conditional function to decide whether to proceed to final quality check
+# Conditional function to decide when to proceed to final quality check
 def should_proceed_to_final_quality_check(state: VocabState) -> str:
     """
-    Determines whether all parallel tasks are complete and ready for final quality check.
+    Determines whether to proceed to final quality check based on task completion.
+    If all tasks are complete, proceeds to final quality check. Otherwise, continues join loop.
     """
-    parallel_tasks_complete = getattr(state, "parallel_tasks_complete", False)
-
-    if parallel_tasks_complete:
+    if state.parallel_tasks_complete is True:
         return "supervisor_final_quality_check"
     else:
         return END
@@ -111,7 +103,13 @@ def build_vocab_graph():
         {"get_classification": "get_classification", END: END},
     )
 
-    workflow.add_edge("get_classification", "get_translation")
+    # Add conditional edge after classification to check existence
+    workflow.add_conditional_edges(
+        "get_classification",
+        should_proceed_after_classification,
+        {"get_translation": "get_translation", END: END},
+    )
+
     workflow.add_edge("get_translation", "supervisor_check_sequential_quality")
 
     # Conditional edge based on sequential quality check

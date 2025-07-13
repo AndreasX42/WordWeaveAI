@@ -45,9 +45,9 @@ _session_config = aiohttp.ClientTimeout(total=HTTP_TIMEOUT, connect=5)
 
 class SearchQueryResult(BaseModel):
     search_query: list[str] = Field(
-        description="English search query to find the most relevant photos in Pexels, consisting of 2-5 english words.",
-        min_length=2,
-        max_length=5,
+        description="English search query to find the most relevant photos in Pexels. Each entry should be 1-2 words maximum, with 2-3 total entries.",
+        min_length=1,
+        max_length=3,
     )
 
 
@@ -210,8 +210,11 @@ async def get_media(
     english_word: str,
     source_language: Language,
     target_language: Language,
+    source_definition: Optional[List[str]] = None,
+    target_additional_info: Optional[str] = None,
     quality_feedback: Optional[str] = None,
     previous_issues: Optional[List[str]] = None,
+    suggestions: Optional[List[str]] = None,
 ) -> dict[str, Any]:
     """
     Get the most memorable photo for a vocabulary word and upload to S3.
@@ -225,14 +228,21 @@ async def get_media(
 
     try:
         # First, translate target word to English and get search criteria
-        search_query_prompt = f"""For the English word '{english_word}' generate optimal search terms for finding relevant photos in Pexels.
+        context_info = ""
+        if source_definition:
+            context_info += f"\nSource word definition: {', '.join(source_definition)}"
+        if target_additional_info:
+            context_info += f"\nAdditional context: {target_additional_info}"
+
+        search_query_prompt = f"""For the English word '{english_word}' generate optimal search terms for finding relevant photos in Pexels.{context_info}
 
 Requirements:
-- Use 2-5 English search terms
+- Use 1-3 search terms, each containing 1-2 words maximum
 - Focus on the core concept/meaning rather than exact word form
 - For word variations (swim/swimming/swimmer), use the base concept (like 'swimming', or 'water')
 - Prioritize terms that would work for related word forms
-- Terms should be concrete and visual
+- For complex concepts, include specific terms that capture the essence 
+- Use the provided context to understand the word's specific meaning and generate more targeted search terms
 
 Word: {english_word}"""
 
@@ -270,6 +280,7 @@ Word: {english_word}"""
             search_query_result,
             quality_feedback,
             previous_issues,
+            suggestions,
         )
 
     except Exception as e:
@@ -366,6 +377,7 @@ async def _create_new_media(
     search_query_result: SearchQueryResult,
     quality_feedback: Optional[str] = None,
     previous_issues: Optional[List[str]] = None,
+    suggestions: Optional[List[str]] = None,
 ) -> dict[str, Any]:
     """Create new media by fetching from Pexels API."""
     image_paths = generate_english_image_s3_paths(english_word)
@@ -410,6 +422,7 @@ async def _create_new_media(
             target_language,
             quality_feedback,
             previous_issues,
+            suggestions,
         )
 
     # Upload images to S3
@@ -457,6 +470,7 @@ async def _select_best_photo(
     target_language: Language,
     quality_feedback: Optional[str] = None,
     previous_issues: Optional[List[str]] = None,
+    suggestions: Optional[List[str]] = None,
 ) -> Media:
     """Use LLM to select the best photo from the available options."""
     rank_prompt = f"Choose best photo for '{source_word}' ({source_language}) → '{target_word}' ({target_language}). Translate the texts like in alt, explanation, memory_tip to the source language {source_language}. Photos: {[p.model_dump() for p in photos]}"
@@ -472,7 +486,11 @@ async def _select_best_photo(
 
     # Add quality feedback if provided
     enhanced_prompt = add_quality_feedback_to_prompt(
-        rank_prompt, quality_feedback, previous_issues, quality_requirements
+        rank_prompt,
+        quality_feedback,
+        previous_issues,
+        suggestions,
+        quality_requirements,
     )
 
     return await create_llm_response(

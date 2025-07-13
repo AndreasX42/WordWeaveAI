@@ -12,7 +12,7 @@ def is_tracing_enabled() -> bool:
     Returns:
         bool: True if tracing is enabled, False otherwise
     """
-    return os.getenv("LANGSMITH_TRACING_ENABLED", "true") == "true" and os.getenv(
+    return os.getenv("LANGSMITH_TRACING_ENABLED", "false") == "true" and os.getenv(
         "LANGSMITH_API_KEY"
     )
 
@@ -208,6 +208,35 @@ class TracedInstructorClient:
                     self._report_usage_to_langsmith(
                         get_current_run_tree(), completion, result, messages
                     )
+
+                    # Capture token usage for test tracking
+                    try:
+                        from vocab_processor.utils.token_tracker import (
+                            capture_token_usage_directly,
+                        )
+
+                        # Extract token usage directly from completion
+                        if hasattr(completion, "usage") and completion.usage:
+                            # OpenAI format
+                            capture_token_usage_directly(
+                                prompt_tokens=completion.usage.prompt_tokens,
+                                completion_tokens=completion.usage.completion_tokens,
+                                model_name=self.model_name,
+                                provider="openai",
+                            )
+                        elif hasattr(completion, "meta") and completion.meta:
+                            # AWS Bedrock format
+                            input_tokens = getattr(completion.meta, "input_tokens", 0)
+                            output_tokens = getattr(completion.meta, "output_tokens", 0)
+                            capture_token_usage_directly(
+                                prompt_tokens=input_tokens,
+                                completion_tokens=output_tokens,
+                                model_name=self.model_name,
+                                provider="anthropic",
+                            )
+                    except Exception:
+                        pass
+
                 except Exception:
                     pass
 
@@ -223,32 +252,36 @@ class TracedInstructorClient:
 def get_instructor_oai_gpt4_1_mini():
     """Get cached instructor client for GPT-4.1-mini with LangSmith tracing."""
     global _instructor_oai_gpt4_1_mini
+
+    # "gpt-4.1-mini-2025-04-14"  # "gpt-4.1-nano-2025-04-14"
+    model_name = "gpt-4.1-2025-04-14"
+
     if _instructor_oai_gpt4_1_mini is None:
         base_client = from_openai(
             client=client,
-            model="gpt-4.1-mini-2025-04-14",
+            model=model_name,
             temperature=0.1,
             mode=Mode.JSON,
         )
-        _instructor_oai_gpt4_1_mini = TracedInstructorClient(
-            base_client, "gpt-4.1-mini-2025-04-14"  # "gpt-4.1-nano-2025-04-14"
-        )
+        _instructor_oai_gpt4_1_mini = TracedInstructorClient(base_client, model_name)
     return _instructor_oai_gpt4_1_mini
 
 
 def get_instructor_oai_gpt4_1():
     """Get cached instructor client for GPT-4.1 (highest accuracy) with LangSmith tracing."""
     global _instructor_oai_gpt4_1
+
+    # "gpt-4.1-2025-04-14"  # "gpt-4.1-mini-2025-04-14"
+    model_name = "gpt-4.1-2025-04-14"
+
     if _instructor_oai_gpt4_1 is None:
         base_client = from_openai(
             client=client,
-            model="gpt-4.1-2025-04-14",
+            model=model_name,
             temperature=0.1,
             mode=Mode.JSON,
         )
-        _instructor_oai_gpt4_1 = TracedInstructorClient(
-            base_client, "gpt-4.1-2025-04-14"  # "gpt-4o-2024-08-06"
-        )
+        _instructor_oai_gpt4_1 = TracedInstructorClient(base_client, model_name)
     return _instructor_oai_gpt4_1
 
 

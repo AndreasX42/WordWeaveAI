@@ -8,6 +8,8 @@ import boto3
 from aws_lambda_powertools import Logger
 from botocore.exceptions import ClientError
 
+from vocab_processor.utils.core_utils import normalize_word
+
 logger = Logger(service="vocab-processor-websocket")
 
 
@@ -61,8 +63,6 @@ def get_api_gateway_client():
 
 def create_vocab_word_key(source_word: str, target_language: str) -> str:
     """Create a consistent key for vocab_word subscriptions."""
-    from vocab_processor.utils.ddb_utils import normalize_word
-
     return f"{target_language.lower()}#{normalize_word(source_word)}"
 
 
@@ -191,6 +191,10 @@ class WebSocketNotifier:
                 connection_id=connection_id,
                 vocab_word=vocab_word_key,
             )
+            # Send confirmation message
+            self._send_subscription_confirmation(
+                connection_id, vocab_word_key, source_word, target_language
+            )
             return True
 
         except Exception as e:
@@ -201,6 +205,25 @@ class WebSocketNotifier:
                 error=str(e),
             )
             return False
+
+    def _send_subscription_confirmation(
+        self,
+        connection_id: str,
+        vocab_word_key: str,
+        source_word: str,
+        target_language: str,
+    ) -> None:
+        """Send subscription confirmation to client."""
+        confirmation_message = self._create_message(
+            "subscription_confirmed",
+            {
+                "vocab_word": vocab_word_key,
+                "source_word": source_word,
+                "target_language": target_language,
+            },
+        )
+        if self._send_to_connection(connection_id, confirmation_message):
+            logger.info("subscription_confirmation_sent", connection_id=connection_id)
 
     def _create_vocab_message(
         self,
@@ -297,10 +320,10 @@ class WebSocketNotifier:
             target_language,
             "invalid",
             validation_result={
-                "is_valid": validation_result.is_valid,
-                "reason": getattr(validation_result, "message", None),
-                "source_language": getattr(validation_result, "source_language", None),
-                "suggestions": getattr(validation_result, "suggestions", None),
+                "is_valid": validation_result.get("is_valid", False),
+                "reason": validation_result.get("message"),
+                "source_language": validation_result.get("source_language"),
+                "suggestions": validation_result.get("suggestions", []),
             },
         )
         self._broadcast_to_vocab_word_subscribers(source_word, target_language, message)

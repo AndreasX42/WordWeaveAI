@@ -15,6 +15,37 @@ from vocab_processor.utils.state import VocabState
 from vocab_processor.utils.supervisor import LLMRouter, TaskType, supervisor
 
 logger = Logger(service="vocab-processor")
+logger.setLevel("ERROR")
+
+
+def _convert_to_dict(result: any) -> dict:
+    """Convert a Pydantic model or other object to a dictionary."""
+    if hasattr(result, "model_dump"):
+        return result.model_dump()
+    if hasattr(result, "__dict__"):
+        return result.__dict__
+    if isinstance(result, dict):
+        return result
+    return {"result": result}
+
+
+def _create_quality_result(
+    result_dict: dict, tool_name: str, approved: bool, score: float
+) -> dict:
+    """Create standardized quality result with tool-specific approval and score."""
+    return {
+        **result_dict,
+        f"{tool_name}_quality_approved": approved,
+        f"{tool_name}_quality_score": score,
+    }
+
+
+def _create_fallback_result(tool_name: str, inputs: dict, error_msg: str) -> dict:
+    """Create fallback result for failed tools."""
+    from vocab_processor.utils.supervisor import create_fallback_result
+
+    fallback = create_fallback_result(tool_name, inputs, error_msg)
+    return _create_quality_result(fallback, tool_name, False, 0.0)
 
 
 async def execute_with_quality_gate(
@@ -31,7 +62,7 @@ async def execute_with_quality_gate(
     retry_count = getattr(state, retry_count_field, 0)
 
     # Select appropriate model
-    llm_model = LLMRouter.get_model_for_task(task_type, is_retry=retry_count > 1)
+    llm_model = LLMRouter.get_model_for_task(task_type, is_retry=retry_count > 0)
 
     # Add model selection to inputs if supported
     if "llm_provider" in inputs:
@@ -40,31 +71,26 @@ async def execute_with_quality_gate(
     try:
         # Execute the tool
         result = await tool_func.ainvoke(inputs)
-
-        # Convert Pydantic model to dict if needed
-        if hasattr(result, "model_dump"):
-            result_dict = result.model_dump()
-        elif hasattr(result, "__dict__"):
-            result_dict = result.__dict__
-        else:
-            result_dict = result if isinstance(result, dict) else {"result": result}
+        result_dict = _convert_to_dict(result)
 
         # Validate result quality
         validation_result = await supervisor.validate_tool_output(
             tool_name, result_dict, state
         )
 
+        print()
         print("-" * 100)
         print("tool_name", tool_name)
-        print("result", result_dict)
+        print("result_dict", result_dict)
         print("validation_result", validation_result)
         print("-" * 100)
+        print()
 
-        # Log quality results
+        # Log quality results efficiently
         logger.info(
             f"{tool_name}_quality_check",
             score=validation_result.score,
-            issues=validation_result.issues,
+            issues_count=len(validation_result.issues),
             retry_count=retry_count,
         )
 
@@ -72,73 +98,49 @@ async def execute_with_quality_gate(
         quality_passed = validation_result.score >= supervisor.quality_threshold
 
         if quality_passed:
-            # Quality passed
-            return {
-                **result_dict,
-                f"{tool_name}_quality_approved": True,
-                f"{tool_name}_quality_score": validation_result.score,
-            }
-        else:
-            # Quality failed, plan retry
-            retry_strategy = await supervisor.plan_retry_strategy(
-                tool_name, validation_result, state
+            return _create_quality_result(
+                result_dict, tool_name, True, validation_result.score
             )
 
-            if retry_strategy.should_retry:
-                # Increment retry count and retry
-                updated_state = state.model_copy()
-                setattr(updated_state, retry_count_field, retry_count + 1)
+        # Quality failed, plan retry
+        retry_strategy = await supervisor.plan_retry_strategy(
+            tool_name, validation_result, state
+        )
 
-                # Apply adjusted inputs
-                adjusted_inputs = {**inputs, **retry_strategy.adjusted_inputs}
+        if retry_strategy.should_retry:
+            # Increment retry count and retry
+            updated_state = state.model_copy()
+            setattr(updated_state, retry_count_field, retry_count + 1)
 
-                logger.info(
-                    f"{tool_name}_retry",
-                    retry_count=retry_count + 1,
-                    reason=retry_strategy.retry_reason,
-                )
+            # Apply adjusted inputs
+            adjusted_inputs = {**inputs, **retry_strategy.adjusted_inputs}
 
-                # Recursive retry with adjusted inputs
-                return await execute_with_quality_gate(
-                    updated_state, tool_func, tool_name, task_type, adjusted_inputs
-                )
-            else:
-                # Max retries reached, return failure
-                logger.error(
-                    f"{tool_name}_max_retries_reached",
-                    issues=validation_result.issues,
-                    final_score=validation_result.score,
-                )
-                # Return fallback result
-                from vocab_processor.utils.supervisor import create_fallback_result
+            logger.info(
+                f"{tool_name}_retry",
+                retry_count=retry_count + 1,
+                reason=retry_strategy.retry_reason,
+            )
 
-                fallback = create_fallback_result(
-                    tool_name,
-                    inputs,
-                    f"Quality threshold not met after {supervisor.max_retries} retries",
-                )
+            # Recursive retry with adjusted inputs
+            return await execute_with_quality_gate(
+                updated_state, tool_func, tool_name, task_type, adjusted_inputs
+            )
 
-                return {
-                    **fallback,
-                    f"{tool_name}_quality_approved": False,
-                    f"{tool_name}_quality_score": validation_result.score,
-                }
+        # Max retries reached, return failure
+        logger.error(
+            f"{tool_name}_max_retries_reached",
+            issues=validation_result.issues,
+            final_score=validation_result.score,
+        )
+
+        error_msg = f"Quality threshold not met after {supervisor.max_retries} retries"
+        return _create_fallback_result(tool_name, inputs, error_msg)
 
     except Exception as e:
         logger.error(
             f"{tool_name}_execution_failed", error=str(e), retry_count=retry_count
         )
-
-        # Return fallback result
-        from vocab_processor.utils.supervisor import create_fallback_result
-
-        fallback = create_fallback_result(tool_name, inputs, str(e))
-
-        return {
-            **fallback,
-            f"{tool_name}_quality_approved": False,
-            f"{tool_name}_quality_score": 0.0,
-        }
+        return _create_fallback_result(tool_name, inputs, str(e))
 
 
 async def execute_without_quality_gate(tool_func, tool_name: str, inputs: dict) -> dict:
@@ -147,45 +149,17 @@ async def execute_without_quality_gate(tool_func, tool_name: str, inputs: dict) 
     try:
         # Execute the tool directly
         result = await tool_func.ainvoke(inputs)
-
-        # Convert result to dict if needed
-        if hasattr(result, "model_dump"):
-            result_dict = result.model_dump()
-        elif hasattr(result, "__dict__"):
-            result_dict = result.__dict__
-        else:
-            result_dict = result if isinstance(result, dict) else {"result": result}
-
-        # For pronunciation, we parse the string result back to dict
-        if tool_name == "pronunciation" and isinstance(result, str):
-            import ast
-
-            try:
-                result_dict = ast.literal_eval(result)
-            except:
-                result_dict = {"pronunciations": result}
+        result_dict = _convert_to_dict(result)
 
         logger.info(f"{tool_name}_executed_successfully")
 
-        return {
-            **result_dict,
-            f"{tool_name}_quality_approved": True,
-            f"{tool_name}_quality_score": 10.0,
-        }
+        # Don't add quality fields for pronunciation tool
+        if tool_name == "pronunciation":
+            return result_dict
 
     except Exception as e:
         logger.error(f"{tool_name}_execution_failed", error=str(e))
-
-        # Return fallback result
-        from vocab_processor.utils.supervisor import create_fallback_result
-
-        fallback = create_fallback_result(tool_name, inputs, str(e))
-
-        return {
-            **fallback,
-            f"{tool_name}_quality_approved": False,
-            f"{tool_name}_quality_score": 0.0,
-        }
+        return _create_fallback_result(tool_name, inputs, str(e))
 
 
 async def node_validate_source_word(state: VocabState) -> VocabState:
@@ -200,16 +174,7 @@ async def node_validate_source_word(state: VocabState) -> VocabState:
     try:
         # Execute validation tool directly first to get business logic result
         validation_result = await validate_word.ainvoke(inputs)
-
-        # Convert to dict if needed
-        if hasattr(validation_result, "model_dump"):
-            result_dict = validation_result.model_dump()
-        else:
-            result_dict = (
-                validation_result
-                if isinstance(validation_result, dict)
-                else {"result": validation_result}
-            )
+        result_dict = _convert_to_dict(validation_result)
 
         logger.info(
             "validation_result",
@@ -276,10 +241,11 @@ async def node_validate_source_word(state: VocabState) -> VocabState:
 
 
 async def node_get_classification(state: VocabState) -> VocabState:
-    """Classify the source word for part of speech and definitions."""
+    """Classify the source word for part of speech and definitions, then check if it exists."""
     inputs = {
         "source_word": state.source_word,
         "source_language": state.source_language,
+        "target_language": state.target_language,
     }
 
     # Execute with quality gate
@@ -293,7 +259,8 @@ async def node_get_classification(state: VocabState) -> VocabState:
         source_definition=result.get("source_definition"),
         source_part_of_speech=result.get("source_part_of_speech"),
         source_article=result.get("source_article"),
-        quality_approved=result.get("|ication_quality_approved", False),
+        word_exists=result.get("word_exists", False),
+        quality_approved=result.get("classification_quality_approved", False),
         quality_score=result.get("classification_quality_score", 0.0),
     )
 
@@ -303,6 +270,8 @@ async def node_get_classification(state: VocabState) -> VocabState:
         "source_part_of_speech": result.get("source_part_of_speech"),
         "source_article": result.get("source_article"),
         "source_additional_info": result.get("source_additional_info"),
+        "word_exists": result.get("word_exists", False),
+        "existing_item": result.get("existing_item"),
         "classification_quality_approved": result.get(
             "classification_quality_approved", False
         ),
@@ -351,6 +320,7 @@ async def node_get_synonyms(state: VocabState) -> VocabState:
     """Fetch synonyms for the word."""
     inputs = {
         "target_word": state.target_word,
+        "source_language": state.source_language,
         "target_language": state.target_language,
         "target_part_of_speech": state.target_part_of_speech,
     }
@@ -405,10 +375,10 @@ async def node_get_syllables(state: VocabState) -> VocabState:
 
 
 async def node_get_pronunciation(state: VocabState) -> VocabState:
-    """Generate pronunciation audio for word and syllables - no quality gate needed."""
+    """Get pronunciation audio for the word."""
     inputs = {
         "target_word": state.target_word,
-        "target_syllables": state.target_syllables,
+        "target_syllables": state.target_syllables or [],
         "target_language": state.target_language,
     }
 
@@ -417,20 +387,16 @@ async def node_get_pronunciation(state: VocabState) -> VocabState:
         get_pronunciation, "pronunciation", inputs
     )
 
+    pronunciations_obj = result.get("pronunciations", None)
+
     logger.debug(
         "pronunciation_result",
         word=state.target_word,
-        pronunciations=result.get("pronunciations", "") or result.get("audio", ""),
-        quality_approved=result.get("pronunciation_quality_approved", True),
-        quality_score=result.get("pronunciation_quality_score", 10.0),
+        pronunciations=pronunciations_obj,
     )
 
     return {
-        "pronunciations": result.get("pronunciations", "") or result.get("audio", ""),
-        "pronunciation_quality_approved": result.get(
-            "pronunciation_quality_approved", True
-        ),
-        "pronunciation_quality_score": result.get("pronunciation_quality_score", 10.0),
+        "pronunciations": pronunciations_obj,
     }
 
 
@@ -442,6 +408,8 @@ async def node_get_media(state: VocabState) -> VocabState:
         "english_word": state.english_word,
         "source_language": state.source_language,
         "target_language": state.target_language,
+        "source_definition": state.source_definition,
+        "target_additional_info": state.target_additional_info,
     }
 
     # Execute with quality gate
@@ -590,7 +558,6 @@ async def supervisor_final_quality_check(state: VocabState) -> VocabState:
         "examples_quality_approved",
         "synonyms_quality_approved",
         "syllables_quality_approved",
-        "pronunciation_quality_approved",
         "conjugation_quality_approved",
     ]
 
@@ -635,22 +602,32 @@ async def join_parallel_tasks(state: VocabState) -> VocabState:
     completed_tasks = getattr(state, "completed_parallel_tasks", []) or []
 
     # Determine which task just completed by checking which quality fields are set
-    parallel_tasks = ["media", "examples", "synonyms", "syllables", "pronunciation"]
+    parallel_tasks = ["media", "examples", "synonyms", "syllables"]
 
     # Add conjugation if it's a verb
     if getattr(state, "target_part_of_speech", None) == "verb":
         parallel_tasks.append("conjugation")
 
+    # Add pronunciation (no quality gate needed)
+    parallel_tasks.append("pronunciation")
+
     # Find newly completed tasks (tasks that have quality approval but aren't in completed list)
     newly_completed = []
     for task in parallel_tasks:
-        quality_field = f"{task}_quality_approved"
-        if (
-            hasattr(state, quality_field)
-            and getattr(state, quality_field, None) is not None
-            and task not in completed_tasks
-        ):
-            newly_completed.append(task)
+        if task == "pronunciation":
+            # Pronunciation is complete if it has pronunciations data (no quality gate)
+            if hasattr(state, "pronunciations") and state.pronunciations is not None:
+                if task not in completed_tasks:
+                    newly_completed.append(task)
+        else:
+            # Other tasks need quality approval
+            quality_field = f"{task}_quality_approved"
+            if (
+                hasattr(state, quality_field)
+                and getattr(state, quality_field, None) is not None
+                and task not in completed_tasks
+            ):
+                newly_completed.append(task)
 
     # Add newly completed tasks to the list
     updated_completed_tasks = list(set(completed_tasks + newly_completed))

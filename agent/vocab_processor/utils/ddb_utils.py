@@ -1,7 +1,6 @@
 import asyncio
 import os
 import re
-import unicodedata
 from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
@@ -11,6 +10,8 @@ from aws_lambda_powertools import Logger
 from aws_lambda_powertools.metrics import Metrics, MetricUnit
 from botocore.exceptions import ClientError
 from pydantic import BaseModel, Field
+
+from vocab_processor.utils.core_utils import is_lambda_context, normalize_word
 
 logger = Logger(service="vocab-processor")
 metrics = Metrics(namespace="VocabProcessor")
@@ -26,8 +27,6 @@ dynamodb = boto3.resource(
 VOCAB_TABLE = dynamodb.Table(os.getenv("DYNAMODB_VOCAB_TABLE_NAME"))
 MEDIA_TABLE = dynamodb.Table(os.getenv("DYNAMODB_VOCAB_MEDIA_TABLE_NAME"))
 
-_NORMALISE_RGX = re.compile(r"[^a-z0-9]")
-
 
 def get_media_table():
     """Get media table instance."""
@@ -36,27 +35,6 @@ def get_media_table():
     except Exception as exc:
         logger.error("media_table_connection_failed", error=str(exc))
         raise
-
-
-def is_lambda_context() -> bool:
-    """
-    Check if we're running in AWS Lambda context.
-
-    Returns:
-        True if running in Lambda, False if running locally (e.g., langgraph dev)
-    """
-    return os.getenv("AWS_LAMBDA_FUNCTION_NAME") is not None
-
-
-def normalize_word(word: str) -> str:
-    """Return lowercase, accent stripped, alnumonly version of the word."""
-    word = unicodedata.normalize("NFKC", word.lower())
-    word = "".join(
-        ch
-        for ch in unicodedata.normalize("NFD", word)
-        if unicodedata.category(ch) != "Mn"
-    )
-    return _NORMALISE_RGX.sub("", word)
 
 
 class VocabProcessRequestDto(BaseModel):
@@ -73,6 +51,40 @@ class VocabProcessRequestDto(BaseModel):
 def lang_code(lang_enum) -> str:
     """Return iso code for Language enum, falling back to .value."""
     return getattr(lang_enum, "code", str(lang_enum.value).lower())
+
+
+async def check_word_exists(
+    base_word: str, source_language, target_language: str, source_part_of_speech: str
+) -> dict[str, Any]:
+    """Check if a word exists in DDB after base word extraction."""
+    if not is_lambda_context():
+        logger.info(
+            f"Local dev mode: skipping DynamoDB existence check for {base_word} -> {target_language}"
+        )
+        return {"exists": False, "existing_item": None}
+
+    pk = f"SRC#{lang_code(source_language)}#{normalize_word(base_word)}"
+    # Query for any translation to target language (regardless of POS)
+    sk = f"TGT#{target_language}#POS#{source_part_of_speech}"
+
+    try:
+        response = await asyncio.to_thread(
+            VOCAB_TABLE.query,
+            KeyConditionExpression="PK = :pk AND SK = :sk",
+            ExpressionAttributeValues={":pk": pk, ":sk": sk},
+        )
+        items = response.get("Items", [])
+        existing_item = items[0] if items else None  # there should be only one item
+
+        if existing_item:
+            logger.info("ddb_hit", pk=pk, sk=sk)
+            return {"exists": True, "existing_item": existing_item}
+
+        return {"exists": False, "existing_item": None}
+
+    except Exception as exc:
+        logger.error("existence_check_failed", error=str(exc), pk=pk)
+        return {"exists": False, "existing_item": None}
 
 
 async def get_existing_media_for_search_words(
@@ -274,82 +286,6 @@ async def store_media_references(
     except Exception as exc:
         logger.exception("media_storage_error", error=str(exc))
         raise
-
-
-async def validate_and_check_exists(
-    src_word: str, tgt_lang: str, src_lang: str | None = None
-) -> dict[str, Any]:
-    """
-    Validate word and check if it exists in DDB.
-
-    Returns:
-        Dict with keys:
-        - 'status': 'invalid' | 'exists' | 'not_exists'
-        - 'validation_result': ValidationResult object
-        - 'existing_item': DDB item if exists, else None
-    """
-    from vocab_processor.constants import Language
-    from vocab_processor.tools.validation_tool import validate_word
-
-    validation_result = await validate_word.ainvoke(
-        input={
-            "source_word": src_word,
-            "target_language": Language.from_code(tgt_lang),
-            "source_language": Language.from_code(src_lang) if src_lang else None,
-        }
-    )
-
-    if not validation_result.is_valid:
-        logger.warning(
-            "invalid_word",
-            word=src_word,
-            tgt_lang=tgt_lang,
-            reason=getattr(validation_result, "message", "unknown"),
-        )
-        return {
-            "status": "invalid",
-            "validation_result": validation_result,
-            "existing_item": None,
-        }
-
-    if not is_lambda_context():
-        logger.info(
-            f"Local dev mode: skipping DynamoDB existence check for {src_word} -> {tgt_lang}"
-        )
-        return {
-            "status": "not_exists",
-            "validation_result": validation_result,
-            "existing_item": None,
-        }
-
-    pk = (
-        f"SRC#{lang_code(validation_result.source_language)}#{normalize_word(src_word)}"
-    )
-    # Query for any translation to target language (regardless of POS)
-    sk_prefix = f"TGT#{tgt_lang}"
-
-    response = await asyncio.to_thread(
-        VOCAB_TABLE.query,
-        KeyConditionExpression="PK = :pk AND begins_with(SK, :sk_prefix)",
-        ExpressionAttributeValues={":pk": pk, ":sk_prefix": sk_prefix},
-        Limit=1,
-    )
-    items = response.get("Items", [])
-    existing_item = items[0] if items else None
-
-    if existing_item:
-        logger.info("ddb_hit", pk=pk, sk=existing_item["SK"])
-        return {
-            "status": "exists",
-            "validation_result": validation_result,
-            "existing_item": existing_item,
-        }
-
-    return {
-        "status": "not_exists",
-        "validation_result": validation_result,
-        "existing_item": None,
-    }
 
 
 async def store_result(result: dict[str, Any], req: VocabProcessRequestDto):

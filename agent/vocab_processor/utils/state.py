@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from vocab_processor.constants import Language, PartOfSpeech
 from vocab_processor.schemas.media_model import Media
 from vocab_processor.tools.examples_tool import ExampleSentence
+from vocab_processor.tools.pronunciation_tool import Pronunciations
 from vocab_processor.tools.synonyms_tool import Synonym
 from vocab_processor.tools.validation_tool import SuggestedWordInfo
 
@@ -14,7 +15,7 @@ class VocabState(BaseModel):
     source_word: str = Field(..., description="The initial word provided by the user.")
     source_language: Optional[Language] = Field(
         None,
-        description="The language of the source word, if provided by the user. If not provided, it will be detected by the classification step.",
+        description="The language of the source word, if provided by the user. If not provided, it will be detected by the validation step.",
     )
     target_language: Language = Field(
         ..., description="The target language for translation and other operations."
@@ -47,6 +48,16 @@ class VocabState(BaseModel):
     source_additional_info: Optional[str] = Field(
         None,
         description="Additional information about the word in the source language if needed. For example if the word is only common in a specific country or region.",
+    )
+
+    # Existence check fields
+    word_exists: Optional[bool] = Field(
+        None,
+        description="Whether the word already exists in the database after base word extraction",
+    )
+    existing_item: Optional[dict] = Field(
+        None,
+        description="The existing database item if the word already exists",
     )
 
     # Fields from translation step
@@ -91,9 +102,9 @@ class VocabState(BaseModel):
     synonyms: Optional[List[Synonym]] = Field(
         None, description="List of synonyms for the target word."
     )
-    pronunciations: Optional[str] = Field(
+    pronunciations: Optional[Pronunciations] = Field(
         None,
-        description="Audio data (base64) or URL for pronunciation of the target word.",
+        description="Pronunciation audio URLs (audio and optional syllables) for the target word.",
     )
     media: Optional[Media] = Field(
         None,
@@ -133,9 +144,6 @@ class VocabState(BaseModel):
     syllables_quality_approved: Optional[bool] = Field(
         None, description="Whether syllables step passed quality gate."
     )
-    pronunciation_quality_approved: Optional[bool] = Field(
-        None, description="Whether pronunciation step passed quality gate."
-    )
     conjugation_quality_approved: Optional[bool] = Field(
         None, description="Whether conjugation step passed quality gate."
     )
@@ -148,7 +156,6 @@ class VocabState(BaseModel):
     examples_retry_count: Optional[int] = Field(default=0)
     synonyms_retry_count: Optional[int] = Field(default=0)
     syllables_retry_count: Optional[int] = Field(default=0)
-    pronunciation_retry_count: Optional[int] = Field(default=0)
     conjugation_retry_count: Optional[int] = Field(default=0)
 
     # Quality scores for monitoring
@@ -159,7 +166,6 @@ class VocabState(BaseModel):
     examples_quality_score: Optional[float] = Field(None)
     synonyms_quality_score: Optional[float] = Field(None)
     syllables_quality_score: Optional[float] = Field(None)
-    pronunciation_quality_score: Optional[float] = Field(None)
     conjugation_quality_score: Optional[float] = Field(None)
 
     # Supervisor coordination fields

@@ -5,6 +5,7 @@ from aws_lambda_powertools import Logger
 from pydantic import BaseModel, Field
 
 from vocab_processor.constants import LLMVariant
+from vocab_processor.schemas.media_model import Media
 from vocab_processor.tools.base_tool import SystemMessages, create_llm_response
 from vocab_processor.tools.classification_tool import WordCategorization
 from vocab_processor.tools.conjugation_tool import ConjugationResult
@@ -39,8 +40,14 @@ class ToolValidationResult(BaseModel):
     """Result of tool output validation."""
 
     score: float = Field(..., ge=0.0, le=10.0, description="Quality score from 0-10")
-    issues: list[str] = Field(default=[], description="List of identified issues")
-    suggestions: list[str] = Field(default=[], description="Improvement suggestions")
+    issues: list[str] = Field(
+        default=[],
+        description="List of clearly and unambiguously formulated identified issues",
+    )
+    suggestions: list[str] = Field(
+        default=[],
+        description="List of clear and targeted improvement suggestions to improve the quality of the output",
+    )
 
 
 class RetryStrategy(BaseModel):
@@ -63,6 +70,7 @@ class LLMRouter:
         if task_type in [
             TaskType.SUPERVISION,
             TaskType.VALIDATION,
+            TaskType.CLASSIFICATION,
             TaskType.QUALITY_CHECK,
         ]:
             return LLMVariant.GPT41
@@ -75,7 +83,6 @@ class LLMRouter:
             TaskType.SYLLABLES,
             TaskType.CONJUGATION,
             TaskType.MEDIA_SELECTION,
-            TaskType.CLASSIFICATION,
         ]:
             return LLMVariant.GPT41 if is_retry else LLMVariant.GPT41M
 
@@ -136,7 +143,7 @@ def get_schema_specification(model_class: BaseModel) -> str:
 class VocabSupervisor:
     """Supervisor for vocabulary processing quality control."""
 
-    def __init__(self, quality_threshold: float = 7.0, max_retries: int = 2):
+    def __init__(self, quality_threshold: float = 8.0, max_retries: int = 3):
         self.quality_threshold = quality_threshold
         self.max_retries = max_retries
         self.router = LLMRouter()
@@ -216,7 +223,6 @@ class VocabSupervisor:
             
             **VALIDATION CHECKLIST:**
             1. All required fields are present and have correct types
-            2. is_valid is boolean (True/False)
             3. source_language is a valid Language enum value (like <Language.ENGLISH: 'English'>) or null
                - Enum values like <Language.ENGLISH: 'English'> are CORRECT and will serialize properly
             4. If suggestions exist, they are valid SuggestedWordInfo objects
@@ -229,7 +235,6 @@ class VocabSupervisor:
             - Does it correctly identify valid input as valid (including phrases)?
             - Does it correctly identify the source language?
             - Are spelling suggestions helpful for actually misspelled words?
-            - Does it NOT try to do translation (which is another tool's job)?
             
             Rate 1-10 based on schema compliance, logical consistency, and validation accuracy.
             """
@@ -248,19 +253,20 @@ class VocabSupervisor:
             {result}
             
             **Context:**
-            - Source: "{state.source_word}" ({state.source_language})
+            - Source: "{state.source_word}" ({state.source_language}, {state.source_part_of_speech})
+            - Target: "{state.target_word}" ({state.target_language}, {state.target_part_of_speech})
             - Target language: {state.target_language}
             
             **Validation Checklist:**
             1. All required fields are present and have correct types
-            2. target_word is a reasonable translation
+            2. target_word is a reasonable translation of the source {state.source_part_of_speech} {state.source_word} in the target language {state.target_language}
             3. target_part_of_speech is a valid PartOfSpeech enum value:
-               - For English: "neuter noun" (not "noun" or "feminine noun")
+               - For English: "noun"
                - For German: "masculine noun", "feminine noun", or "neuter noun"
                - For Spanish: "masculine noun" or "feminine noun"
-               - Other: "verb", "adjective", "adverb", etc.
+               - For other languages: "verb", "adjective", "adverb", etc.
             4. target_article is appropriate for the language:
-               - English: null (no gendered articles)
+               - English: null
                - German: der/die/das for nouns
                - Spanish: el/la/los/las for nouns
             5. Translation accuracy and grammatical consistency
@@ -269,7 +275,6 @@ class VocabSupervisor:
             - Is this the most common, natural translation a learner should know?
             - Does the part of speech match how learners would use this word?
             - Are articles (if applicable) what learners would actually encounter?
-            - Would this translation help learners communicate effectively?
             - **IMPORTANT**: For informal/slang source words, accuracy of register is MORE important than pedagogical politeness
             - If source word is vulgar/slang, vulgar translation may be MORE accurate than neutral ones
             - Does the translation help learners understand REAL usage in authentic contexts?
@@ -296,10 +301,7 @@ class VocabSupervisor:
             
             **Validation Checklist:**
             1. All required fields are present and have correct types
-            2. source_definition is a list of 1-3 strings
-            3. source_part_of_speech is a valid PartOfSpeech enum value
-            4. source_article is appropriate (string or null)
-            5. Definitions are accurate and in the source language
+            2. Definitions are accurate and in the source language {state.source_language}
             
             **LEARNING QUALITY CHECK:**
             - Are definitions clear and understandable for learners?
@@ -330,10 +332,9 @@ class VocabSupervisor:
             **Validation Checklist:**
             1. All required fields are present and have correct types
             2. examples list has 3-4 items (within min/max constraints)
-            3. Each example has 'original' (min 20 chars) and 'translation' (min 30 chars)
-            4. Examples use the words correctly in context
-            5. Translations are accurate and natural
-            6. Context field (if present) is helpful
+            3. Examples use the words correctly in context
+            4. Translations are accurate and natural
+            5. Context field is helpful
             
             **LEARNING QUALITY CHECK:**
             - Are examples practical and likely to be encountered in real life?
@@ -359,21 +360,18 @@ class VocabSupervisor:
             {result}
             
             **Context:**
+            - Source word: "{state.source_word}" ({state.source_language})
             - Target word: "{state.target_word}" ({state.target_language})
             - Part of speech: {state.target_part_of_speech}
             
             **Validation Checklist:**
             1. All required fields are present and have correct types
-            2. synonyms list contains Synonym objects
-            3. Each synonym has both 'synonym' and 'explanation' fields
-            4. Synonyms are actually synonymous with the target word
-            5. Explanations are helpful and in target language
-            6. Synonyms match the correct part of speech
+            4. Synonyms are correct and commonly used for the target word {state.target_word} in the target language {state.target_language}, or if very uncommon it should be noted in explanation
+            5. Explanations are helpful and in source language {state.source_language}
             
             **LEARNING QUALITY CHECK:**
             - Are synonyms commonly used words for the target word {state.target_word} in the target language {state.target_language}?
             - Do explanations help learners understand subtle differences?
-            - Are explanations written in clear, natural language?
             
             Rate 1-10 based on schema compliance, synonym quality, and learning value.
             """
@@ -396,16 +394,12 @@ class VocabSupervisor:
             
             **Validation Checklist:**
             1. All required fields are present and have correct types
-            2. syllables is a list of strings
-            3. phonetic_guide is a string with pronunciation information
-            4. Syllable breakdown is accurate for the word
-            5. Phonetic guide is helpful and correct (IPA or common symbols)
+            2. Syllables are correctly identified for the target word {state.target_word} in {state.target_language} taking into account the possible original source language nuances of the {state.source_language} word {state.source_word}
+            3. Correct usage of the International Phonetic Alphabet (IPA)
             
             **LEARNING QUALITY CHECK:**
-            - Does the syllable breakdown help learners pronounce the word correctly?
-            - Is the phonetic guide accessible and useful for language learners?
-            - Are syllables divided in a way that aids pronunciation learning?
-            - Would this help learners develop better pronunciation skills?
+            - Is the breakdown into syllables correct for the target word {state.target_word} in {state.target_language}?
+            - Is the phonetic guide in correct International Phonetic Alphabet?
             
             Rate 1-10 based on schema compliance, accuracy, and pronunciation learning value.
             """
@@ -429,11 +423,9 @@ class VocabSupervisor:
             
             **Validation Checklist:**
             1. All required fields are present and have correct types
-            2. conjugation field is a valid JSON string
-            3. JSON contains proper conjugation structure for the language
-            4. Conjugations are accurate for the verb
-            5. All required verb forms are present
-            6. Language-specific conjugation patterns are correct
+            2. Conjugations are accurate for the verb {state.target_word} in the target language {state.target_language}
+            3. All required verb forms are present
+            4. Language-specific conjugation patterns are correct
             
             **LEARNING QUALITY CHECK:**
             - Are conjugations the most common, essential forms learners need?
@@ -446,39 +438,33 @@ class VocabSupervisor:
             """
 
         elif tool_name == "media":
+            schema_spec = get_schema_specification(Media)
             validation_prompt = f"""
             {learning_context}
             
             **TOOL: Visual Media**
-            Validate this Media tool output focusing on search query quality:
+            Validate this Media tool output against its expected Pydantic schema:
+            
+            {schema_spec}
             
             **Actual Result:**
             {result}
             
             **Context:**
             - Target word: "{state.target_word}" ({state.target_language})
+            - Search Query for review: {result.get('search_query')}
             
-            **Expected Structure:**
-            - media: Media object with url, alt, src, explanation, memory_tip
-            - english_word: string
-            - search_query: list of descriptive English terms
-            - media_reused: boolean
+            **Validation Checklist:**
+            1. All required fields are present and have correct types
+            2. Media object structure is valid and complete
             
-            **Validation Focus (Search Query Quality):**
-            1. Does the search_query contain descriptive English terms?
-            2. Are search terms specific and likely to return relevant photos?
-            3. Would these terms help find good visual representations of the word?
-            4. Are the terms clear and unambiguous?
-            5. Basic structure compliance (media object present, etc.)
-            
-            **LEARNING QUALITY CHECK:**
-            - Would the search terms lead to images that help learners understand the word?
-            - Are search terms culturally appropriate and learner-friendly?
-            - Do terms avoid ambiguity that might confuse visual learning?
-            - Would resulting images aid vocabulary retention and recall?
-            
-            I trust the photo selection process - focus on search query reasonableness and learning value.
-            Rate 1-10 based primarily on search query quality, learning effectiveness, and structure.
+            **Validation Focus on Search Query:**
+            1. Would these search terms help find good visual representations of the word?
+            2. If the target word is abstract or describes a concept, does the search query contain good examples?
+
+            If you have doubts about the search query, but the media object is valid and has found images, return a score of 8 or higher.
+ 
+            Rate 1-10 based on schema compliance, search query quality, and learning value.
             """
 
         else:
@@ -572,12 +558,13 @@ class VocabSupervisor:
             "syllables",
             "conjugation",
         ]:
-            # Only include quality feedback if we have issues
-            if validation_result.issues:
+            # Only include quality feedback if we have issues or suggestions
+            if validation_result.issues or validation_result.suggestions:
                 adjusted_inputs["quality_feedback"] = (
-                    f"Quality score: {validation_result.score}/10. Issues: {'; '.join(validation_result.issues)}"
+                    f"Quality score: {validation_result.score}/10. Please address the issues and follow the suggestions below."
                 )
                 adjusted_inputs["previous_issues"] = validation_result.issues
+                adjusted_inputs["suggestions"] = validation_result.suggestions
 
         # Should retry if we haven't reached max retries and score is below threshold
         should_retry = (
@@ -706,7 +693,12 @@ def create_fallback_result(
             "syllables": [inputs.get("target_word", "word")],
             "phonetic_guide": "",
         },
-        "pronunciation": {"pronunciations": ""},
+        "pronunciation": {
+            "pronunciations": {
+                "audio": f"error: pronunciation failed for {inputs.get('target_word', 'word')}",
+                "syllables": None,
+            }
+        },
         "conjugation": {"conjugation": None},
     }
 

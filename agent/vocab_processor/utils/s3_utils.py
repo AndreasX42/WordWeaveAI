@@ -6,6 +6,7 @@ import boto3
 from aws_lambda_powertools import Logger
 
 from vocab_processor.constants import Language
+from vocab_processor.utils.core_utils import is_lambda_context
 
 logger = Logger(service="vocab-processor")
 
@@ -20,12 +21,6 @@ s3_client = boto3.client(
         retries={"max_attempts": 3, "mode": "adaptive"},
     ),
 )
-
-
-def is_lambda_context() -> bool:
-    """Check if we're running in AWS Lambda context."""
-    execution_env = os.getenv("AGENT_EXECUTION_CONTEXT")
-    return execution_env == "lambda"
 
 
 def generate_safe_word_key(word: str, max_length: int = 20) -> str:

@@ -7,6 +7,7 @@ from vocab_processor.constants import Language
 from vocab_processor.tools.base_tool import (
     add_quality_feedback_to_prompt,
     create_llm_response,
+    create_tool_error_response,
 )
 
 
@@ -14,7 +15,7 @@ class ExampleSentence(BaseModel):
     """A bilingual example sentence with translation."""
 
     original: str = Field(
-        ..., description="The example sentence in the source language", min_length=20
+        ..., description="The example sentence in the source language", min_length=30
     )
     translation: str = Field(
         ...,
@@ -22,8 +23,8 @@ class ExampleSentence(BaseModel):
         min_length=30,
     )
     context: Optional[str] = Field(
-        None,
-        description="Optional context or usage note for the example in the source language",
+        ...,
+        description="Context or usage note for the example in the source language",
     )
 
 
@@ -44,6 +45,7 @@ async def get_examples(
     target_language: Language,
     quality_feedback: Optional[str] = None,
     previous_issues: Optional[List[str]] = None,
+    suggestions: Optional[List[str]] = None,
 ) -> Examples:
     """Generate bilingual example phrases using the word and its translation."""
 
@@ -62,7 +64,7 @@ async def get_examples(
 
     # Add quality feedback if provided
     enhanced_prompt = add_quality_feedback_to_prompt(
-        prompt, quality_feedback, previous_issues, quality_requirements
+        prompt, quality_feedback, previous_issues, suggestions, quality_requirements
     )
 
     return await create_llm_response(

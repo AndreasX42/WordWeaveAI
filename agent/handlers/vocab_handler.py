@@ -3,7 +3,6 @@ import os
 from asyncio import TimeoutError
 from typing import Any, Dict
 
-import boto3
 from aws_lambda_powertools import Logger, Metrics
 from aws_lambda_powertools.metrics import MetricUnit
 from aws_lambda_powertools.utilities.batch import (
@@ -16,40 +15,20 @@ from aws_lambda_powertools.utilities.typing import LambdaContext
 
 from vocab_processor.agent import graph
 from vocab_processor.constants import Language
-from vocab_processor.utils.ddb_utils import (
-    VocabProcessRequestDto,
-    store_result,
-    validate_and_check_exists,
-)
+from vocab_processor.utils.ddb_utils import VocabProcessRequestDto, store_result
 from vocab_processor.utils.websocket_utils import WebSocketNotifier
 
 # Constants
 DEFAULT_TIMEOUT = int(os.getenv("LAMBDA_PROCESSING_TIMEOUT", "90"))
-VISIBILITY_BUFFER = 120
-BATCH_WRITE_RETRIES = 1
-DDB_MAX_POOL_CONNECTIONS = 50
-DDB_MAX_RETRY_ATTEMPTS = 3
-
-# Status constants
-STATUS_INVALID = "invalid"
-STATUS_EXISTS = "exists"
-STATUS_NOT_EXISTS = "not_exists"
 
 logger = Logger(service="vocab-processor")
 metrics = Metrics(namespace="VocabProcessor")
 
 processor = AsyncBatchProcessor(event_type=EventType.SQS)
-dynamodb = boto3.resource(
-    "dynamodb",
-    config=boto3.session.Config(
-        max_pool_connections=DDB_MAX_POOL_CONNECTIONS,
-        retries={"max_attempts": DDB_MAX_RETRY_ATTEMPTS, "mode": "adaptive"},
-    ),
-)
 
 
 @logger.inject_lambda_context()
-def lambda_handler(event: Dict[str, Any], context: LambdaContext):
+def lambda_handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, Any]:
     """Entrypoint for the Vocab Processor Lambda."""
     return async_process_partial_response(
         event=event,
@@ -59,7 +38,7 @@ def lambda_handler(event: Dict[str, Any], context: LambdaContext):
     )
 
 
-async def _process_record(record: Dict[str, Any]):
+async def _process_record(record: Dict[str, Any]) -> None:
     """Handle one SQS record."""
     try:
         request: VocabProcessRequestDto = parse(
@@ -100,79 +79,129 @@ async def _handle_request(req: VocabProcessRequestDto) -> Dict[str, Any]:
         # Notify all subscribers that processing started for this vocabulary word
         notifier.send_processing_started(req.source_word, req.target_language)
 
-        # Check if word is valid and already exists
-        validation_result = await _validate_word(req, notifier)
-        if validation_result is not None:
-            return validation_result
-
         # Process the word with the graph
         result = await _process_word_with_graph(req, notifier)
 
-        # Store and notify completion
-        await store_result(result, req)
-        notifier.send_processing_completed(req.source_word, req.target_language, result)
+        # Evaluate final state and handle different outcomes
+        final_result = await _evaluate_final_state(result, req, notifier)
 
-        return result
+        return final_result
 
     except Exception as e:
         notifier.send_processing_failed(req.source_word, req.target_language, str(e))
         raise
 
 
-async def _validate_word(
-    req: VocabProcessRequestDto, notifier: WebSocketNotifier
-) -> Dict[str, Any] | None:
-    """Validate word and check if it exists. Returns result dict if processing should stop, None to continue."""
-    check_result = await validate_and_check_exists(
-        req.source_word, req.target_language, req.source_language
-    )
+async def _evaluate_final_state(
+    result: Dict[str, Any], req: VocabProcessRequestDto, notifier: WebSocketNotifier
+) -> Dict[str, Any]:
+    """Evaluate the final graph state and send appropriate notifications."""
 
-    if check_result["status"] == STATUS_INVALID:
+    # Check if validation failed
+    if result.get("validation_passed") is False:
         logger.warning(
             "word_validation_failed",
             word=req.source_word,
             target_lang=req.target_language,
             source_lang=req.source_language,
-            reason=getattr(check_result["validation_result"], "message", "unknown"),
+            reason=result.get("validation_message", "unknown"),
         )
-        notifier.send_validation_failed(
-            req.source_word, req.target_language, check_result["validation_result"]
-        )
-        return {
-            "status": STATUS_INVALID,
-            "source_word": req.source_word,
-            "target_language": req.target_language,
-            "source_language": req.source_language,
-            "validation_result": check_result["validation_result"],
-        }
 
-    elif check_result["status"] == STATUS_EXISTS:
+        validation_result = _build_validation_result(result)
+        notifier.send_validation_failed(
+            req.source_word, req.target_language, validation_result
+        )
+
+        return _build_error_response(
+            "invalid", req, validation_result=validation_result
+        )
+
+    # Check if word already exists
+    if result.get("word_exists") is True:
         logger.info(
             "word_already_exists",
-            word=req.source_word,
+            word=result.get("source_word", req.source_word),
             target_lang=req.target_language,
             source_lang=req.source_language,
         )
-        ddb_result = {
-            "status": STATUS_EXISTS,
-            "source_word": req.source_word,
-            "target_language": req.target_language,
-            "source_language": req.source_language,
-            "result": check_result["existing_item"],
-            "ddb_hit": True,
-        }
-        notifier.send_ddb_hit(req.source_word, req.target_language, ddb_result)
+
+        ddb_result = _build_ddb_hit_response(result, req)
+        notifier.send_ddb_hit(
+            result.get("source_word", req.source_word), req.target_language, ddb_result
+        )
+
         return ddb_result
 
-    # Word is valid and doesn't exist - continue processing
-    logger.info(
-        "word_validation_passed",
-        word=req.source_word,
-        target_lang=req.target_language,
-        source_lang=req.source_language
-        or check_result["validation_result"].source_language,
+    # Normal processing completed successfully
+    if result.get("processing_complete") or _is_processing_complete(result):
+        await store_result(result, req)
+        notifier.send_processing_completed(req.source_word, req.target_language, result)
+        return result
+
+    # If we get here, something unexpected happened
+    logger.warning("unexpected_final_state", result_keys=list(result.keys()))
+    notifier.send_processing_failed(
+        req.source_word, req.target_language, "Unexpected processing state"
     )
-    return None
+
+    return _build_error_response("failed", req, error="Unexpected processing state")
+
+
+def _build_validation_result(result: Dict[str, Any]) -> Dict[str, Any]:
+    """Build validation result object for notifications."""
+    return {
+        "is_valid": False,
+        "message": result.get("validation_message"),
+        "suggestions": result.get("suggested_words", []),
+        "source_language": result.get("source_language"),
+    }
+
+
+def _build_ddb_hit_response(
+    result: Dict[str, Any], req: VocabProcessRequestDto
+) -> Dict[str, Any]:
+    """Build DDB hit response object."""
+    return {
+        "status": "exists",
+        "source_word": result.get("source_word", req.source_word),
+        "target_language": req.target_language,
+        "source_language": req.source_language,
+        "result": result.get("existing_item", {}),
+        "ddb_hit": True,
+    }
+
+
+def _build_error_response(
+    status: str,
+    req: VocabProcessRequestDto,
+    error: str = None,
+    validation_result: Dict[str, Any] = None,
+) -> Dict[str, Any]:
+    """Build standardized error response."""
+    response = {
+        "status": status,
+        "source_word": req.source_word,
+        "target_language": req.target_language,
+        "source_language": req.source_language,
+    }
+
+    if error:
+        response["error"] = error
+    if validation_result:
+        response["validation_result"] = validation_result
+
+    return response
+
+
+def _is_processing_complete(result: Dict[str, Any]) -> bool:
+    """Check if processing is complete based on essential fields."""
+    required_fields = [
+        "source_word",
+        "target_word",
+        "source_language",
+        "target_language",
+    ]
+    return all(result.get(field) for field in required_fields)
 
 
 async def _process_word_with_graph(
@@ -182,6 +211,8 @@ async def _process_word_with_graph(
     initial_state = {
         "source_word": req.source_word,
         "target_language": Language.from_code(req.target_language),
+        "user_id": req.user_id,
+        "request_id": req.request_id,
     }
 
     # Add source_language to initial state if provided
@@ -191,9 +222,9 @@ async def _process_word_with_graph(
     # Stream the graph execution and send real-time updates
     result = None
     async for chunk in graph.astream(initial_state, stream_mode="values"):
-        logger.info("chunk", chunk=chunk)
+        logger.debug("graph_chunk", chunk_keys=list(chunk.keys()) if chunk else [])
         notifier.send_chunk_update(req.source_word, req.target_language, chunk)
         result = chunk  # Keep the last chunk as final result
 
-    logger.info("result", result=result)
+    logger.info("graph_completed", result_keys=list(result.keys()) if result else [])
     return result

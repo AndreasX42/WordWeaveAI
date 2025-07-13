@@ -13,10 +13,12 @@ from vocab_processor.tools.base_tool import (
 class SyllableBreakdown(BaseModel):
     """Syllable breakdown of the word in the specified language."""
 
-    syllables: List[str] = Field(..., description="List of syllables for the base word")
+    syllables: List[str] = Field(
+        ..., description="List of syllables for the target word"
+    )
     phonetic_guide: str = Field(
         ...,
-        description="Phonetic pronunciation guide (IPA or learner-friendly symbols) of the base word.",
+        description="Phonetic pronunciation guide (IPA) in the target language of the target word.",
     )
 
 
@@ -26,26 +28,29 @@ async def get_syllables(
     target_language: Language,
     quality_feedback: Optional[str] = None,
     previous_issues: Optional[List[str]] = None,
+    suggestions: Optional[List[str]] = None,
 ) -> SyllableBreakdown:
     """Break down a word into syllables with phonetic guidance."""
 
     # Base prompt
-    prompt = f"Break '{target_word}' ({target_language}) into syllables. Provide syllable list and clear phonetic guide (IPA or learner-friendly symbols)."
+    prompt = f"""Break '{target_word}' ({target_language}) into syllables. Provide a syllable list and a clear phonetic guide using the International Phonetic Alphabet (IPA).
+
+**IMPORTANT RULES for {target_language}:**
+- For Spanish verbs ending in '-ear', the 'e' and 'a' are in SEPARATE syllables, creating a hiatus.
+- For Spanish verbs ending in '-uir', the 'ui' is a diphthong and stays in one syllable.
+- The IPA guide MUST be accurate and use standard symbols.
+
+Provide the breakdown for: '{target_word}'"""
 
     # Quality requirements for syllables
     quality_requirements = [
-        "Syllable breakdown should be done on the base word, meaning the word without any article or other modifiers",
-        "Syllable breakdown helps learners pronounce the word correctly",
-        "Phonetic guide is accessible and useful for language learners",
-        "Syllables are divided naturally for pronunciation learning",
-        "Use clear, learner-friendly phonetic notation",
-        "Guide should help learners develop better pronunciation skills",
-        f"Consider stress patterns and intonation if relevant for {target_language}",
+        f"Syllables must be correct for the target word {target_word} in {target_language}, following the rules provided, taking into account the possible original source language nuances.",
+        "Phonetic guide must be accurate and in the International Phonetic Alphabet (IPA).",
     ]
 
     # Add quality feedback if provided
     enhanced_prompt = add_quality_feedback_to_prompt(
-        prompt, quality_feedback, previous_issues, quality_requirements
+        prompt, quality_feedback, previous_issues, suggestions, quality_requirements
     )
 
     return await create_llm_response(

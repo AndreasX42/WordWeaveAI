@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from langchain.tools import tool
 from pydantic import BaseModel, Field
@@ -13,12 +13,17 @@ from vocab_processor.tools.base_tool import (
     create_tool_error_response,
 )
 
+ConjugationModels = Union[
+    EnglishVerbConjugation, GermanVerbConjugation, SpanishVerbConjugation
+]
+
 
 class ConjugationResult(BaseModel):
     """Result of conjugation tool with the conjugation table."""
 
-    conjugation: str = Field(
-        ..., description="JSON string containing the conjugation table"
+    conjugation: Union[ConjugationModels, str] = Field(
+        ...,
+        description="A structured object containing the full conjugation table for the verb.",
     )
 
 
@@ -29,6 +34,7 @@ async def get_conjugation(
     target_part_of_speech: PartOfSpeech,
     quality_feedback: Optional[str] = None,
     previous_issues: Optional[List[str]] = None,
+    suggestions: Optional[List[str]] = None,
 ) -> ConjugationResult:
     """Get full verb conjugation table for a given verb in the specified language and part of speech."""
 
@@ -51,18 +57,15 @@ async def get_conjugation(
 
         # Quality requirements for conjugation
         quality_requirements = [
-            "Include the most common, essential verb forms learners need",
             "Follow natural, standard conjugation patterns for {target_language}",
             "All forms are grammatically correct and commonly used",
-            "Include irregular forms if applicable with proper indication",
-            "Conjugation table helps learners use the verb correctly in context",
             f"Include all required tenses and persons for {target_language}",
             "JSON structure matches the expected schema exactly",
         ]
 
         # Add quality feedback if provided
         enhanced_prompt = add_quality_feedback_to_prompt(
-            prompt, quality_feedback, previous_issues, quality_requirements
+            prompt, quality_feedback, previous_issues, suggestions, quality_requirements
         )
 
         result = await create_llm_response(
@@ -70,7 +73,7 @@ async def get_conjugation(
             user_prompt=enhanced_prompt,
         )
 
-        return ConjugationResult(conjugation=result.model_dump_json(indent=2))
+        return ConjugationResult(conjugation=result)
 
     except Exception as e:
         context = {

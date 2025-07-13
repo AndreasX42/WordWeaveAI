@@ -48,13 +48,13 @@ def _build_validation_prompt(
     else:
         possible_source_languages = [source_language]
 
-    return f"""You are an expert linguistic validator. For input '{word}' targeting {target_language}:
+    return f"""You are an expert linguistic validator. For input '{word}' of source language (if provided) '{source_language if source_language else ""}', with the aim to translate it to {target_language}:
 
 Instructions:
 - Keep the source_word exactly as provided by the user (preserve "to build", "la casa", etc.)
 - Validate if the input is a valid word/phrase in any supported and possible source language {possible_source_languages}
 - If the source_language is provided, validate if the input is a valid word/phrase in the source language
-- Accept common articles and prefixes (like "to", "la", "el", "der", "die", "das") as part of valid input
+- Accept common articles, prefixes and modifiers (like "to", "la", "el", "der", "die", "das", "the") as part of valid input
 - If the input is valid in any supported and possible source language {possible_source_languages}, mark as valid and return the detected language
 - If the input is not valid/misspelled, suggest up to 3 real, high-frequency corrections with smallest spelling difference (edit distance up to 3)
 - Only suggest corrections if they are common and actually exist in the possible source languages {possible_source_languages}

@@ -8,10 +8,10 @@ import json
 import logging
 import os
 import sys
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 
 # Add the parent directory to the Python path so we can import vocab_processor
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -23,31 +23,67 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
-from rich.text import Text
-from rich.tree import Tree
 
 # Initialize Rich console
 console = Console()
 
+from tests.test_definitions import TestCaseDict
 from vocab_processor.agent import graph
-from vocab_processor.constants import Language
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def _generate_test_id(
+    source_word: str, target_language: str, source_language: Optional[str] = None
+) -> str:
+    """Generate a unique ID for a test case."""
+    # Replace spaces and special characters with underscores for safe test IDs
+    import re
+
+    safe_source_word = re.sub(r"[^a-zA-Z0-9]", "_", source_word)
+    # Remove multiple consecutive underscores
+    safe_source_word = re.sub(r"_+", "_", safe_source_word)
+    # Remove leading/trailing underscores
+    safe_source_word = safe_source_word.strip("_")
+
+    if source_language:
+        return f"{safe_source_word}_{source_language}_to_{target_language}"
+    return f"{safe_source_word}_to_{target_language}"
+
+
 @dataclass
 class TestCase:
     """Represents a single test case with input and expected output."""
 
-    test_id: str
-    description: str
-    input_data: dict[str, Any]
-    expected_output: Optional[dict[str, Any]] = None
-    tags: Optional[list[str]] = None
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+    source_word: str
+    target_language: str
+    source_language: Optional[str] = None
+    description: Optional[str] = None
+    tags: Optional[List[str]] = None
+    test_id: str = field(init=False)
+    expected_output: Optional[Dict[str, Any]] = None
+    expected_execution_time: Optional[float] = None
+    expected_token_usage: Optional[Dict[str, Any]] = None
+
+    def __post_init__(self):
+        self.test_id = _generate_test_id(
+            self.source_word, self.target_language, self.source_language
+        )
+
+    @classmethod
+    def from_dict(cls, data: TestCaseDict) -> "TestCase":
+        return cls(**data)
+
+    @property
+    def input_data(self) -> Dict[str, Any]:
+        """Get the input data for the graph invocation."""
+        return {
+            "source_word": self.source_word,
+            "target_language": self.target_language,
+            "source_language": self.source_language,
+        }
 
 
 @dataclass
@@ -61,7 +97,8 @@ class TestResult:
     differences: Optional[dict[str, Any]] = None
     execution_time: Optional[float] = None
     error: Optional[str] = None
-    timestamp: Optional[str] = None
+    timestamp: Optional[str] = field(default_factory=lambda: datetime.now().isoformat())
+    token_usage: Optional[dict[str, Any]] = None
 
 
 class LangGraphTestFramework:
@@ -71,16 +108,13 @@ class LangGraphTestFramework:
         # Make test_data_dir relative to the tests directory
         tests_dir = Path(__file__).parent
         self.test_data_dir = tests_dir / test_data_dir
-        self.test_data_dir.mkdir(exist_ok=True)
+        self.ground_truth_file = self.test_data_dir / "ground_truth.json"
 
-        # Create subdirectories
-        (self.test_data_dir / "test_cases").mkdir(exist_ok=True)
-        (self.test_data_dir / "ground_truth").mkdir(exist_ok=True)
+        # Create directories
+        self.test_data_dir.mkdir(exist_ok=True)
         (self.test_data_dir / "results").mkdir(exist_ok=True)
 
-        self.test_cases: list[TestCase] = []
-        self.ground_truth: dict[str, dict[str, Any]] = {}
-
+        # Attributes to exclude from comparison to reduce noise in results
         self.excluded_attributes = {
             "parallel_tasks_complete",
             "processing_complete",
@@ -92,255 +126,203 @@ class LangGraphTestFramework:
         }
 
     def _filter_excluded_attributes(self, data: dict[str, Any]) -> dict[str, Any]:
-        """Filter out excluded attributes from the data dictionary.
-
-        Args:
-            data: Dictionary containing vocabulary processing results
-
-        Returns:
-            Dictionary with excluded attributes removed
-        """
+        """Filter out excluded attributes from the data dictionary."""
         if not isinstance(data, dict):
             return data
+        return {k: v for k, v in data.items() if k not in self.excluded_attributes}
 
-        filtered_data = {}
-        for key, value in data.items():
-            if key not in self.excluded_attributes:
-                filtered_data[key] = value
-        return filtered_data
-
-    def add_excluded_attributes(self, *attributes: str) -> None:
-        """Add additional attributes to exclude from comparison and storage.
-
-        Args:
-            *attributes: Attribute names to exclude
-        """
-        self.excluded_attributes.update(attributes)
-
-    def remove_excluded_attributes(self, *attributes: str) -> None:
-        """Remove attributes from the exclusion list.
-
-        Args:
-            *attributes: Attribute names to stop excluding
-        """
-        for attr in attributes:
-            self.excluded_attributes.discard(attr)
-
-    def get_excluded_attributes(self) -> set[str]:
-        """Get the current set of excluded attributes.
-
-        Returns:
-            Set of attribute names that are excluded
-        """
-        return self.excluded_attributes.copy()
-
-    def add_test_case(
-        self,
-        test_id: str,
-        description: str,
-        source_word: str,
-        target_language: Language,
-        tags: Optional[list[str]] = None,
-    ) -> TestCase:
-        """Add a new test case to the test suite."""
-        test_case = TestCase(
-            test_id=test_id,
-            description=description,
-            input_data={
-                "source_word": source_word,
-                "target_language": (
-                    target_language.value
-                    if isinstance(target_language, Language)
-                    else target_language
-                ),
-            },
-            tags=tags or [],
-            created_at=datetime.now().isoformat(),
-        )
-        self.test_cases.append(test_case)
-        return test_case
-
-    def load_test_cases_from_file(self, file_path: str) -> None:
-        """Load test cases from a JSON file."""
-        try:
-            with open(file_path, "r") as f:
-                data = json.load(f)
-                for item in data:
-                    test_case = TestCase(**item)
-                    self.test_cases.append(test_case)
-            logger.info(f"Loaded {len(data)} test cases from {file_path}")
-        except Exception as e:
-            logger.error(f"Error loading test cases from {file_path}: {e}")
-
-    def save_test_cases(self, file_path: Optional[str] = None) -> None:
-        """Save test cases to a JSON file."""
-        if not file_path:
-            file_path = self.test_data_dir / "test_cases" / "test_cases.json"
-
-        with open(file_path, "w") as f:
-            json.dump([asdict(tc) for tc in self.test_cases], f, indent=2)
-        logger.info(f"Saved {len(self.test_cases)} test cases to {file_path}")
+    def _summarize_token_usage(self, token_usage: dict) -> dict:
+        """Return only the summary fields from token usage."""
+        if not token_usage:
+            return None
+        return {
+            "test_id": token_usage.get("test_id"),
+            "total_execution_time": token_usage.get("total_execution_time"),
+            "total_input_tokens": token_usage.get("total_input_tokens"),
+            "total_output_tokens": token_usage.get("total_output_tokens"),
+            "total_tokens": token_usage.get("total_tokens"),
+        }
 
     async def run_single_test(self, test_case: TestCase) -> TestResult:
         """Run a single test case through the graph."""
+        logger.info(f"Starting test: {test_case.test_id}")
         start_time = asyncio.get_event_loop().time()
 
+        # Clear token tracker before starting new test
         try:
-            # Run the graph with the test input
+            from vocab_processor.utils.token_tracker import get_token_tracker
+
+            tracker = get_token_tracker()
+            tracker.clear()  # Clear any previous test data
+            tracker.start_test(test_case.test_id)
+        except Exception as e:
+            logger.error(f"Failed to start token tracking for {test_case.test_id}: {e}")
+            tracker = None
+
+        try:
             result = await graph.ainvoke(test_case.input_data)
-
-            # Convert result to dict if it's a Pydantic model
-            if hasattr(result, "model_dump"):
-                actual_output = result.model_dump()
-            else:
-                actual_output = dict(result)
-
+            actual_output = self._make_serializable(result)
             execution_time = asyncio.get_event_loop().time() - start_time
 
-            # Check if we have expected output (ground truth)
-            expected_output = test_case.expected_output
-            passed = True
-            differences = None
+            # Capture token usage
+            token_usage = None
+            if tracker:
+                test_usage = tracker.end_test(execution_time)
+                if test_usage:
+                    token_usage = self._summarize_token_usage(test_usage.to_dict())
 
-            if expected_output:
-                differences = self._compare_outputs(actual_output, expected_output)
-                passed = len(differences) == 0
+            differences = None
+            passed = True
+            if test_case.expected_output:
+                # Use regression-focused comparison
+                differences = self._compare_regression_metrics(
+                    actual_output,
+                    test_case.expected_output,
+                    token_usage,
+                    test_case.expected_token_usage,
+                )
+                passed = not differences
 
             return TestResult(
                 test_id=test_case.test_id,
                 passed=passed,
                 actual_output=actual_output,
-                expected_output=expected_output,
+                expected_output=test_case.expected_output,
                 differences=differences,
                 execution_time=execution_time,
-                timestamp=datetime.now().isoformat(),
+                token_usage=token_usage,
             )
 
         except Exception as e:
+            logger.exception(f"Exception during test case {test_case.test_id}")
             execution_time = asyncio.get_event_loop().time() - start_time
+
+            # Capture token usage even on error
+            token_usage = None
+            if tracker:
+                test_usage = tracker.end_test(execution_time)
+                if test_usage:
+                    token_usage = self._summarize_token_usage(test_usage.to_dict())
+
+            differences = None
+            passed = False
+            if test_case.expected_output:
+                # Use regression-focused comparison even on error
+                differences = self._compare_regression_metrics(
+                    {},
+                    test_case.expected_output,
+                    token_usage,
+                    test_case.expected_token_usage,
+                )
+
             return TestResult(
                 test_id=test_case.test_id,
-                passed=False,
+                passed=passed,
                 actual_output={},
                 expected_output=test_case.expected_output,
                 execution_time=execution_time,
                 error=str(e),
-                timestamp=datetime.now().isoformat(),
+                token_usage=token_usage,
+                differences=differences,
             )
 
-    async def build_ground_truth(
-        self, test_cases: Optional[list[TestCase]] = None
-    ) -> dict[str, TestResult]:
-        """Build ground truth by running test cases and storing their outputs."""
-        if test_cases is None:
-            test_cases = self.test_cases
+    async def build_ground_truth(self, test_cases: List[TestCase]) -> None:
+        """Build ground truth by running test cases sequentially and storing their outputs."""
+        ground_truth_data = {}
+        console.print(
+            f"Building ground truth for {len(test_cases)} tests sequentially..."
+        )
 
-        results = {}
-
-        for test_case in test_cases:
-            logger.info(f"Building ground truth for test case: {test_case.test_id}")
-            result = await self.run_single_test(test_case)
-
-            if result.passed and not result.error:
-                # Store as ground truth
-                test_case.expected_output = result.actual_output
-                test_case.updated_at = datetime.now().isoformat()
-                results[test_case.test_id] = result
-                logger.info(f"✓ Ground truth built for {test_case.test_id}")
-            else:
-                logger.error(
-                    f"✗ Failed to build ground truth for {test_case.test_id}: {result.error}"
-                )
-                results[test_case.test_id] = result
+        for tc in test_cases:
+            try:
+                result = await self.run_single_test(tc)
+                if not result.error:
+                    filtered_output = self._filter_excluded_attributes(
+                        result.actual_output
+                    )
+                    # Only keep output and token_usage (no top-level execution_time)
+                    ground_truth_entry = {
+                        "output": filtered_output,
+                    }
+                    if result.token_usage:
+                        ground_truth_entry["token_usage"] = self._summarize_token_usage(
+                            result.token_usage
+                        )
+                    ground_truth_data[result.test_id] = ground_truth_entry
+                    logger.info(f"✓ Ground truth built for {result.test_id}")
+                else:
+                    logger.error(
+                        f"✗ Failed to build ground truth for {result.test_id}: {result.error}"
+                    )
+            except Exception as e:
+                logger.error(f"Test case {tc.test_id} failed with exception: {e}")
 
         # Save ground truth
-        self.save_ground_truth()
-        return results
+        self.save_ground_truth(ground_truth_data)
 
-    def save_ground_truth(self, file_path: Optional[str] = None) -> None:
+    def save_ground_truth(self, ground_truth_data: Dict[str, Any]) -> None:
         """Save ground truth data to file."""
-        if not file_path:
-            file_path = self.test_data_dir / "ground_truth" / "ground_truth.json"
-
-        ground_truth_data = {}
-        for tc in self.test_cases:
-            if tc.expected_output is not None:
-                # Convert to serializable format
-                serializable_output = self._make_serializable(tc.expected_output)
-                # Filter out excluded attributes
-                filtered_output = self._filter_excluded_attributes(serializable_output)
-                ground_truth_data[tc.test_id] = filtered_output
-
-        with open(file_path, "w") as f:
+        with open(self.ground_truth_file, "w") as f:
             json.dump(ground_truth_data, f, indent=2)
-        logger.info(f"Saved ground truth for {len(ground_truth_data)} test cases")
+        logger.info(
+            f"Saved ground truth for {len(ground_truth_data)} test cases to {self.ground_truth_file}"
+        )
 
-    def load_ground_truth(self, file_path: Optional[str] = None) -> None:
-        """Load ground truth data from file."""
-        if not file_path:
-            file_path = self.test_data_dir / "ground_truth" / "ground_truth.json"
-
+    def load_ground_truth(self, test_cases: List[TestCase]) -> None:
+        """Load ground truth data and attach it to the test cases."""
         try:
-            with open(file_path, "r") as f:
+            with open(self.ground_truth_file, "r") as f:
                 ground_truth_data = json.load(f)
 
-            # Update test cases with ground truth
-            for test_case in self.test_cases:
-                if test_case.test_id in ground_truth_data:
-                    test_case.expected_output = ground_truth_data[test_case.test_id]
+            for tc in test_cases:
+                if tc.test_id in ground_truth_data:
+                    entry = ground_truth_data[tc.test_id]
 
-            logger.info(f"Loaded ground truth for {len(ground_truth_data)} test cases")
+                    # Handle both old format (direct output) and new format (with metadata)
+                    if isinstance(entry, dict) and "output" in entry:
+                        # New format with metadata
+                        tc.expected_output = entry["output"]
+                        # Store execution time and token usage for comparison
+                        tc.expected_execution_time = entry.get("execution_time")
+                        tc.expected_token_usage = entry.get("token_usage")
+                    else:
+                        # Old format - just the output
+                        tc.expected_output = entry
+
+            logger.info(f"Loaded ground truth for {len(ground_truth_data)} test cases.")
+        except FileNotFoundError:
+            logger.warning(
+                "Ground truth file not found. Run with 'build' command to create it."
+            )
         except Exception as e:
             logger.error(f"Error loading ground truth: {e}")
 
-    async def run_test_suite(
-        self, test_cases: Optional[list[TestCase]] = None
-    ) -> list[TestResult]:
-        """Run the full test suite and return results."""
-        if test_cases is None:
-            test_cases = self.test_cases
+    async def run_test_suite(self, test_cases: List[TestCase]) -> List[TestResult]:
+        """Run the full test suite sequentially and return results."""
+        console.print(
+            f"Running regression tests for {len(test_cases)} test cases sequentially..."
+        )
 
         results = []
-
-        for test_case in test_cases:
-            logger.info(f"Running test case: {test_case.test_id}")
-            result = await self.run_single_test(test_case)
+        for tc in test_cases:
+            result = await self.run_single_test(tc)
             results.append(result)
 
-            status = "✓ PASS" if result.passed else "✗ FAIL"
-            logger.info(f"{status} - {test_case.test_id}")
+            # Print status immediately after each test
+            status = "[green]✓ PASS[/green]" if result.passed else "[red]✗ FAIL[/red]"
+            console.print(f"{status} - {result.test_id}")
 
-            if result.error:
-                logger.error(f"Error: {result.error}")
-
-        # Save results
         self.save_test_results(results)
         return results
 
-    def save_test_results(
-        self, results: list[TestResult], file_path: Optional[str] = None
-    ) -> None:
-        """Save test results to file."""
-        if not file_path:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            file_path = (
-                self.test_data_dir / "results" / f"test_results_{timestamp}.json"
-            )
+    def save_test_results(self, results: List[TestResult]) -> None:
+        """Save test results to a timestamped file."""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_path = self.test_data_dir / "results" / f"test_results_{timestamp}.json"
 
-        # Convert results to serializable format
         serializable_results = []
         for result in results:
             result_dict = asdict(result)
-            # Make sure all nested objects are serializable
-            result_dict["actual_output"] = self._make_serializable(
-                result_dict["actual_output"]
-            )
-            if result_dict["expected_output"]:
-                result_dict["expected_output"] = self._make_serializable(
-                    result_dict["expected_output"]
-                )
-
-            # Filter out excluded attributes from both outputs
             result_dict["actual_output"] = self._filter_excluded_attributes(
                 result_dict["actual_output"]
             )
@@ -348,65 +330,136 @@ class LangGraphTestFramework:
                 result_dict["expected_output"] = self._filter_excluded_attributes(
                     result_dict["expected_output"]
                 )
-
+            if result_dict.get("token_usage"):
+                result_dict["token_usage"] = self._summarize_token_usage(
+                    result_dict["token_usage"]
+                )
+            # Remove execution_time from saved results
+            if "execution_time" in result_dict:
+                del result_dict["execution_time"]
             serializable_results.append(result_dict)
-
         with open(file_path, "w") as f:
             json.dump(serializable_results, f, indent=2)
         logger.info(f"Saved test results to {file_path}")
 
     def _compare_outputs(
-        self, actual: dict[str, Any], expected: dict[str, Any]
-    ) -> dict[str, Any]:
+        self, actual: Dict[str, Any], expected: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Compare actual output with expected output and return differences."""
         differences = {}
+        filtered_actual = self._filter_excluded_attributes(actual)
+        filtered_expected = self._filter_excluded_attributes(expected)
 
-        # Serialize both outputs to make them comparable
-        serialized_actual = self._make_serializable(actual)
-        serialized_expected = self._make_serializable(expected)
-
-        # Filter out excluded attributes from both outputs
-        filtered_actual = self._filter_excluded_attributes(serialized_actual)
-        filtered_expected = self._filter_excluded_attributes(serialized_expected)
-
-        # Check for missing keys in actual
-        for key in filtered_expected:
-            if key not in filtered_actual:
-                differences[f"missing_{key}"] = (
-                    f"Expected key '{key}' not found in actual output"
-                )
-
-        # Check for differing values
-        for key in filtered_expected:
-            if (
-                key in filtered_actual
-                and filtered_actual[key] != filtered_expected[key]
-            ):
-                differences[f"diff_{key}"] = {
-                    "expected": filtered_expected[key],
-                    "actual": filtered_actual[key],
+        all_keys = set(filtered_actual.keys()) | set(filtered_expected.keys())
+        for key in all_keys:
+            if filtered_actual.get(key) != filtered_expected.get(key):
+                differences[key] = {
+                    "expected": filtered_expected.get(key),
+                    "actual": filtered_actual.get(key),
                 }
+        return differences
 
-        # Check for extra keys in actual
-        for key in filtered_actual:
-            if key not in filtered_expected:
-                differences[f"extra_{key}"] = (
-                    f"Unexpected key '{key}' found in actual output"
-                )
+    def _compare_regression_metrics(
+        self,
+        actual: Dict[str, Any],
+        expected: Dict[str, Any],
+        actual_token_usage: Optional[Dict[str, Any]],
+        expected_token_usage: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Compare only quality scores, token usage, and quality gate failures for regression testing."""
+        differences = {}
+
+        # Check for missing or empty output
+        if not actual or len(actual) == 0:
+            differences["missing_output"] = {
+                "expected": "Non-empty output",
+                "actual": "Empty or missing output",
+                "reason": "Test produced no output",
+            }
+            return differences
+
+        # Compare quality scores
+        quality_score_fields = [
+            key for key in actual.keys() if key.endswith("_quality_score")
+        ]
+        for field in quality_score_fields:
+            actual_score = actual.get(field)
+            expected_score = expected.get(field)
+
+            if actual_score is not None and expected_score is not None:
+                # Check if score is below 8 or 20% worse
+                if actual_score < 8.0:
+                    differences[f"{field}_below_threshold"] = {
+                        "expected": f">= 8.0",
+                        "actual": actual_score,
+                        "reason": "Quality score below minimum threshold of 8.0",
+                    }
+                elif actual_score < expected_score * 0.8:  # 20% worse
+                    differences[f"{field}_regression"] = {
+                        "expected": f">= {expected_score * 0.8:.1f}",
+                        "actual": actual_score,
+                        "reason": f"Quality score {((expected_score - actual_score) / expected_score * 100):.1f}% worse than expected",
+                    }
+
+        # Compare quality gate failures
+        quality_approved_fields = [
+            key for key in actual.keys() if key.endswith("_quality_approved")
+        ]
+        actual_failed_gates = sum(
+            1 for field in quality_approved_fields if actual.get(field) is False
+        )
+        expected_failed_gates = sum(
+            1 for field in quality_approved_fields if expected.get(field) is False
+        )
+
+        if actual_failed_gates != expected_failed_gates:
+            differences["quality_gate_failures"] = {
+                "expected": expected_failed_gates,
+                "actual": actual_failed_gates,
+                "reason": f"Number of failed quality gates changed from {expected_failed_gates} to {actual_failed_gates}",
+            }
+
+        # Check for specific quality gate failures
+        failed_gates = []
+        for field in quality_approved_fields:
+            if actual.get(field) is False:
+                gate_name = field.replace("_quality_approved", "")
+                failed_gates.append(gate_name)
+
+        if failed_gates:
+            differences["specific_quality_gate_failures"] = {
+                "expected": "All quality gates passed",
+                "actual": f"Failed gates: {', '.join(failed_gates)}",
+                "reason": f"Quality gates failed for: {', '.join(failed_gates)}",
+            }
+
+        # Compare token usage (20% more is an error)
+        if actual_token_usage and expected_token_usage:
+            actual_tokens = actual_token_usage.get("total_tokens", 0)
+            expected_tokens = expected_token_usage.get("total_tokens", 0)
+
+            if (
+                expected_tokens > 0 and actual_tokens > expected_tokens * 1.2
+            ):  # 20% more
+                differences["token_usage_regression"] = {
+                    "expected": f"<= {expected_tokens * 1.2:.0f}",
+                    "actual": actual_tokens,
+                    "reason": f"Token usage {((actual_tokens - expected_tokens) / expected_tokens * 100):.1f}% higher than expected",
+                }
 
         return differences
 
     def _format_value_for_diff(self, value: Any, indent: int = 0) -> str:
         """Format a value for diff display with proper indentation."""
         indent_str = "  " * indent
-
         if isinstance(value, dict):
             if not value:
                 return "{}"
             lines = ["{"]
             for k, v in value.items():
-                formatted_value = self._format_value_for_diff(v, indent + 1)
-                lines.append(f"{indent_str}  {repr(k)}: {formatted_value},")
+                lines.append(
+                    f"{indent_str}  {repr(k)}: {self._format_value_for_diff(v, indent + 1)},"
+                )
             lines.append(f"{indent_str}}}")
             return "\n".join(lines)
         elif isinstance(value, list):
@@ -414,359 +467,155 @@ class LangGraphTestFramework:
                 return "[]"
             lines = ["["]
             for item in value:
-                formatted_item = self._format_value_for_diff(item, indent + 1)
-                lines.append(f"{indent_str}  {formatted_item},")
+                lines.append(
+                    f"{indent_str}  {self._format_value_for_diff(item, indent + 1)},"
+                )
             lines.append(f"{indent_str}]")
             return "\n".join(lines)
         else:
             return repr(value)
 
-    def generate_colored_diff(
-        self, actual: dict[str, Any], expected: dict[str, Any]
-    ) -> str:
-        """Generate a colored diff between actual and expected outputs using Rich."""
-        # Create a string buffer to capture console output
-        from io import StringIO
-
-        diff_console = Console(file=StringIO(), width=120)
-
-        # Header
-        diff_console.print(Panel("DETAILED DIFF", style="cyan bold", width=60))
-
-        # Get all keys from both dictionaries (inputs are already filtered)
-        all_keys = set(actual.keys()) | set(expected.keys())
-
-        for key in sorted(all_keys):
-            actual_value = actual.get(key, "<MISSING>")
-            expected_value = expected.get(key, "<MISSING>")
-
-            if key not in expected:
-                # Extra key in actual
-                diff_console.print(f"\n[red bold]+ EXTRA KEY: {key}[/red bold]")
-                formatted_value = self._format_value_for_diff(actual_value)
-                syntax = Syntax(
-                    formatted_value, "json", theme="monokai", line_numbers=False
-                )
-                diff_console.print(Panel(syntax, border_style="red", title="Added"))
-
-            elif key not in actual:
-                # Missing key in actual
-                diff_console.print(f"\n[red bold]- MISSING KEY: {key}[/red bold]")
-                formatted_value = self._format_value_for_diff(expected_value)
-                syntax = Syntax(
-                    formatted_value, "json", theme="monokai", line_numbers=False
-                )
-                diff_console.print(Panel(syntax, border_style="red", title="Missing"))
-
-            elif actual_value != expected_value:
-                # Different values
-                diff_console.print(f"\n[yellow bold]~ CHANGED: {key}[/yellow bold]")
-
-                # Show expected vs actual in columns
-                formatted_expected = self._format_value_for_diff(expected_value)
-                formatted_actual = self._format_value_for_diff(actual_value)
-
-                expected_syntax = Syntax(
-                    formatted_expected, "json", theme="monokai", line_numbers=False
-                )
-                actual_syntax = Syntax(
-                    formatted_actual, "json", theme="monokai", line_numbers=False
-                )
-
-                expected_panel = Panel(
-                    expected_syntax, border_style="red", title="Expected"
-                )
-                actual_panel = Panel(
-                    actual_syntax, border_style="green", title="Actual"
-                )
-
-                diff_console.print(Columns([expected_panel, actual_panel]))
-            else:
-                # Values match - show in green
-                diff_console.print(f"\n[green bold]✓ MATCH: {key}[/green bold]")
-
-        return diff_console.file.getvalue()
-
-    def generate_test_report(self, results: list[TestResult]) -> str:
-        """Generate a human-readable test report using Rich."""
-        from io import StringIO
-
-        report_console = Console(file=StringIO(), width=100)
-
-        total_tests = len(results)
-        passed_tests = sum(1 for r in results if r.passed)
-        failed_tests = total_tests - passed_tests
-
-        # Header
-        report_console.print(
-            Panel("[cyan bold]LangGraph Test Report[/cyan bold]", width=50)
-        )
-        report_console.print(
-            f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        )
-        report_console.print()
-
-        # Summary table
-        table = Table(title="Summary")
-        table.add_column("Metric", style="cyan")
-        table.add_column("Value", style="bold")
-
-        table.add_row("Total Tests", str(total_tests))
-        table.add_row("Passed", f"[green]{passed_tests}[/green]")
-        table.add_row("Failed", f"[red]{failed_tests}[/red]")
-        table.add_row("Success Rate", f"{(passed_tests/total_tests)*100:.1f}%")
-
-        report_console.print(table)
-        report_console.print()
-
-        if failed_tests > 0:
-            report_console.print("[red bold]Failed Tests:[/red bold]")
-            for result in results:
-                if not result.passed:
-                    report_console.print(
-                        f"  [red]✗ {result.test_id}: {result.error or 'Output mismatch'}[/red]"
-                    )
-                    if result.differences:
-                        for diff_key, diff_value in result.differences.items():
-                            report_console.print(
-                                f"    [yellow]{diff_key}: {diff_value}[/yellow]"
-                            )
-
-        return report_console.file.getvalue()
-
-    def generate_colored_test_report(self, results: list[TestResult]) -> str:
-        """Generate a colored test report with detailed diffs for regression testing using Rich."""
-        from io import StringIO
-
-        report_console = Console(file=StringIO(), width=120)
-
-        total_tests = len(results)
-        passed_tests = sum(1 for r in results if r.passed)
-        failed_tests = total_tests - passed_tests
-
-        # Header
-        report_console.print(
-            Panel("[cyan bold]LANGGRAPH REGRESSION TEST REPORT[/cyan bold]", width=80)
-        )
-        report_console.print(
-            f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        )
-        report_console.print()
-
-        # Summary table
-        table = Table(title="[cyan bold]SUMMARY[/cyan bold]")
-        table.add_column("Metric", style="cyan")
-        table.add_column("Value", style="bold")
-
-        table.add_row("Total Tests", str(total_tests))
-        table.add_row("Passed", f"[green]{passed_tests}[/green]")
-        table.add_row("Failed", f"[red]{failed_tests}[/red]")
-
-        if total_tests > 0:
-            success_rate = (passed_tests / total_tests) * 100
-            color = (
-                "green"
-                if success_rate >= 90
-                else "yellow" if success_rate >= 70 else "red"
-            )
-            table.add_row("Success Rate", f"[{color}]{success_rate:.1f}%[/{color}]")
-
-        report_console.print(table)
-        report_console.print()
-
-        # Detailed results
-        if passed_tests > 0:
-            report_console.print("[green bold]PASSED TESTS:[/green bold]")
-            for result in results:
-                if result.passed:
-                    exec_time = (
-                        f" ({result.execution_time:.2f}s)"
-                        if result.execution_time
-                        else ""
-                    )
-                    report_console.print(
-                        f"  [green]✓[/green] {result.test_id}{exec_time}"
-                    )
-            report_console.print()
-
-        if failed_tests > 0:
-            report_console.print("[red bold]FAILED TESTS:[/red bold]")
-            for result in results:
-                if not result.passed:
-                    exec_time = (
-                        f" ({result.execution_time:.2f}s)"
-                        if result.execution_time
-                        else ""
-                    )
-                    report_console.print(f"  [red]✗[/red] {result.test_id}{exec_time}")
-
-                    if result.error:
-                        report_console.print(f"    [red]Error: {result.error}[/red]")
-
-                    # Show colored diff if we have both expected and actual outputs
-                    if result.expected_output and result.actual_output:
-                        # Filter out excluded attributes before displaying diff
-                        filtered_actual = self._filter_excluded_attributes(
-                            result.actual_output
-                        )
-                        filtered_expected = self._filter_excluded_attributes(
-                            result.expected_output
-                        )
-
-                        # Generate diff content as string instead of printing to console
-                        report_console.print(
-                            Panel("DETAILED DIFF", style="cyan bold", width=60)
-                        )
-
-                        # Get all keys from both dictionaries (inputs are already filtered)
-                        all_keys = set(filtered_actual.keys()) | set(
-                            filtered_expected.keys()
-                        )
-
-                        for key in sorted(all_keys):
-                            actual_value = filtered_actual.get(key, "<MISSING>")
-                            expected_value = filtered_expected.get(key, "<MISSING>")
-
-                            if key not in filtered_expected:
-                                # Extra key in actual
-                                report_console.print(
-                                    f"\n[red bold]+ EXTRA KEY: {key}[/red bold]"
-                                )
-                                formatted_value = self._format_value_for_diff(
-                                    actual_value
-                                )
-                                report_console.print(
-                                    Panel(
-                                        formatted_value,
-                                        border_style="red",
-                                        title="Added",
-                                    )
-                                )
-
-                            elif key not in filtered_actual:
-                                # Missing key in actual
-                                report_console.print(
-                                    f"\n[red bold]- MISSING KEY: {key}[/red bold]"
-                                )
-                                formatted_value = self._format_value_for_diff(
-                                    expected_value
-                                )
-                                report_console.print(
-                                    Panel(
-                                        formatted_value,
-                                        border_style="red",
-                                        title="Missing",
-                                    )
-                                )
-
-                            elif actual_value != expected_value:
-                                # Different values
-                                report_console.print(
-                                    f"\n[yellow bold]~ CHANGED: {key}[/yellow bold]"
-                                )
-
-                                # Show expected vs actual in columns with plain text
-                                formatted_expected = self._format_value_for_diff(
-                                    expected_value
-                                )
-                                formatted_actual = self._format_value_for_diff(
-                                    actual_value
-                                )
-
-                                expected_panel = Panel(
-                                    formatted_expected,
-                                    border_style="red",
-                                    title="Expected",
-                                )
-                                actual_panel = Panel(
-                                    formatted_actual,
-                                    border_style="green",
-                                    title="Actual",
-                                )
-
-                                report_console.print(
-                                    Columns([expected_panel, actual_panel])
-                                )
-                            else:
-                                # Values match - show in green
-                                report_console.print(
-                                    f"\n[green bold]✓ MATCH: {key}[/green bold]"
-                                )
-
-        return report_console.file.getvalue()
-
     def print_colored_diff(
-        self, actual: dict[str, Any], expected: dict[str, Any]
+        self, actual: Dict[str, Any], expected: Dict[str, Any]
     ) -> None:
         """Print a colored diff between actual and expected outputs directly to console."""
-        # Print directly to console to preserve colors
-        console.print(Panel("DETAILED DIFF", style="cyan bold", width=60))
+        console.print(Panel("DETAILED DIFF", style="cyan bold", width=60, expand=False))
 
-        # Get all keys from both dictionaries (inputs are already filtered)
-        all_keys = set(actual.keys()) | set(expected.keys())
+        all_keys = sorted(set(actual.keys()) | set(expected.keys()))
 
-        for key in sorted(all_keys):
-            actual_value = actual.get(key, "<MISSING>")
-            expected_value = expected.get(key, "<MISSING>")
+        for key in all_keys:
+            actual_value = actual.get(key)
+            expected_value = expected.get(key)
 
-            if key not in expected:
-                # Extra key in actual
-                console.print(f"\n[red bold]+ EXTRA KEY: {key}[/red bold]")
-                formatted_value = self._format_value_for_diff(actual_value)
-                # Use plain text instead of syntax highlighting
-                console.print(Panel(formatted_value, border_style="red", title="Added"))
+            if actual_value == expected_value:
+                continue
 
-            elif key not in actual:
-                # Missing key in actual
-                console.print(f"\n[red bold]- MISSING KEY: {key}[/red bold]")
-                formatted_value = self._format_value_for_diff(expected_value)
-                # Use plain text instead of syntax highlighting
-                console.print(
-                    Panel(formatted_value, border_style="red", title="Missing")
-                )
+            console.print(f"\n[yellow bold]~ CHANGED: {key}[/yellow bold]")
 
-            elif actual_value != expected_value:
-                # Different values
-                console.print(f"\n[yellow bold]~ CHANGED: {key}[/yellow bold]")
+            expected_panel = Panel(
+                self._format_value_for_diff(expected_value),
+                border_style="red",
+                title="Expected",
+            )
+            actual_panel = Panel(
+                self._format_value_for_diff(actual_value),
+                border_style="green",
+                title="Actual",
+            )
+            console.print(Columns([expected_panel, actual_panel]))
 
-                # Show expected vs actual in columns with plain text
-                formatted_expected = self._format_value_for_diff(expected_value)
-                formatted_actual = self._format_value_for_diff(actual_value)
+    def print_regression_diff(
+        self,
+        actual: Dict[str, Any],
+        expected: Dict[str, Any],
+        actual_token_usage: Optional[Dict[str, Any]],
+        expected_token_usage: Optional[Dict[str, Any]],
+        test_result: Optional["TestResult"] = None,
+    ) -> None:
+        """Print a focused diff for regression testing showing only quality scores, token usage, and quality gates."""
+        console.print(
+            Panel("REGRESSION METRICS DIFF", style="cyan bold", width=60, expand=False)
+        )
 
-                expected_panel = Panel(
-                    formatted_expected, border_style="red", title="Expected"
-                )
-                actual_panel = Panel(
-                    formatted_actual, border_style="green", title="Actual"
-                )
+        differences = self._compare_regression_metrics(
+            actual, expected, actual_token_usage, expected_token_usage
+        )
 
-                console.print(Columns([expected_panel, actual_panel]))
-            else:
-                # Values match - show in green
-                console.print(f"\n[green bold]✓ MATCH: {key}[/green bold]")
+        # Check for other failure reasons
+        other_issues = []
 
-    def print_colored_test_report(self, results: list[TestResult]) -> None:
+        # Check if test had an execution error
+        if test_result and test_result.error:
+            other_issues.append(f"Execution Error: {test_result.error}")
+
+        # Check if actual output is empty or missing key fields
+        if not actual or len(actual) == 0:
+            other_issues.append("No output generated")
+        elif expected and len(expected) > 0:
+            # Check for missing key fields that should be present
+            key_fields = ["target_word", "source_word", "validation_passed"]
+            missing_fields = [
+                field
+                for field in key_fields
+                if field in expected and field not in actual
+            ]
+            if missing_fields:
+                other_issues.append(f"Missing key fields: {', '.join(missing_fields)}")
+
+        # Check for quality gate failures
+        if actual:
+            quality_gates = [
+                key for key in actual.keys() if key.endswith("_quality_approved")
+            ]
+            failed_gates = [
+                gate.replace("_quality_approved", "")
+                for gate in quality_gates
+                if actual.get(gate) is False
+            ]
+            if failed_gates:
+                other_issues.append(f"Failed quality gates: {', '.join(failed_gates)}")
+
+        if not differences and not other_issues:
+            console.print("[green]✓ No regression issues detected[/green]")
+            return
+
+        # Show regression differences
+        for key, diff in differences.items():
+            console.print(f"\n[yellow bold]~ REGRESSION: {key}[/yellow bold]")
+            console.print(f"[red]Reason: {diff['reason']}[/red]")
+
+            expected_panel = Panel(
+                str(diff["expected"]),
+                border_style="red",
+                title="Expected",
+            )
+            actual_panel = Panel(
+                str(diff["actual"]),
+                border_style="green",
+                title="Actual",
+            )
+            console.print(Columns([expected_panel, actual_panel]))
+
+        # Show other issues
+        for issue in other_issues:
+            console.print(f"\n[red bold]~ ISSUE: {issue}[/red bold]")
+
+    def print_colored_test_report(self, results: List[TestResult]) -> None:
         """Print a colored test report with detailed diffs for regression testing directly to console."""
         total_tests = len(results)
         passed_tests = sum(1 for r in results if r.passed)
         failed_tests = total_tests - passed_tests
 
-        # Header
         console.print(
-            Panel("[cyan bold]LANGGRAPH REGRESSION TEST REPORT[/cyan bold]", width=80)
+            Panel(
+                "[cyan bold]LANGGRAPH REGRESSION TEST REPORT[/cyan bold]", expand=False
+            )
         )
         console.print(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        console.print()
+
+        # Calculate token usage statistics
+        total_tokens = 0
+        total_input_tokens = 0
+        total_output_tokens = 0
+        total_execution_time = 0.0
+        tests_with_tokens = 0
+
+        for result in results:
+            if result.token_usage:
+                total_tokens += result.token_usage.get("total_tokens", 0)
+                total_input_tokens += result.token_usage.get("total_input_tokens", 0)
+                total_output_tokens += result.token_usage.get("total_output_tokens", 0)
+                tests_with_tokens += 1
+            if result.execution_time:
+                total_execution_time += result.execution_time
 
         # Summary table
-        table = Table(title="[cyan bold]SUMMARY[/cyan bold]")
-        table.add_column("Metric", style="cyan")
-        table.add_column("Value", style="bold")
-
-        table.add_row("Total Tests", str(total_tests))
-        table.add_row("Passed", f"[green]{passed_tests}[/green]")
-        table.add_row("Failed", f"[red]{failed_tests}[/red]")
-
+        summary_table = Table(title="[cyan bold]SUMMARY[/cyan bold]")
+        summary_table.add_column("Metric", style="cyan")
+        summary_table.add_column("Value", style="bold")
+        summary_table.add_row("Total Tests", str(total_tests))
+        summary_table.add_row("Passed", f"[green]{passed_tests}[/green]")
+        summary_table.add_row("Failed", f"[red]{failed_tests}[/red]")
         if total_tests > 0:
             success_rate = (passed_tests / total_tests) * 100
             color = (
@@ -774,244 +623,179 @@ class LangGraphTestFramework:
                 if success_rate >= 90
                 else "yellow" if success_rate >= 70 else "red"
             )
-            table.add_row("Success Rate", f"[{color}]{success_rate:.1f}%[/{color}]")
+            summary_table.add_row(
+                "Success Rate", f"[{color}]{success_rate:.1f}%[/{color}]"
+            )
 
-        console.print(table)
-        console.print()
+        # Add token usage statistics
+        if tests_with_tokens > 0:
+            summary_table.add_row(
+                "Total Execution Time", f"{total_execution_time:.2f}s"
+            )
+            summary_table.add_row("Total Tokens Used", f"{total_tokens:,}")
+            summary_table.add_row("Input Tokens", f"{total_input_tokens:,}")
+            summary_table.add_row("Output Tokens", f"{total_output_tokens:,}")
+            summary_table.add_row(
+                "Avg Tokens per Test", f"{total_tokens // tests_with_tokens:,}"
+            )
 
-        # Detailed results
+        console.print(summary_table)
+
+        # Detailed test results table
+        if total_tests <= 10:  # Show detailed table for small test suites
+            console.print("\n[cyan bold]DETAILED TEST RESULTS[/cyan bold]")
+            results_table = Table()
+            results_table.add_column("Test ID", style="cyan", width=30)
+            results_table.add_column("Status", style="bold", width=8)
+            results_table.add_column("Execution Time", width=15)
+            results_table.add_column("Tokens", width=12)
+            results_table.add_column("Regression", width=15)
+
+            for r in results:
+                # Status
+                status = "[green]✓ PASS[/green]" if r.passed else "[red]✗ FAIL[/red]"
+
+                # Execution time
+                exec_time = f"{r.execution_time:.2f}s" if r.execution_time else "N/A"
+
+                # Token usage
+                tokens = "N/A"
+                if r.token_usage:
+                    tokens = f"{r.token_usage.get('total_tokens', 0):,}"
+
+                # Regression analysis
+                regression = "N/A"
+                if r.expected_output and r.actual_output and r.token_usage:
+                    # Compare with expected values
+                    expected_tokens = 0
+                    expected_time = 0
+                    if hasattr(r, "expected_token_usage") and r.expected_token_usage:
+                        expected_tokens = r.expected_token_usage.get("total_tokens", 0)
+                        expected_time = r.expected_token_usage.get(
+                            "total_execution_time", 0
+                        )
+
+                    current_tokens = r.token_usage.get("total_tokens", 0)
+                    current_time = r.execution_time or 0
+
+                    regressions = []
+                    if expected_tokens > 0:
+                        token_diff = (
+                            (current_tokens - expected_tokens) / expected_tokens
+                        ) * 100
+                        if token_diff > 20:
+                            regressions.append(f"Tokens +{token_diff:.0f}%")
+                        elif token_diff < -20:
+                            regressions.append(f"Tokens {token_diff:.0f}%")
+
+                    if expected_time > 0:
+                        time_diff = (
+                            (current_time - expected_time) / expected_time
+                        ) * 100
+                        if time_diff > 20:
+                            regressions.append(f"Time +{time_diff:.0f}%")
+                        elif time_diff < -20:
+                            regressions.append(f"Time {time_diff:.0f}%")
+
+                    # Check quality scores
+                    if r.expected_output and r.actual_output:
+                        expected_scores = self._extract_quality_scores(
+                            r.expected_output
+                        )
+                        actual_scores = self._extract_quality_scores(r.actual_output)
+
+                        for tool, expected_score in expected_scores.items():
+                            actual_score = actual_scores.get(tool, 0)
+                            if actual_score < 8 or (
+                                expected_score > 0
+                                and actual_score < expected_score * 0.8
+                            ):
+                                regressions.append(f"{tool} {actual_score:.1f}")
+
+                    if regressions:
+                        regression = ", ".join(regressions)
+                    else:
+                        regression = "[green]✓[/green]"
+
+                results_table.add_row(r.test_id, status, exec_time, tokens, regression)
+
+            console.print(results_table)
+
+        # Show passed/failed test lists
         if passed_tests > 0:
-            console.print("[green bold]PASSED TESTS:[/green bold]")
-            for result in results:
-                if result.passed:
+            console.print("\n[green bold]PASSED TESTS:[/green bold]")
+            for r in results:
+                if r.passed:
                     exec_time = (
-                        f" ({result.execution_time:.2f}s)"
-                        if result.execution_time
-                        else ""
+                        f" ({r.execution_time:.2f}s)" if r.execution_time else ""
                     )
-                    console.print(f"  [green]✓[/green] {result.test_id}{exec_time}")
-            console.print()
+                    token_info = ""
+                    if r.token_usage:
+                        tokens = r.token_usage.get("total_tokens", 0)
+                        token_info = f" [{tokens:,} tokens]"
+                    console.print(
+                        f"  [green]✓[/green] {r.test_id}{exec_time}{token_info}"
+                    )
 
         if failed_tests > 0:
-            console.print("[red bold]FAILED TESTS:[/red bold]")
-            for result in results:
-                if not result.passed:
+            console.print("\n[red bold]FAILED TESTS:[/red bold]")
+            for r in results:
+                if not r.passed:
                     exec_time = (
-                        f" ({result.execution_time:.2f}s)"
-                        if result.execution_time
-                        else ""
+                        f" ({r.execution_time:.2f}s)" if r.execution_time else ""
                     )
-                    console.print(f"  [red]✗[/red] {result.test_id}{exec_time}")
-
-                    if result.error:
-                        console.print(f"    [red]Error: {result.error}[/red]")
-
-                    # Show colored diff if we have both expected and actual outputs
-                    if result.expected_output and result.actual_output:
-                        # Filter out excluded attributes before displaying diff
+                    token_info = ""
+                    if r.token_usage:
+                        tokens = r.token_usage.get("total_tokens", 0)
+                        token_info = f" [{tokens:,} tokens]"
+                    console.print(f"  [red]✗[/red] {r.test_id}{exec_time}{token_info}")
+                    if r.error:
+                        console.print(f"    [red]Error: {r.error}[/red]")
+                    elif r.expected_output and r.actual_output:
                         filtered_actual = self._filter_excluded_attributes(
-                            result.actual_output
+                            r.actual_output
                         )
                         filtered_expected = self._filter_excluded_attributes(
-                            result.expected_output
+                            r.expected_output
                         )
-                        self.print_colored_diff(filtered_actual, filtered_expected)
-
+                        # Use regression-specific diff for better focus
+                        self.print_regression_diff(
+                            filtered_actual,
+                            filtered_expected,
+                            r.token_usage,
+                            getattr(r, "expected_token_usage", None),
+                            r,
+                        )
                     console.print()
 
-    def compare_test_results(
-        self, test_id: str, actual_result: TestResult, expected_result: TestResult
-    ) -> None:
-        """Compare two test results and display a colored diff."""
-        console.print(f"\n[cyan bold]COMPARISON FOR TEST: {test_id}[/cyan bold]")
+    def _extract_quality_scores(self, output: Dict[str, Any]) -> Dict[str, float]:
+        """Extract quality scores from the output dictionary."""
+        scores = {}
+        for key, value in output.items():
+            if key.endswith("_quality_score") and isinstance(value, (int, float)):
+                tool_name = key.replace("_quality_score", "")
+                scores[tool_name] = float(value)
+        return scores
 
-        if actual_result.actual_output and expected_result.actual_output:
-            # Filter out excluded attributes before displaying diff with direct printing
-            filtered_actual = self._filter_excluded_attributes(
-                actual_result.actual_output
-            )
-            filtered_expected = self._filter_excluded_attributes(
-                expected_result.actual_output
-            )
-            self.print_colored_diff(filtered_actual, filtered_expected)
-        else:
-            console.print("[red]Cannot compare: Missing output data[/red]")
-
-    def quick_diff_demo(self) -> None:
-        """Demonstrate the colored diff functionality with sample data."""
-        console.print("[cyan bold]COLORED DIFF DEMONSTRATION[/cyan bold]")
-
-        # Sample data for demonstration
-        expected = {
-            "source_word": "Haus",
-            "target_word": "casa",
-            "validation_passed": True,
-            "source_language": "German",
-            "target_language": "Spanish",
-            "synonyms": ["vivienda", "hogar", "residencia"],
-            "overall_quality_score": 9.5,
-            "examples": [
-                {"original": "Das ist mein Haus.", "translation": "Esta es mi casa."},
-                {"original": "Ich kaufe ein Haus.", "translation": "Compro una casa."},
-            ],
-        }
-
-        actual = {
-            "source_word": "Haus",
-            "target_word": "hogar",  # Different translation
-            "validation_passed": False,  # Different validation
-            "source_language": "German",
-            "target_language": "Spanish",
-            "synonyms": ["casa", "vivienda"],  # Different synonyms
-            "overall_quality_score": 7.2,  # Different score
-            "examples": [
-                {"original": "Das ist mein Haus.", "translation": "Este es mi hogar."},
-                # Missing second example
-            ],
-            "extra_field": "This shouldn't be here",  # Extra field
-        }
-
-        console.print("\n[yellow]This is a demonstration of how diffs look:[/yellow]")
-        # Use filtered outputs for demonstration with direct printing
-        filtered_actual = self._filter_excluded_attributes(actual)
-        filtered_expected = self._filter_excluded_attributes(expected)
-        self.print_colored_diff(filtered_actual, filtered_expected)
-
-    def _make_serializable(self, obj: Any, _seen: set = None) -> Any:
-        """Convert objects to JSON serializable format with recursion protection."""
-        if _seen is None:
-            _seen = set()
-
-        # Handle basic JSON-serializable types first
-        if obj is None or isinstance(obj, (str, int, float, bool)):
+    def _make_serializable(self, obj: Any) -> Any:
+        """Recursively convert objects to JSON serializable format."""
+        if isinstance(obj, (str, int, float, bool, type(None))):
             return obj
-
-        # Check for circular references using object id
-        obj_id = id(obj)
-        if obj_id in _seen:
-            return f"<circular reference to {type(obj).__name__}>"
-
-        # Add to seen set for complex objects
-        _seen.add(obj_id)
-
+        if hasattr(obj, "model_dump"):
+            return obj.model_dump()
+        if hasattr(obj, "value"):  # Enums
+            return obj.value
+        if isinstance(obj, dict):
+            return {k: self._make_serializable(v) for k, v in obj.items()}
+        if isinstance(obj, (list, tuple, set)):
+            return [self._make_serializable(item) for item in obj]
+        if hasattr(obj, "__dict__"):
+            return {
+                k: self._make_serializable(v)
+                for k, v in obj.__dict__.items()
+                if not k.startswith("_")
+            }
         try:
-            # Handle Pydantic models first
-            if hasattr(obj, "model_dump"):
-                try:
-                    result = obj.model_dump()
-                    return self._make_serializable(result, _seen)
-                except Exception as e:
-                    # If model_dump fails, try dict conversion
-                    logger.warning(f"model_dump failed for {type(obj).__name__}: {e}")
-                    return {
-                        k: self._make_serializable(v, _seen)
-                        for k, v in obj.__dict__.items()
-                        if not k.startswith("_")
-                    }
-
-            # Handle enums
-            elif hasattr(obj, "value"):
-                return obj.value
-
-            # Handle dictionaries
-            elif isinstance(obj, dict):
-                return {k: self._make_serializable(v, _seen) for k, v in obj.items()}
-
-            # Handle lists and tuples
-            elif isinstance(obj, (list, tuple)):
-                serialized_items = [
-                    self._make_serializable(item, _seen) for item in obj
-                ]
-                return (
-                    serialized_items
-                    if isinstance(obj, list)
-                    else tuple(serialized_items)
-                )
-
-            # Handle sets
-            elif isinstance(obj, set):
-                return [self._make_serializable(item, _seen) for item in obj]
-
-            # Handle custom objects with __dict__
-            elif hasattr(obj, "__dict__"):
-                return {
-                    k: self._make_serializable(v, _seen)
-                    for k, v in obj.__dict__.items()
-                    if not k.startswith("_")  # Skip private attributes
-                }
-
-            # For other types, convert to string
-            else:
-                return str(obj)
-
-        except Exception as e:
-            # If all else fails, return a safe string representation
-            logger.warning(f"Serialization failed for {type(obj).__name__}: {e}")
-            return f"<serialization error: {type(obj).__name__}>"
-        finally:
-            # Remove from seen set when done with this branch
-            _seen.discard(obj_id)
-
-
-# Example usage and predefined test cases
-def create_sample_test_cases() -> list[TestCase]:
-    """Create sample test cases for the vocabulary processing workflow."""
-    return [
-        TestCase(
-            test_id="test_german_to_spanish",
-            description="Test German word 'Haus' to Spanish translation",
-            input_data={"source_word": "Haus", "target_language": "Spanish"},
-            tags=["german", "spanish", "noun"],
-        ),
-        TestCase(
-            test_id="test_english_to_french",
-            description="Test English word 'house' to French translation",
-            input_data={"source_word": "house", "target_language": "French"},
-            tags=["english", "french", "noun"],
-        ),
-        TestCase(
-            test_id="test_spanish_verb",
-            description="Test Spanish verb 'comer' to English",
-            input_data={"source_word": "comer", "target_language": "English"},
-            tags=["spanish", "english", "verb"],
-        ),
-        TestCase(
-            test_id="test_invalid_word",
-            description="Test invalid word handling",
-            input_data={"source_word": "xyz123invalid", "target_language": "English"},
-            tags=["validation", "error_handling"],
-        ),
-    ]
-
-
-async def main():
-    """Example usage of the test framework."""
-    # Initialize test framework
-    test_framework = LangGraphTestFramework()
-
-    # Create sample test cases
-    sample_cases = create_sample_test_cases()
-    test_framework.test_cases = sample_cases
-
-    # Save test cases
-    test_framework.save_test_cases()
-
-    # Build ground truth (run tests and save outputs as expected results)
-    print("Building ground truth...")
-    ground_truth_results = await test_framework.build_ground_truth()
-
-    # Run test suite (this would compare against the ground truth we just built)
-    print("\nRunning test suite...")
-    test_results = await test_framework.run_test_suite()
-
-    # Generate and print report
-    report = test_framework.generate_test_report(test_results)
-    print(report)
-
-    # Save report to file
-    with open(test_framework.test_data_dir / "results" / "latest_report.txt", "w") as f:
-        f.write(report)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+            return str(obj)
+        except Exception:
+            return f"<unserializable: {type(obj).__name__}>"

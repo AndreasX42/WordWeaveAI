@@ -8,6 +8,7 @@ from vocab_processor.tools.base_tool import (
     add_quality_feedback_to_prompt,
     create_llm_response,
 )
+from vocab_processor.utils.ddb_utils import check_word_exists, lang_code
 
 
 class WordCategorization(BaseModel):
@@ -36,15 +37,27 @@ class WordCategorization(BaseModel):
         description="Additional information in the source language about the word in the source language if needed. For example if the word is only common in a specific country or region, in what context the word is used, if it is colloquial or vulgar, etc.",
     )
 
+    # Add existence check fields
+    word_exists: Optional[bool] = Field(
+        None,
+        description="Whether the word already exists in the database",
+    )
+    existing_item: Optional[dict] = Field(
+        None,
+        description="The existing database item if the word already exists",
+    )
+
 
 @tool
 async def get_classification(
     source_word: str,
     source_language: Language,
+    target_language: Language,
     quality_feedback: Optional[str] = None,
     previous_issues: Optional[List[str]] = None,
+    suggestions: Optional[List[str]] = None,
 ) -> WordCategorization:
-    """Categorize part of speech and language."""
+    """Categorize part of speech and language, then check if word exists in database."""
 
     # Base prompt
     prompt = f"""Classify '{source_word}' ({source_language}): part of speech ({', '.join(PartOfSpeech.all_values())}). 
@@ -59,22 +72,32 @@ async def get_classification(
 
     # Quality requirements for classification
     quality_requirements = [
-        "Extract base word correctly (to build → build)",
-        "Return base word in source_word field",
-        "1-3 definitions max - distinct meanings only",
-        f"Clear, natural {source_language} definitions",
-        "Most common meanings only",
-        "Pedagogically useful part of speech",
-        f"Include articles for {source_language} nouns",
+        "Extract base word correctly, removing any articles or other modifiers",
+        f"1 -3 clear and natural {source_language} definitions that are distinct and common",
         f"Note informal/slang usage and other important information in source_additional_info in {source_language}",
     ]
 
     # Add quality feedback if provided
     enhanced_prompt = add_quality_feedback_to_prompt(
-        prompt, quality_feedback, previous_issues, quality_requirements
+        prompt, quality_feedback, previous_issues, suggestions, quality_requirements
     )
 
-    return await create_llm_response(
+    # Get the classification first
+    classification = await create_llm_response(
         response_model=WordCategorization,
         user_prompt=enhanced_prompt,
     )
+
+    # After getting the base word, check if it exists in the database
+    existence_check = await check_word_exists(
+        base_word=classification.source_word,
+        source_language=source_language,
+        target_language=lang_code(target_language),
+        source_part_of_speech=classification.source_part_of_speech,
+    )
+
+    # Add existence check results to the classification
+    classification.word_exists = existence_check["exists"]
+    classification.existing_item = existence_check["existing_item"]
+
+    return classification

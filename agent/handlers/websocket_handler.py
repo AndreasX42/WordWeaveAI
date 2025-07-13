@@ -7,6 +7,11 @@ import boto3
 from aws_lambda_powertools import Logger
 from botocore.exceptions import ClientError
 
+from vocab_processor.utils.websocket_utils import (
+    create_vocab_word_key,
+    subscribe_connection_to_vocab_word,
+)
+
 logger = Logger(service="vocab-processor-websocket")
 
 # DynamoDB setup
@@ -20,24 +25,6 @@ connections_table = (
 # =============================================================================
 # UTILITY FUNCTIONS
 # =============================================================================
-
-
-def create_vocab_word_key(source_word: str, target_language: str) -> str:
-    """Create a consistent key for vocab_word subscriptions."""
-    import re
-    import unicodedata
-
-    def normalize_word(word: str) -> str:
-        """Return lower‑case, accent‑stripped, alnum‑only version of word."""
-        word = unicodedata.normalize("NFKC", word.lower())
-        word = "".join(
-            ch
-            for ch in unicodedata.normalize("NFD", word)
-            if unicodedata.category(ch) != "Mn"
-        )
-        return re.sub(r"[^a-z0-9]", "", word)
-
-    return f"{target_language.lower()}#{normalize_word(source_word)}"
 
 
 def get_connection_params(
@@ -112,25 +99,6 @@ def remove_connection(connection_id: str) -> bool:
         return False
 
 
-def update_connection_subscription(connection_id: str, vocab_word_key: str) -> bool:
-    """Update connection subscription in DynamoDB."""
-    try:
-        connections_table.update_item(
-            Key={"connection_id": connection_id},
-            UpdateExpression="SET vocab_word = :vocab_word, last_subscription = :timestamp",
-            ExpressionAttributeValues={
-                ":vocab_word": vocab_word_key,
-                ":timestamp": datetime.now(timezone.utc).isoformat(),
-            },
-        )
-        return True
-    except Exception as e:
-        logger.error(
-            "update_subscription_failed", connection_id=connection_id, error=str(e)
-        )
-        return False
-
-
 def cleanup_stale_connections():
     """Clean up stale WebSocket connections (called periodically)."""
     if not connections_table:
@@ -158,53 +126,6 @@ def cleanup_stale_connections():
 
 
 # =============================================================================
-# WEBSOCKET FUNCTIONS
-# =============================================================================
-
-
-def send_subscription_confirmation(
-    connection_id: str, vocab_word_key: str, source_word: str, target_language: str
-) -> None:
-    """Send subscription confirmation to client."""
-    try:
-        connection_info = connections_table.get_item(
-            Key={"connection_id": connection_id}
-        )
-        websocket_endpoint = connection_info.get("Item", {}).get(
-            "websocket_endpoint", ""
-        )
-
-        if not websocket_endpoint:
-            logger.warning("no_websocket_endpoint_found", connection_id=connection_id)
-            return
-
-        api_gateway = boto3.client(
-            "apigatewaymanagementapi", endpoint_url=websocket_endpoint
-        )
-
-        confirmation = {
-            "type": "subscription_confirmed",
-            "vocab_word": vocab_word_key,
-            "source_word": source_word,
-            "target_language": target_language,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        }
-
-        api_gateway.post_to_connection(
-            ConnectionId=connection_id, Data=json.dumps(confirmation)
-        )
-
-        logger.info("subscription_confirmation_sent", connection_id=connection_id)
-
-    except Exception as e:
-        logger.error(
-            "subscription_confirmation_failed",
-            connection_id=connection_id,
-            error=str(e),
-        )
-
-
-# =============================================================================
 # MESSAGE HANDLERS
 # =============================================================================
 
@@ -225,13 +146,9 @@ def handle_subscribe(connection_id: str, body: Dict[str, Any]) -> Dict[str, Any]
         logger.error("invalid_subscription_request", connection_id=connection_id)
         return {"statusCode": 400, "body": "Missing source_word or target_language"}
 
-    vocab_word_key = create_vocab_word_key(source_word, target_language)
-
-    if update_connection_subscription(connection_id, vocab_word_key):
+    if subscribe_connection_to_vocab_word(connection_id, source_word, target_language):
         logger.info("vocab_word_subscription_successful", connection_id=connection_id)
-        send_subscription_confirmation(
-            connection_id, vocab_word_key, source_word, target_language
-        )
+        # Confirmation is now sent from within the utility function
         return {"statusCode": 200}
     else:
         return {"statusCode": 500}
