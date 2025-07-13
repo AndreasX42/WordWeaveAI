@@ -1,16 +1,16 @@
 # Core LangChain and LangGraph
-langchain==0.3.25
-langgraph==0.4.5
-langchain-openai==0.3.17
+langchain==0.3.26
+langgraph==0.5.2
+langchain-openai==0.3.27
 
 # AWS
 aws-lambda-powertools==3.14.0
-boto3==1.38.37
-botocore==1.38.37
+boto3==1.39.4
+botocore==1.39.4
 
 # Essential dependencies
-instructor[bedrock]>=1.9.0
-aiohttp==3.11.18
-pydantic==2.11.4
-pydantic_core==2.33.2
-elevenlabs==2.1.0
+instructor==1.9.2
+aiohttp==3.12.14
+pydantic==2.11.7
+pydantic_core==2.35.2
+elevenlabs==2.7.1

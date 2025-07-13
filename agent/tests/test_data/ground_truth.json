@@ -22,48 +22,43 @@
         "ser"
       ],
       "target_phonetic_guide": "[se\u027e]",
-      "target_additional_info": "This is the infinitive form of the verb 'to be' in Spanish, used for essential characteristics, identity, origin, and time. It is one of two verbs for 'to be' in Spanish; the other is 'estar', which is used for states, locations, and conditions.",
+      "target_additional_info": "Used as the main verb for 'to be' in Spanish, especially for essential characteristics, identity, origin, and time. Not used for temporary states or locations (for those, use 'estar').",
       "english_word": "to be",
       "search_query": [
         "existence",
         "identity",
-        "being"
+        "essence"
       ],
       "synonyms": [
         {
           "synonym": "existir",
-          "explanation": "'Existir' means 'to exist' and can sometimes substitute 'ser' when referring to the existence of something, but it does not convey identity or essential characteristics as 'ser' does."
+          "explanation": "'Existir' means 'to exist' and can sometimes replace 'ser' when referring to the existence of something, but it does not convey identity or essential characteristics as 'ser' does."
         },
         {
           "synonym": "permanecer",
-          "explanation": "'Permanecer' means 'to remain' or 'to stay' and can overlap with 'ser' in contexts emphasizing a lasting state, but it implies continuity rather than inherent identity."
+          "explanation": "'Permanecer' means 'to remain' or 'to stay' and can be used in contexts where something continues to be in a certain state, but it lacks the sense of identity or essence that 'ser' expresses."
         },
         {
-          "synonym": "estar",
-          "explanation": "'Estar' is another verb for 'to be' in Spanish, but it is used for temporary states or locations, not for essential or permanent qualities as 'ser' is."
+          "synonym": "constituir",
+          "explanation": "'Constituir' means 'to constitute' or 'to make up' and is used in formal or technical contexts to indicate what something is composed of, but it is not a general synonym for 'ser.'"
         }
       ],
-      "media_ref": "MEDIA#en#being_existence_identity",
+      "media_ref": "MEDIA#en#essence_existence_identity",
       "examples": [
         {
-          "original": "She is a doctor, and she loves helping her patients every day.",
+          "original": "She is a doctor and loves helping her patients every day.",
           "translation": "Ella es doctora y le encanta ayudar a sus pacientes todos los d\u00edas.",
-          "context": "Used to describe someone's profession or identity."
+          "context": "Describing someone's profession and passion."
         },
         {
           "original": "It is important to be honest, even when it is difficult.",
           "translation": "Es importante ser honesto, incluso cuando es dif\u00edcil.",
-          "context": "Used to express qualities or characteristics."
+          "context": "Talking about values or qualities."
         },
         {
           "original": "The meeting is at 3 p.m., so please be on time.",
           "translation": "La reuni\u00f3n es a las 3 p.m., as\u00ed que por favor s\u00e9 puntual.",
-          "context": "Used to indicate time and to give instructions."
-        },
-        {
-          "original": "They are friends because they share the same values and interests.",
-          "translation": "Ellos son amigos porque comparten los mismos valores e intereses.",
-          "context": "Used to describe relationships between people."
+          "context": "Giving instructions or reminders about punctuality."
         }
       ],
       "conjugation": {
@@ -205,14 +200,17 @@
       "synonyms_quality_score": 8.0,
       "syllables_quality_score": 10.0,
       "conjugation_quality_score": 9.5,
-      "sequential_quality_passed": true
+      "sequential_quality_passed": true,
+      "overall_quality_score": 9.25,
+      "quality_checks_passed": 8,
+      "quality_checks_failed": 0
     },
     "token_usage": {
       "test_id": "to_be_to_Spanish",
-      "total_execution_time": 28.029674541961867,
-      "total_input_tokens": 15025,
-      "total_output_tokens": 2891,
-      "total_tokens": 17916
+      "total_execution_time": 34.50740995799424,
+      "total_input_tokens": 14962,
+      "total_output_tokens": 2865,
+      "total_tokens": 17827
     }
   },
   "serendipity_English_to_German": {
@@ -222,8 +220,8 @@
       "target_language": "German",
       "validation_passed": true,
       "source_definition": [
-        "The occurrence of events by chance in a happy or beneficial way.",
-        "The faculty of making fortunate discoveries by accident."
+        "the occurrence of events by chance in a happy or beneficial way",
+        "the faculty of making fortunate discoveries by accident"
       ],
       "source_part_of_speech": "noun",
       "source_article": null,
@@ -240,134 +238,44 @@
         "pi",
         "t\u00e4t"
       ],
-      "target_phonetic_guide": "[ze.\u0281\u025bn.di.pi\u02c8t\u025b\u02d0t]",
-      "target_additional_info": "The term 'Serendipit\u00e4t' is a direct borrowing from English and is mainly used in academic, literary, or scientific contexts. It is not commonly used in everyday conversation; instead, Germans might paraphrase the concept. The word refers to the phenomenon of making fortunate discoveries by accident.",
+      "target_phonetic_guide": "[ze\u02cc\u0281\u025bn.di.pi\u02c8t\u025b\u02d0t]",
+      "target_additional_info": "This is a formal, academic term in German and is not commonly used in everyday conversation. In informal contexts, Germans might paraphrase the concept instead of using this word.",
       "english_word": "serendipity",
       "search_query": [
-        "happy accident",
-        "fortunate discovery",
-        "unexpected joy"
+        "happy discovery",
+        "unexpected joy",
+        "fortunate moment"
       ],
       "synonyms": [
         {
           "synonym": "gl\u00fccklicher Zufall",
-          "explanation": "Literally 'happy coincidence'; this phrase describes a fortunate event that happens by chance, but lacks the nuance of unexpected discovery or insight that 'Serendipit\u00e4t' conveys."
-        },
-        {
-          "synonym": "Zufallsfund",
-          "explanation": "Means 'chance find'; refers to something found by accident, often in the context of discoveries, but does not fully capture the element of beneficial or valuable surprise inherent in 'Serendipit\u00e4t'."
+          "explanation": "Literally 'happy coincidence'; refers to a fortunate event that happens by chance, but lacks the nuance of unexpected discovery or beneficial outcome inherent in 'Serendipit\u00e4t'."
         },
         {
           "synonym": "Gl\u00fccksfall",
-          "explanation": "Translates as 'stroke of luck'; describes a lucky event, but does not imply the aspect of making a valuable or insightful discovery by accident, which is central to 'Serendipit\u00e4t'."
+          "explanation": "Means 'stroke of luck' or 'piece of good fortune'; it emphasizes luck but does not capture the aspect of accidental discovery or insight that 'Serendipit\u00e4t' implies."
+        },
+        {
+          "synonym": "Zufallsfund",
+          "explanation": "Translates as 'chance find'; used for something found by accident, especially in research or archaeology, but does not necessarily imply the positive or fortunate outcome associated with 'Serendipit\u00e4t'."
         }
       ],
-      "media_ref": "MEDIA#en#fortunatediscovery_happyaccident_unexpectedjoy",
+      "media_ref": "MEDIA#en#fortunatemoment_happydiscovery_unexpectedjoy",
       "examples": [
         {
-          "original": "Sometimes, the best discoveries in science happen through serendipity, when researchers stumble upon unexpected results while looking for something else.",
-          "translation": "Manchmal geschehen die besten Entdeckungen in der Wissenschaft durch Serendipit\u00e4t, wenn Forscher unerwartete Ergebnisse finden, w\u00e4hrend sie eigentlich nach etwas anderem suchen.",
-          "context": "Describes how accidental discoveries can lead to scientific breakthroughs."
+          "original": "Sometimes, the best discoveries in science happen by serendipity, when researchers stumble upon something unexpected while looking for something else.",
+          "translation": "Manchmal geschehen die besten Entdeckungen in der Wissenschaft durch Serendipit\u00e4t, wenn Forscher zuf\u00e4llig auf etwas Unerwartetes sto\u00dfen, w\u00e4hrend sie eigentlich nach etwas anderem suchen.",
+          "context": "Describes how accidental discoveries can occur in scientific research."
         },
         {
-          "original": "We met by pure serendipity at a small caf\u00e9 in Berlin, and that chance encounter changed both of our lives forever.",
-          "translation": "Wir haben uns durch reine Serendipit\u00e4t in einem kleinen Caf\u00e9 in Berlin getroffen, und diese zuf\u00e4llige Begegnung hat unser beider Leben f\u00fcr immer ver\u00e4ndert.",
-          "context": "Highlights a life-changing meeting that happened by chance."
+          "original": "We met purely by serendipity at a small caf\u00e9 in Berlin, and that chance encounter changed both of our lives.",
+          "translation": "Wir haben uns rein durch Serendipit\u00e4t in einem kleinen Caf\u00e9 in Berlin getroffen, und diese zuf\u00e4llige Begegnung hat unser beider Leben ver\u00e4ndert.",
+          "context": "Highlights a chance meeting that led to a significant relationship."
         },
         {
-          "original": "The artist credited serendipity for her latest masterpiece, explaining that a spilled cup of paint led to an unexpected and beautiful effect.",
-          "translation": "Die K\u00fcnstlerin schrieb ihr neuestes Meisterwerk der Serendipit\u00e4t zu und erkl\u00e4rte, dass ein versch\u00fctteter Becher Farbe zu einem unerwarteten und sch\u00f6nen Effekt gef\u00fchrt habe.",
-          "context": "Shows how accidental events can inspire creativity in art."
-        }
-      ],
-      "conjugation": null,
-      "validation_quality_approved": true,
-      "classification_quality_approved": true,
-      "translation_quality_approved": true,
-      "media_quality_approved": true,
-      "examples_quality_approved": true,
-      "synonyms_quality_approved": true,
-      "syllables_quality_approved": true,
-      "conjugation_quality_approved": true,
-      "validation_quality_score": 10.0,
-      "classification_quality_score": 9.0,
-      "translation_quality_score": 8.0,
-      "media_quality_score": 8.5,
-      "examples_quality_score": 9.0,
-      "synonyms_quality_score": 9.0,
-      "syllables_quality_score": 9.0,
-      "conjugation_quality_score": 10.0,
-      "sequential_quality_passed": true
-    },
-    "token_usage": {
-      "test_id": "serendipity_English_to_German",
-      "total_execution_time": 18.47414241702063,
-      "total_input_tokens": 12456,
-      "total_output_tokens": 2078,
-      "total_tokens": 14534
-    }
-  },
-  "the_cringe_English_to_German": {
-    "output": {
-      "source_word": "cringe",
-      "source_language": "English",
-      "target_language": "German",
-      "validation_passed": true,
-      "source_definition": [
-        "A feeling of embarrassment or awkwardness caused by someone else's actions or words",
-        "Something that causes embarrassment or discomfort because it is awkward, embarrassing, or socially inappropriate"
-      ],
-      "source_part_of_speech": "noun",
-      "source_article": null,
-      "source_additional_info": "Informal, often used in internet slang to describe content or behavior that is awkward or embarrassing.",
-      "word_exists": false,
-      "existing_item": null,
-      "target_word": "Fremdscham",
-      "target_part_of_speech": "feminine noun",
-      "target_article": "die",
-      "target_syllables": [
-        "Fremd",
-        "scham"
-      ],
-      "target_phonetic_guide": "[\u02c8f\u0281\u025bmt\u02cc\u0283a\u02d0m]",
-      "target_additional_info": "Used to describe the feeling of secondhand embarrassment or vicarious shame when witnessing someone else's awkward or embarrassing behavior. Common in informal and internet contexts. Not a direct translation of the slang 'cringe', but the closest natural German equivalent as a noun.",
-      "english_word": "cringe",
-      "search_query": [
-        "awkward moment",
-        "embarrassment",
-        "social discomfort"
-      ],
-      "synonyms": [
-        {
-          "synonym": "Fremdgef\u00fchl",
-          "explanation": "'Fremdgef\u00fchl' refers to a feeling of alienation or strangeness, and while it can overlap with 'Fremdscham' in situations where one feels uncomfortable due to others' actions, it lacks the specific nuance of vicarious embarrassment."
-        },
-        {
-          "synonym": "Fremdpeinlichkeit",
-          "explanation": "'Fremdpeinlichkeit' is an informal and less common term that directly refers to the feeling of embarrassment caused by someone else's actions, making it a close conceptual synonym to 'Fremdscham', though it is not as widely used."
-        }
-      ],
-      "media_ref": "MEDIA#en#awkwardmoment_embarrassment_socialdiscomfort",
-      "examples": [
-        {
-          "original": "Whenever my dad tries to use teenage slang in front of my friends, I can't help but cringe because it sounds so awkward.",
-          "translation": "Immer wenn mein Vater vor meinen Freunden Jugendsprache benutzt, bekomme ich richtiges Fremdschamgef\u00fchl, weil es so peinlich klingt.",
-          "context": "Describes feeling embarrassed for a parent's awkward behavior."
-        },
-        {
-          "original": "I felt a wave of Fremdscham when I watched that reality show contestant embarrass himself on live TV.",
-          "translation": "I cringed so hard when I saw that reality show contestant embarrass himself on live TV.",
-          "context": "Highlights the experience of secondhand embarrassment from watching someone else."
-        },
-        {
-          "original": "She cringed at her old social media posts from high school, wondering how she could have written such things.",
-          "translation": "Sie versp\u00fcrte starkes Fremdscham, als sie ihre alten Social-Media-Posts aus der Schulzeit las und sich fragte, wie sie so etwas schreiben konnte.",
-          "context": "Refers to embarrassment caused by one's own past actions."
-        },
-        {
-          "original": "Manchmal bekomme ich Fremdscham, wenn jemand bei einer Pr\u00e4sentation v\u00f6llig den Faden verliert und niemand ihm hilft.",
-          "translation": "Sometimes I cringe when someone completely loses track during a presentation and no one helps them.",
-          "context": "Describes feeling embarrassed for someone struggling in public."
+          "original": "The artist credited serendipity for her latest masterpiece, saying that a spilled cup of paint led to an unexpected burst of creativity.",
+          "translation": "Die K\u00fcnstlerin schrieb ihr neuestes Meisterwerk der Serendipit\u00e4t zu und sagte, dass ein versch\u00fctteter Becher Farbe zu einem unerwarteten Kreativit\u00e4tsschub gef\u00fchrt habe.",
+          "context": "Shows how an accidental event can inspire creativity in art."
         }
       ],
       "conjugation": null,
@@ -382,19 +290,110 @@
       "validation_quality_score": 10.0,
       "classification_quality_score": 9.0,
       "translation_quality_score": 9.0,
-      "media_quality_score": 8.0,
-      "examples_quality_score": 8.0,
-      "synonyms_quality_score": 8.0,
+      "media_quality_score": 8.5,
+      "examples_quality_score": 9.0,
+      "synonyms_quality_score": 9.0,
       "syllables_quality_score": 9.0,
       "conjugation_quality_score": 10.0,
-      "sequential_quality_passed": true
+      "sequential_quality_passed": true,
+      "overall_quality_score": 9.1875,
+      "quality_checks_passed": 8,
+      "quality_checks_failed": 0
+    },
+    "token_usage": {
+      "test_id": "serendipity_English_to_German",
+      "total_execution_time": 18.32398904202273,
+      "total_input_tokens": 12407,
+      "total_output_tokens": 1956,
+      "total_tokens": 14363
+    }
+  },
+  "the_cringe_English_to_German": {
+    "output": {
+      "source_word": "cringe",
+      "source_language": "English",
+      "target_language": "German",
+      "validation_passed": true,
+      "source_definition": [
+        "A feeling of embarrassment or awkwardness caused by someone else's actions or words.",
+        "Something that causes discomfort due to being awkward, embarrassing, or socially inappropriate."
+      ],
+      "source_part_of_speech": "noun",
+      "source_article": null,
+      "source_additional_info": "Informal, often used in internet slang to describe content or behavior that is awkward or embarrassing.",
+      "word_exists": false,
+      "existing_item": null,
+      "target_word": "Fremdscham",
+      "target_part_of_speech": "feminine noun",
+      "target_article": "die",
+      "target_syllables": [
+        "Fremd",
+        "scham"
+      ],
+      "target_phonetic_guide": "[\u02c8f\u0281\u025bmt\u02cc\u0283a\u02d0m]",
+      "target_additional_info": "Used to describe the feeling of secondhand embarrassment or cringe on behalf of someone else; common in informal and internet contexts. Not a direct translation, but the most natural and widely used German equivalent.",
+      "english_word": "cringe",
+      "search_query": [
+        "embarrassment",
+        "awkward moment",
+        "uncomfortable"
+      ],
+      "synonyms": [
+        {
+          "synonym": "Fremdsch\u00e4men",
+          "explanation": "This is the verb form of 'Fremdscham' and is commonly used to describe the act of feeling secondhand embarrassment for someone else. While not a noun, it is closely related and often used in similar contexts."
+        },
+        {
+          "synonym": "Fremdpeinlichkeit",
+          "explanation": "This is a rare and less commonly used term that combines 'fremd' (foreign/other) and 'Peinlichkeit' (embarrassment), referring to the embarrassment one feels for another person. It is not as widely recognized or used as 'Fremdscham'."
+        }
+      ],
+      "media_ref": "MEDIA#en#awkwardmoment_embarrassment_uncomfortable",
+      "examples": [
+        {
+          "original": "Every time my dad tries to use teenage slang in front of my friends, I just cringe so hard I want to disappear.",
+          "translation": "Jedes Mal, wenn mein Vater vor meinen Freunden Jugendsprache benutzt, bekomme ich so einen Fremdscham, dass ich am liebsten im Boden versinken w\u00fcrde.",
+          "context": "Describes feeling embarrassed by a parent's awkward behavior in front of peers."
+        },
+        {
+          "original": "Watching that reality show last night gave me serious Fremdscham; I couldn't believe how awkward the contestants were.",
+          "translation": "Als ich gestern Abend diese Reality-Show gesehen habe, hatte ich richtiges Fremdschamgef\u00fchl; ich konnte kaum fassen, wie peinlich sich die Kandidaten benommen haben.",
+          "context": "Refers to feeling secondhand embarrassment from watching others act awkwardly on TV."
+        },
+        {
+          "original": "She cringed when she remembered the joke she told at the meeting that nobody laughed at.",
+          "translation": "Sie versp\u00fcrte Fremdscham, als sie sich daran erinnerte, wie sie im Meeting einen Witz erz\u00e4hlt hatte, \u00fcber den niemand gelacht hat.",
+          "context": "Describes feeling embarrassed about one's own past awkward moment."
+        }
+      ],
+      "conjugation": null,
+      "validation_quality_approved": true,
+      "classification_quality_approved": true,
+      "translation_quality_approved": true,
+      "media_quality_approved": true,
+      "examples_quality_approved": true,
+      "synonyms_quality_approved": true,
+      "syllables_quality_approved": true,
+      "conjugation_quality_approved": true,
+      "validation_quality_score": 10.0,
+      "classification_quality_score": 9.0,
+      "translation_quality_score": 9.5,
+      "media_quality_score": 8.0,
+      "examples_quality_score": 9.0,
+      "synonyms_quality_score": 9.0,
+      "syllables_quality_score": 9.0,
+      "conjugation_quality_score": 10.0,
+      "sequential_quality_passed": true,
+      "overall_quality_score": 9.1875,
+      "quality_checks_passed": 8,
+      "quality_checks_failed": 0
     },
     "token_usage": {
       "test_id": "the_cringe_English_to_German",
-      "total_execution_time": 22.179111665987875,
-      "total_input_tokens": 12469,
-      "total_output_tokens": 2485,
-      "total_tokens": 14954
+      "total_execution_time": 26.76701262500137,
+      "total_input_tokens": 12406,
+      "total_output_tokens": 2287,
+      "total_tokens": 14693
     }
   },
   "Schadenfreude_German_to_English": {
@@ -405,7 +404,7 @@
       "validation_passed": true,
       "source_definition": [
         "Das Gef\u00fchl der Freude \u00fcber das Ungl\u00fcck oder Missgeschick anderer.",
-        "Vergn\u00fcgen, das man empfindet, wenn jemand anderem etwas Negatives widerf\u00e4hrt."
+        "Vergn\u00fcgen, das man empfindet, wenn jemand anderes Pech hat."
       ],
       "source_part_of_speech": "feminine noun",
       "source_article": "die",
@@ -422,43 +421,43 @@
         "de"
       ],
       "target_phonetic_guide": "/\u02c8\u0283\u0251\u02d0d\u0259n\u02ccfr\u0254\u026ad\u0259/",
-      "target_additional_info": "This is a direct borrowing from German, used in English to describe the feeling of pleasure derived from another person's misfortune. It is somewhat formal and intellectual in register, and not commonly used in everyday conversation.",
+      "target_additional_info": "Used in English as a loanword from German. Refers to the feeling of pleasure derived from another person's misfortune. Formal or literary register; not commonly used in everyday conversation.",
       "english_word": "schadenfreude",
       "search_query": [
-        "laughing at misfortune",
-        "people mocking",
-        "awkward failure"
+        "laughing at",
+        "misfortune",
+        "failure"
       ],
       "synonyms": [
         {
           "synonym": "gloating",
-          "explanation": "'Gloating' bedeutet, sich offen \u00fcber den Misserfolg oder das Ungl\u00fcck anderer zu freuen. Im Gegensatz zu 'Schadenfreude' betont 'gloating' jedoch eher das zur Schau stellen der eigenen Freude und \u00dcberlegenheit, w\u00e4hrend 'Schadenfreude' auch im Stillen empfunden werden kann."
+          "explanation": "'Gloating' bedeutet, sich offen \u00fcber den Misserfolg oder das Ungl\u00fcck anderer zu freuen. Im Gegensatz zu 'Schadenfreude' betont 'gloating' eher das zur Schau stellen der Freude, w\u00e4hrend 'Schadenfreude' auch heimlich empfunden werden kann."
         },
         {
           "synonym": "malicious joy",
-          "explanation": "'Malicious joy' ist eine Umschreibung f\u00fcr die Freude am Ungl\u00fcck anderer. Es ist keine feststehende Vokabel im Englischen, sondern eine w\u00f6rtliche \u00dcbersetzung des deutschen Begriffs. Sie wird selten verwendet und klingt eher formell oder konstruiert."
+          "explanation": "'Malicious joy' ist eine Umschreibung f\u00fcr die Freude am Ungl\u00fcck anderer. Es ist jedoch kein feststehender Begriff im Englischen und wird selten verwendet. Im Unterschied zu 'Schadenfreude' fehlt die Pr\u00e4gnanz und Alltagstauglichkeit."
         },
         {
           "synonym": "epicaricacy",
-          "explanation": "'Epicaricacy' ist ein sehr seltenes, fast unbekanntes englisches Wort mit der gleichen Bedeutung wie 'Schadenfreude'. Es stammt aus dem Griechischen und wird im modernen Englisch praktisch nicht verwendet."
+          "explanation": "'Epicaricacy' ist ein sehr seltenes, fast unbekanntes englisches Wort mit der gleichen Bedeutung wie 'Schadenfreude'. Es wird jedoch praktisch nie im Alltag verwendet und ist den meisten Muttersprachlern unbekannt."
         }
       ],
-      "media_ref": "MEDIA#de#awkwardfailure_laughingatmisfortune_peoplemocking",
+      "media_ref": "MEDIA#de#failure_laughingat_misfortune",
       "examples": [
         {
           "original": "Als sie h\u00f6rte, dass ihr Kollege die Pr\u00e4sentation vermasselt hatte, konnte sie ein kleines L\u00e4cheln des Schadenfreude nicht unterdr\u00fccken.",
           "translation": "When she heard that her colleague had messed up the presentation, she couldn't suppress a small smile of schadenfreude.",
-          "context": "Jemand empfindet Schadenfreude \u00fcber das Missgeschick eines Kollegen im Arbeitsumfeld."
+          "context": "Jemand freut sich heimlich \u00fcber das Missgeschick eines Kollegen."
         },
         {
-          "original": "Viele Menschen empfinden Schadenfreude, wenn ber\u00fchmte Pers\u00f6nlichkeiten in peinliche Situationen geraten.",
-          "translation": "Many people feel schadenfreude when celebrities find themselves in embarrassing situations.",
-          "context": "Schadenfreude im Zusammenhang mit Prominenten und \u00f6ffentlichen Missgeschicken."
+          "original": "Viele Menschen empfinden Schadenfreude, wenn ein arroganter Prominenter in der \u00d6ffentlichkeit einen Fehler macht.",
+          "translation": "Many people feel schadenfreude when an arrogant celebrity makes a mistake in public.",
+          "context": "Typische Reaktion auf das Scheitern ber\u00fchmter Personen."
         },
         {
-          "original": "Obwohl er wusste, dass es nicht nett war, versp\u00fcrte er Schadenfreude, als sein Rivale beim Wettlauf stolperte.",
-          "translation": "Although he knew it wasn't nice, he felt schadenfreude when his rival stumbled during the race.",
-          "context": "Schadenfreude im sportlichen Wettbewerb zwischen Rivalen."
+          "original": "Obwohl er wusste, dass es nicht nett war, versp\u00fcrte er Schadenfreude, als sein Rivale im Spiel verlor.",
+          "translation": "Although he knew it wasn't nice, he felt schadenfreude when his rival lost the game.",
+          "context": "Gef\u00fchle gegen\u00fcber einem Konkurrenten im Wettbewerb."
         }
       ],
       "conjugation": null,
@@ -473,19 +472,22 @@
       "validation_quality_score": 10.0,
       "classification_quality_score": 9.0,
       "translation_quality_score": 9.0,
-      "media_quality_score": 8.5,
+      "media_quality_score": 8.0,
       "examples_quality_score": 9.0,
       "synonyms_quality_score": 8.0,
       "syllables_quality_score": 9.0,
       "conjugation_quality_score": 10.0,
-      "sequential_quality_passed": true
+      "sequential_quality_passed": true,
+      "overall_quality_score": 9.0,
+      "quality_checks_passed": 8,
+      "quality_checks_failed": 0
     },
     "token_usage": {
       "test_id": "Schadenfreude_German_to_English",
-      "total_execution_time": 29.289340457995422,
-      "total_input_tokens": 12488,
-      "total_output_tokens": 2241,
-      "total_tokens": 14729
+      "total_execution_time": 20.31649275001837,
+      "total_input_tokens": 12444,
+      "total_output_tokens": 2261,
+      "total_tokens": 14705
     }
   },
   "Heimweh_German_to_Spanish": {
@@ -495,9 +497,9 @@
       "target_language": "Spanish",
       "validation_passed": true,
       "source_definition": [
-        "Sehnsucht nach der Heimat, wenn man sich fern von ihr befindet.",
-        "Gef\u00fchl des Vermissens der vertrauten Umgebung oder Menschen.",
-        "Schmerzliche oder melancholische Stimmung, weil man nicht zu Hause ist."
+        "Sehnsucht nach der Heimat",
+        "Gef\u00fchl des Vermissens der eigenen Heimat",
+        "Schmerzlicher Wunsch, wieder nach Hause zur\u00fcckzukehren"
       ],
       "source_part_of_speech": "neuter noun",
       "source_article": "das",
@@ -517,39 +519,39 @@
       "english_word": "homesickness",
       "search_query": [
         "missing home",
-        "lonely travel",
+        "longing",
         "nostalgia"
       ],
       "synonyms": [
         {
           "synonym": "a\u00f1oranza",
-          "explanation": "'A\u00f1oranza' bezeichnet ein starkes Gef\u00fchl des Vermissens oder der Sehnsucht nach etwas Vergangenem, \u00e4hnlich wie 'Nostalgie', ist aber oft pers\u00f6nlicher und emotionaler gef\u00e4rbt."
+          "explanation": "'A\u00f1oranza' bezeichnet das Gef\u00fchl des Vermissens oder der Sehnsucht nach etwas Vergangenem, \u00e4hnlich wie 'Nostalgie', legt aber oft mehr Gewicht auf das emotionale Verlangen und weniger auf die bitters\u00fc\u00dfe Erinnerung."
         },
         {
           "synonym": "melancol\u00eda",
-          "explanation": "'Melancol\u00eda' beschreibt einen Zustand von Traurigkeit oder Schwermut, der durch Erinnerungen an die Vergangenheit ausgel\u00f6st werden kann, ist jedoch allgemeiner und weniger auf das Heimweh oder die Sehnsucht nach einer bestimmten Zeit bezogen als 'Nostalgie'."
+          "explanation": "'Melancol\u00eda' beschreibt einen Zustand von Traurigkeit oder Schwermut, der durch Erinnerungen an die Vergangenheit ausgel\u00f6st werden kann. Im Gegensatz zu 'Nostalgie' steht hier das Gef\u00fchl der Traurigkeit st\u00e4rker im Vordergrund als das sehns\u00fcchtige Zur\u00fcckdenken."
         },
         {
           "synonym": "morri\u00f1a",
-          "explanation": "'Morri\u00f1a' ist ein Begriff, der besonders in Galicien verwendet wird und ein tiefes Heimweh oder eine Sehnsucht nach der Heimat ausdr\u00fcckt; er ist regional gepr\u00e4gt und enger mit dem Gef\u00fchl des Heimwehs verbunden als mit allgemeiner Nostalgie."
+          "explanation": "'Morri\u00f1a' ist ein regionaler Begriff (vor allem in Galicien), der die tiefe Sehnsucht nach der Heimat beschreibt. Er ist spezifischer als 'Nostalgie' und bezieht sich meist auf das Heimweh, nicht allgemein auf vergangene Zeiten."
         }
       ],
-      "media_ref": "MEDIA#de#lonelytravel_missinghome_nostalgia",
+      "media_ref": "MEDIA#de#longing_missinghome_nostalgia",
       "examples": [
         {
-          "original": "Als ich zum ersten Mal f\u00fcr l\u00e4ngere Zeit im Ausland lebte, sp\u00fcrte ich ein starkes Heimweh nach meiner Familie und meinen Freunden.",
-          "translation": "La primera vez que viv\u00ed en el extranjero por un per\u00edodo prolongado, sent\u00ed una fuerte nostalgia por mi familia y mis amigos.",
-          "context": "Gef\u00fchl des Vermissens von Zuhause, besonders bei l\u00e4ngerer Abwesenheit."
+          "original": "Nach ein paar Monaten im Ausland bekam ich pl\u00f6tzlich starkes Heimweh und sehnte mich nach meiner Familie und meinem Zuhause.",
+          "translation": "Despu\u00e9s de unos meses en el extranjero, de repente sent\u00ed una fuerte nostalgia y extra\u00f1aba mucho a mi familia y mi hogar.",
+          "context": "Typische Situation, wenn jemand l\u00e4ngere Zeit von zu Hause weg ist."
         },
         {
-          "original": "Manchmal \u00fcberkommt mich Heimweh, wenn ich alte Fotos aus meiner Kindheit anschaue.",
-          "translation": "A veces me invade la nostalgia cuando veo fotos antiguas de mi infancia.",
-          "context": "Heimweh ausgel\u00f6st durch Erinnerungen oder Fotos."
+          "original": "Immer wenn ich alte Fotos aus meiner Kindheit anschaue, \u00fcberkommt mich ein Gef\u00fchl von Heimweh nach der unbeschwerten Zeit damals.",
+          "translation": "Siempre que veo fotos antiguas de mi infancia, me invade una nostalgia por aquellos tiempos despreocupados.",
+          "context": "Heimweh kann sich auch auf vergangene Lebensphasen beziehen, nicht nur auf Orte."
         },
         {
-          "original": "Obwohl ich mein neues Leben genie\u00dfe, bleibt das Heimweh nach meiner Heimatstadt immer ein Teil von mir.",
-          "translation": "Aunque disfruto de mi nueva vida, la nostalgia por mi ciudad natal siempre es parte de m\u00ed.",
-          "context": "Heimweh als dauerhaftes Gef\u00fchl trotz neuer Lebensumst\u00e4nde."
+          "original": "Obwohl sie in ihrer neuen Stadt viele Freunde gefunden hat, versp\u00fcrt sie manchmal Heimweh nach den vertrauten Stra\u00dfen und Ger\u00fcchen ihrer Heimat.",
+          "translation": "Aunque ha hecho muchos amigos en su nueva ciudad, a veces siente nostalgia por las calles y los olores familiares de su tierra natal.",
+          "context": "Heimweh kann auch durch bestimmte Sinneseindr\u00fccke ausgel\u00f6st werden."
         }
       ],
       "conjugation": null,
@@ -565,18 +567,21 @@
       "classification_quality_score": 9.0,
       "translation_quality_score": 9.5,
       "media_quality_score": 8.5,
-      "examples_quality_score": 9.0,
+      "examples_quality_score": 9.5,
       "synonyms_quality_score": 9.0,
       "syllables_quality_score": 9.0,
       "conjugation_quality_score": 10.0,
-      "sequential_quality_passed": true
+      "sequential_quality_passed": true,
+      "overall_quality_score": 9.3125,
+      "quality_checks_passed": 8,
+      "quality_checks_failed": 0
     },
     "token_usage": {
       "test_id": "Heimweh_German_to_Spanish",
-      "total_execution_time": 27.009473124984652,
-      "total_input_tokens": 12420,
-      "total_output_tokens": 1982,
-      "total_tokens": 14402
+      "total_execution_time": 16.998575208999682,
+      "total_input_tokens": 12431,
+      "total_output_tokens": 1897,
+      "total_tokens": 14328
     }
   },
   "fanfarronear_to_English": {
@@ -587,8 +592,7 @@
       "validation_passed": true,
       "source_definition": [
         "Presumir o alardear de algo de manera exagerada.",
-        "Hablar o actuar con jactancia y ostentaci\u00f3n.",
-        "Comportarse de forma arrogante para impresionar a otros."
+        "Hablar o actuar con jactancia y vanidad."
       ],
       "source_part_of_speech": "verb",
       "source_article": null,
@@ -603,43 +607,43 @@
         "off"
       ],
       "target_phonetic_guide": "\u0283o\u028a \u0252f",
-      "target_additional_info": "Colloquial; used to describe someone who boasts or brags in an ostentatious way. 'Fanfarronear' is informal and often has a negative connotation, implying arrogance or seeking attention.",
+      "target_additional_info": "Colloquial; used to describe someone who boasts or tries to attract attention by displaying their abilities or possessions. 'Fanfarronear' is informal and often has a negative connotation.",
       "english_word": "to show off",
       "search_query": [
         "bragging",
-        "arrogance",
+        "confidence",
         "attention seeking"
       ],
       "synonyms": [
         {
           "synonym": "boast",
-          "explanation": "\u2018Boast\u2019 significa presumir o alardear de algo que uno tiene o ha hecho. A diferencia de \u2018show off\u2019, que puede implicar una acci\u00f3n m\u00e1s visible o llamativa, \u2018boast\u2019 suele referirse m\u00e1s al acto de hablar sobre los propios logros o posesiones, aunque ambos pueden usarse en contextos similares."
+          "explanation": "\u2018Boast\u2019 significa presumir o alardear de algo que uno tiene o ha hecho. A diferencia de \u2018show off\u2019, que puede implicar una acci\u00f3n m\u00e1s visible o llamativa, \u2018boast\u2019 se refiere principalmente a hablar con orgullo excesivo sobre uno mismo o sus logros."
         },
         {
           "synonym": "flaunt",
-          "explanation": "\u2018Flaunt\u2019 implica mostrar algo de manera ostentosa o deliberada para atraer la atenci\u00f3n o la envidia de los dem\u00e1s. Es muy cercano a \u2018show off\u2019, pero puede tener una connotaci\u00f3n a\u00fan m\u00e1s negativa de exhibicionismo intencional."
+          "explanation": "\u2018Flaunt\u2019 implica exhibir algo de manera ostentosa o provocativa, especialmente para atraer la atenci\u00f3n o causar envidia. Es muy cercano a \u2018show off\u2019, pero suele usarse m\u00e1s para objetos o cualidades visibles, como riqueza o belleza."
         },
         {
           "synonym": "brag",
-          "explanation": "\u2018Brag\u2019 se refiere a hablar con orgullo excesivo sobre uno mismo o sobre lo que se posee o ha logrado. Es similar a \u2018boast\u2019, pero suele tener una connotaci\u00f3n m\u00e1s negativa y se centra m\u00e1s en el discurso que en la acci\u00f3n f\u00edsica de mostrar algo."
+          "explanation": "\u2018Brag\u2019 es hablar con orgullo excesivo sobre uno mismo o sus logros, similar a \u2018boast\u2019. Sin embargo, \u2018show off\u2019 puede incluir acciones y comportamientos, mientras que \u2018brag\u2019 se limita m\u00e1s a lo verbal."
         }
       ],
-      "media_ref": "MEDIA#es#arrogance_attentionseeking_bragging",
+      "media_ref": "MEDIA#es#attentionseeking_bragging_confidence",
       "examples": [
         {
           "original": "A Juan le encanta fanfarronear sobre sus logros en el trabajo, aunque a veces exagera un poco las historias.",
           "translation": "Juan loves to show off about his achievements at work, although he sometimes exaggerates his stories a bit.",
-          "context": "Se usa para describir a alguien que presume demasiado de lo que ha hecho."
+          "context": "Se usa cuando alguien presume demasiado de lo que ha hecho, especialmente en el \u00e1mbito laboral."
         },
         {
-          "original": "No deber\u00edas fanfarronear delante de tus amigos solo porque tienes un coche nuevo; puede parecer arrogante.",
-          "translation": "You shouldn't show off in front of your friends just because you have a new car; it might come across as arrogant.",
-          "context": "Advierte sobre el efecto negativo de presumir ante otros."
+          "original": "No deber\u00edas fanfarronear delante de tus amigos solo porque tienes un coche nuevo; podr\u00edas hacerlos sentir inc\u00f3modos.",
+          "translation": "You shouldn't show off in front of your friends just because you have a new car; you might make them feel uncomfortable.",
+          "context": "Se refiere a presumir de posesiones materiales ante otras personas."
         },
         {
-          "original": "Cuando Marta empez\u00f3 a fanfarronear sobre sus viajes al extranjero, algunos compa\u00f1eros se sintieron inc\u00f3modos.",
-          "translation": "When Marta started to show off about her trips abroad, some colleagues felt uncomfortable.",
-          "context": "Describe una situaci\u00f3n social donde presumir genera incomodidad."
+          "original": "Cuando Marta empez\u00f3 a fanfarronear sobre sus viajes al extranjero, algunos compa\u00f1eros dejaron de prestarle atenci\u00f3n.",
+          "translation": "When Marta started to show off about her trips abroad, some colleagues stopped paying attention to her.",
+          "context": "Describe una situaci\u00f3n en la que alguien presume de sus experiencias personales."
         }
       ],
       "conjugation": {
@@ -778,17 +782,20 @@
       "translation_quality_score": 9.0,
       "media_quality_score": 8.5,
       "examples_quality_score": 9.0,
-      "synonyms_quality_score": 9.0,
+      "synonyms_quality_score": 8.0,
       "syllables_quality_score": 9.0,
       "conjugation_quality_score": 9.0,
-      "sequential_quality_passed": true
+      "sequential_quality_passed": true,
+      "overall_quality_score": 8.9375,
+      "quality_checks_passed": 8,
+      "quality_checks_failed": 0
     },
     "token_usage": {
       "test_id": "fanfarronear_to_English",
-      "total_execution_time": 30.242236166028306,
-      "total_input_tokens": 14974,
-      "total_output_tokens": 3270,
-      "total_tokens": 18244
+      "total_execution_time": 22.383941083040554,
+      "total_input_tokens": 14923,
+      "total_output_tokens": 3200,
+      "total_tokens": 18123
     }
   },
   "ber_German_to_English": {
@@ -798,9 +805,9 @@
       "target_language": "English",
       "validation_passed": true,
       "source_definition": [
-        "zeigt eine Bewegung oder Position oberhalb oder auf der anderen Seite von etwas an",
-        "kann eine \u00dcbertragung oder einen Wechsel ausdr\u00fccken",
-        "wird auch verwendet, um ein Thema oder einen Gegenstand anzugeben"
+        "zeigt eine Bewegung oder Position oberhalb oder jenseits von etwas an",
+        "kann eine \u00dcbertragung oder Vermittlung ausdr\u00fccken",
+        "wird auch verwendet, um \u00dcberlegenheit oder ein Thema anzugeben"
       ],
       "source_part_of_speech": "preposition",
       "source_article": null,
@@ -819,39 +826,39 @@
       "english_word": "over",
       "search_query": [
         "above",
-        "crossing",
-        "overhead"
+        "bridge",
+        "overlook"
       ],
       "synonyms": [
         {
           "synonym": "above",
-          "explanation": "'Above' wird verwendet, um eine Position h\u00f6her als etwas anderes zu beschreiben, ohne notwendigerweise eine Bewegung oder Ber\u00fchrung zu implizieren. Im Gegensatz zu 'over', das auch Bewegung oder Bedeckung ausdr\u00fccken kann, ist 'above' meist statisch und beschreibt nur die vertikale Beziehung."
+          "explanation": "'Above' bedeutet '\u00fcber' im Sinne von einer h\u00f6heren Position, ohne notwendigerweise Kontakt oder \u00dcberdeckung wie bei 'over'. Zum Beispiel: 'The lamp hangs above the table.' Im Gegensatz dazu kann 'over' auch Bewegung oder Bedeckung ausdr\u00fccken."
         },
         {
           "synonym": "across",
-          "explanation": "'Across' bedeutet 'quer \u00fcber' und wird verwendet, um eine Bewegung von einer Seite zur anderen zu beschreiben. Im Gegensatz zu 'over', das auch eine \u00dcberquerung in der Luft oder \u00fcber eine Oberfl\u00e4che hinweg bedeuten kann, betont 'across' die horizontale Bewegung \u00fcber eine Fl\u00e4che."
+          "explanation": "'Across' bedeutet '\u00fcber' im Sinne von einer Bewegung von einer Seite zur anderen, oft auf einer Fl\u00e4che. Zum Beispiel: 'He walked across the bridge.' 'Over' kann \u00e4hnlich verwendet werden, betont aber manchmal mehr die \u00dcberquerung eines Hindernisses oder einer Fl\u00e4che."
         },
         {
           "synonym": "on top of",
-          "explanation": "'On top of' bedeutet 'auf etwas drauf', also dass etwas direkt auf einer Oberfl\u00e4che liegt. Im Gegensatz zu 'over', das auch eine Position ohne Ber\u00fchrung oder eine Bewegung \u00fcber etwas hinweg ausdr\u00fccken kann, impliziert 'on top of' immer physischen Kontakt."
+          "explanation": "'On top of' bedeutet 'auf' oder 'oben auf', betont aber, dass etwas direkt auf einer Oberfl\u00e4che liegt. 'Over' kann auch eine \u00dcberdeckung ohne direkten Kontakt bedeuten, w\u00e4hrend 'on top of' physischen Kontakt voraussetzt."
         }
       ],
-      "media_ref": "MEDIA#de#above_crossing_overhead",
+      "media_ref": "MEDIA#de#above_bridge_overlook",
       "examples": [
         {
-          "original": "Ich habe gestern Abend \u00fcber das neue Projekt nachgedacht und einige interessante Ideen entwickelt.",
-          "translation": "I thought about the new project last night and came up with some interesting ideas.",
-          "context": "Hier wird '\u00fcber' verwendet, um auszudr\u00fccken, dass jemand \u00fcber ein Thema nachdenkt oder gr\u00fcbelt."
+          "original": "Kannst du bitte das Buch \u00fcber den Tisch legen, damit ich es leichter erreichen kann?",
+          "translation": "Can you please put the book over the table so I can reach it more easily?",
+          "context": "Hier wird '\u00fcber' verwendet, um eine Bewegung \u00fcber eine Oberfl\u00e4che hinweg zu beschreiben."
         },
         {
-          "original": "Kannst du bitte das Tuch \u00fcber den Tisch legen, bevor die G\u00e4ste kommen?",
-          "translation": "Can you please put the cloth over the table before the guests arrive?",
-          "context": "'\u00dcber' beschreibt hier die r\u00e4umliche Beziehung, dass etwas auf einer Oberfl\u00e4che liegt oder sie bedeckt."
+          "original": "Wir haben gestern Abend lange \u00fcber das neue Projekt gesprochen und viele Ideen gesammelt.",
+          "translation": "We talked about the new project for a long time last night and gathered many ideas.",
+          "context": "'\u00dcber' wird hier im Sinne von '\u00fcber ein Thema sprechen' verwendet."
         },
         {
-          "original": "Wir haben uns \u00fcber das Wochenende kaum gesehen, weil jeder besch\u00e4ftigt war.",
-          "translation": "We hardly saw each other over the weekend because everyone was busy.",
-          "context": "In diesem Beispiel steht '\u00fcber' f\u00fcr einen Zeitraum, der sich \u00fcber das Wochenende erstreckt."
+          "original": "Die Br\u00fccke f\u00fchrt \u00fcber den Fluss und verbindet die beiden Stadtteile miteinander.",
+          "translation": "The bridge goes over the river and connects the two parts of the city.",
+          "context": "'\u00dcber' beschreibt hier eine r\u00e4umliche \u00dcberquerung."
         }
       ],
       "conjugation": null,
@@ -871,14 +878,656 @@
       "synonyms_quality_score": 9.0,
       "syllables_quality_score": 10.0,
       "conjugation_quality_score": 10.0,
-      "sequential_quality_passed": true
+      "sequential_quality_passed": true,
+      "overall_quality_score": 9.4375,
+      "quality_checks_passed": 8,
+      "quality_checks_failed": 0
     },
     "token_usage": {
       "test_id": "ber_German_to_English",
-      "total_execution_time": 23.049861832987517,
-      "total_input_tokens": 12305,
-      "total_output_tokens": 1698,
-      "total_tokens": 14003
+      "total_execution_time": 16.50079766701674,
+      "total_input_tokens": 12259,
+      "total_output_tokens": 1587,
+      "total_tokens": 13846
+    }
+  },
+  "beautiful_English_to_Spanish": {
+    "output": {
+      "source_word": "beautiful",
+      "source_language": "English",
+      "target_language": "Spanish",
+      "validation_passed": true,
+      "source_definition": [
+        "pleasing to the senses or mind aesthetically",
+        "having qualities that delight or charm",
+        "very attractive in appearance"
+      ],
+      "source_part_of_speech": "adjective",
+      "source_article": null,
+      "source_additional_info": null,
+      "word_exists": false,
+      "existing_item": null,
+      "target_word": "hermoso",
+      "target_part_of_speech": "adjective",
+      "target_article": null,
+      "target_syllables": [
+        "her",
+        "mo",
+        "so"
+      ],
+      "target_phonetic_guide": "[e\u027e\u02c8mo.so]",
+      "target_additional_info": "This is the masculine singular form; 'hermosa' is the feminine. Both are standard and formal. For people or things, use the form that matches the gender of the noun.",
+      "english_word": "beautiful",
+      "search_query": [
+        "attractive",
+        "charming",
+        "aesthetic"
+      ],
+      "synonyms": [
+        {
+          "synonym": "bello",
+          "explanation": "'Bello' is a very close synonym to 'hermoso' and is often used interchangeably to mean 'beautiful' or 'lovely.' However, 'bello' can sometimes carry a slightly more poetic or refined nuance, while 'hermoso' is more general and widely used in everyday speech."
+        },
+        {
+          "synonym": "bonito",
+          "explanation": "'Bonito' also means 'pretty' or 'nice' and is a common synonym for 'hermoso.' It is generally used for things that are attractive in a pleasant or charming way, but it is often considered less intense or less grand than 'hermoso,' which can imply a higher degree of beauty."
+        },
+        {
+          "synonym": "precioso",
+          "explanation": "'Precioso' means 'gorgeous' or 'precious' and is used to describe something or someone extremely beautiful or valuable. Compared to 'hermoso,' 'precioso' often adds a sense of admiration or endearment, sometimes with an emotional or affectionate tone."
+        }
+      ],
+      "media_ref": "MEDIA#en#aesthetic_attractive_charming",
+      "examples": [
+        {
+          "original": "The sunset over the mountains was so beautiful that we stopped to take pictures.",
+          "translation": "La puesta de sol sobre las monta\u00f1as era tan hermosa que nos detuvimos a tomar fotos.",
+          "context": "Describing a breathtaking natural landscape."
+        },
+        {
+          "original": "She wore a beautiful dress to the party, and everyone complimented her on it.",
+          "translation": "Ella llev\u00f3 un vestido hermoso a la fiesta, y todos la felicitaron por \u00e9l.",
+          "context": "Talking about someone's appearance at a social event."
+        },
+        {
+          "original": "It was a beautiful gesture when he donated to the charity without expecting anything in return.",
+          "translation": "Fue un gesto hermoso cuando \u00e9l don\u00f3 a la caridad sin esperar nada a cambio.",
+          "context": "Describing an act of kindness or generosity."
+        }
+      ],
+      "conjugation": null,
+      "validation_quality_approved": true,
+      "classification_quality_approved": true,
+      "translation_quality_approved": true,
+      "media_quality_approved": true,
+      "examples_quality_approved": true,
+      "synonyms_quality_approved": true,
+      "syllables_quality_approved": true,
+      "conjugation_quality_approved": true,
+      "validation_quality_score": 10.0,
+      "classification_quality_score": 9.0,
+      "translation_quality_score": 10.0,
+      "media_quality_score": 8.5,
+      "examples_quality_score": 9.0,
+      "synonyms_quality_score": 10.0,
+      "syllables_quality_score": 10.0,
+      "conjugation_quality_score": 10.0,
+      "sequential_quality_passed": true,
+      "overall_quality_score": 9.5625,
+      "quality_checks_passed": 8,
+      "quality_checks_failed": 0
+    },
+    "token_usage": {
+      "test_id": "beautiful_English_to_Spanish",
+      "total_execution_time": 16.063642458000686,
+      "total_input_tokens": 12242,
+      "total_output_tokens": 1400,
+      "total_tokens": 13642
+    }
+  },
+  "quickly_English_to_German": {
+    "output": {
+      "source_word": "quickly",
+      "source_language": "English",
+      "target_language": "German",
+      "validation_passed": true,
+      "source_definition": [
+        "at a fast speed",
+        "without delay",
+        "in a short amount of time"
+      ],
+      "source_part_of_speech": "adverb",
+      "source_article": null,
+      "source_additional_info": null,
+      "word_exists": false,
+      "existing_item": null,
+      "target_word": "schnell",
+      "target_part_of_speech": "adverb",
+      "target_article": null,
+      "target_syllables": [
+        "schnell"
+      ],
+      "target_phonetic_guide": "[\u0283n\u025bl]",
+      "target_additional_info": "This is the standard and most common German adverb for 'quickly' or 'fast'. It is neutral in register and used in both spoken and written German.",
+      "english_word": "quickly",
+      "search_query": [
+        "fast",
+        "speed",
+        "motion"
+      ],
+      "synonyms": [
+        {
+          "synonym": "rasch",
+          "explanation": "'Rasch' is a close synonym to 'schnell' and also means 'quickly' or 'rapidly' in German. It often implies a sense of promptness or swiftness, sometimes with a nuance of efficiency or decisiveness, whereas 'schnell' is more neutral and general for 'fast'."
+        },
+        {
+          "synonym": "flott",
+          "explanation": "'Flott' can mean 'quickly' or 'briskly', but it often carries a slightly more informal or lively tone than 'schnell'. It can also imply a cheerful or energetic manner, not just speed."
+        },
+        {
+          "synonym": "z\u00fcgig",
+          "explanation": "'Z\u00fcgig' means 'speedily' or 'without delay', and is often used to describe something proceeding smoothly and efficiently. It emphasizes steady progress rather than just high speed, which is the main focus of 'schnell'."
+        }
+      ],
+      "media_ref": "MEDIA#en#fast_motion_speed",
+      "examples": [
+        {
+          "original": "She quickly packed her suitcase when she realized she was late for her flight.",
+          "translation": "Sie packte schnell ihren Koffer, als sie merkte, dass sie zu sp\u00e4t f\u00fcr ihren Flug war.",
+          "context": "Describes someone acting fast due to being late; 'quickly' modifies the verb 'packed'."
+        },
+        {
+          "original": "If you want to catch the bus, you need to walk quickly.",
+          "translation": "Wenn du den Bus erwischen willst, musst du schnell gehen.",
+          "context": "Giving advice about moving fast to catch public transport; 'quickly' modifies 'walk'."
+        },
+        {
+          "original": "The news spread quickly throughout the small town.",
+          "translation": "Die Nachricht verbreitete sich schnell in der kleinen Stadt.",
+          "context": "Describes information being shared at a fast pace; 'quickly' refers to the speed of spreading."
+        },
+        {
+          "original": "He quickly apologized after realizing his mistake.",
+          "translation": "Er entschuldigte sich schnell, nachdem er seinen Fehler bemerkt hatte.",
+          "context": "Shows someone responding promptly after an error; 'quickly' modifies 'apologized'."
+        }
+      ],
+      "conjugation": null,
+      "validation_quality_approved": true,
+      "classification_quality_approved": true,
+      "translation_quality_approved": true,
+      "media_quality_approved": true,
+      "examples_quality_approved": true,
+      "synonyms_quality_approved": true,
+      "syllables_quality_approved": true,
+      "conjugation_quality_approved": true,
+      "validation_quality_score": 10.0,
+      "classification_quality_score": 9.0,
+      "translation_quality_score": 10.0,
+      "media_quality_score": 8.0,
+      "examples_quality_score": 9.0,
+      "synonyms_quality_score": 9.0,
+      "syllables_quality_score": 10.0,
+      "conjugation_quality_score": 10.0,
+      "sequential_quality_passed": true,
+      "overall_quality_score": 9.375,
+      "quality_checks_passed": 8,
+      "quality_checks_failed": 0
+    },
+    "token_usage": {
+      "test_id": "quickly_English_to_German",
+      "total_execution_time": 16.489132334012538,
+      "total_input_tokens": 12271,
+      "total_output_tokens": 1438,
+      "total_tokens": 13709
+    }
+  },
+  "mit_German_to_English": {
+    "output": {
+      "source_word": "mit",
+      "source_language": "German",
+      "target_language": "English",
+      "validation_passed": true,
+      "source_definition": [
+        "zeigt an, dass etwas zusammen mit etwas anderem geschieht oder vorhanden ist",
+        "dr\u00fcckt Begleitung, Beteiligung oder Mittel aus"
+      ],
+      "source_part_of_speech": "preposition",
+      "source_article": null,
+      "source_additional_info": null,
+      "word_exists": false,
+      "existing_item": null,
+      "target_word": "with",
+      "target_part_of_speech": "preposition",
+      "target_article": null,
+      "target_syllables": [
+        "with"
+      ],
+      "target_phonetic_guide": "/w\u026a\u03b8/",
+      "target_additional_info": null,
+      "english_word": "with",
+      "search_query": [
+        "together",
+        "group",
+        "companionship"
+      ],
+      "synonyms": [
+        {
+          "synonym": "alongside",
+          "explanation": "'Alongside' bedeutet 'neben' oder 'an der Seite von' und wird verwendet, um r\u00e4umliche N\u00e4he auszudr\u00fccken. Im Gegensatz zu 'with', das auch Begleitung, Mittel oder Instrument ausdr\u00fccken kann, ist 'alongside' auf die r\u00e4umliche Beziehung beschr\u00e4nkt."
+        },
+        {
+          "synonym": "accompanied by",
+          "explanation": "'Accompanied by' bedeutet 'begleitet von' und wird verwendet, wenn man ausdr\u00fccken m\u00f6chte, dass jemand oder etwas zusammen mit einer anderen Person oder Sache auftritt. Es ist formeller und spezifischer als 'with', das auch andere Beziehungen ausdr\u00fccken kann."
+        },
+        {
+          "synonym": "together with",
+          "explanation": "'Together with' bedeutet 'zusammen mit' und betont die Vereinigung oder das gemeinsame Auftreten von Personen oder Dingen. Im Gegensatz zu 'with' legt es mehr Gewicht auf das Gemeinsame oder das Zusammenwirken."
+        }
+      ],
+      "media_ref": "MEDIA#de#companionship_group_together",
+      "examples": [
+        {
+          "original": "Ich gehe heute Abend mit meinen Freunden ins Kino, um den neuen Film zu sehen.",
+          "translation": "I'm going to the movies with my friends tonight to see the new film.",
+          "context": "Verwendung von 'mit', um auszudr\u00fccken, mit wem man etwas gemeinsam unternimmt."
+        },
+        {
+          "original": "Kannst du mir bitte mit den Hausaufgaben helfen? Ich verstehe diese Aufgabe nicht.",
+          "translation": "Can you please help me with the homework? I don't understand this exercise.",
+          "context": "'Mit' wird hier verwendet, um Unterst\u00fctzung oder Hilfe bei einer T\u00e4tigkeit auszudr\u00fccken."
+        },
+        {
+          "original": "Sie trinkt ihren Kaffee immer mit viel Milch und ohne Zucker.",
+          "translation": "She always drinks her coffee with a lot of milk and no sugar.",
+          "context": "'Mit' beschreibt hier, was zu etwas hinzugef\u00fcgt oder womit etwas konsumiert wird."
+        }
+      ],
+      "conjugation": null,
+      "validation_quality_approved": true,
+      "classification_quality_approved": true,
+      "translation_quality_approved": true,
+      "media_quality_approved": true,
+      "examples_quality_approved": true,
+      "synonyms_quality_approved": true,
+      "syllables_quality_approved": true,
+      "conjugation_quality_approved": true,
+      "validation_quality_score": 10.0,
+      "classification_quality_score": 8.0,
+      "translation_quality_score": 10.0,
+      "media_quality_score": 8.5,
+      "examples_quality_score": 9.0,
+      "synonyms_quality_score": 9.0,
+      "syllables_quality_score": 10.0,
+      "conjugation_quality_score": 10.0,
+      "sequential_quality_passed": true,
+      "overall_quality_score": 9.3125,
+      "quality_checks_passed": 8,
+      "quality_checks_failed": 0
+    },
+    "token_usage": {
+      "test_id": "mit_German_to_English",
+      "total_execution_time": 16.986760750005487,
+      "total_input_tokens": 12177,
+      "total_output_tokens": 1577,
+      "total_tokens": 13754
+    }
+  },
+  "aber_German_to_Spanish": {
+    "output": {
+      "source_word": "aber",
+      "source_language": "German",
+      "target_language": "Spanish",
+      "validation_passed": true,
+      "source_definition": [
+        "dr\u00fcckt einen Gegensatz oder eine Einschr\u00e4nkung aus",
+        "verbindet zwei S\u00e4tze oder Satzteile mit entgegengesetztem Inhalt"
+      ],
+      "source_part_of_speech": "conjunction",
+      "source_article": null,
+      "source_additional_info": null,
+      "word_exists": false,
+      "existing_item": null,
+      "target_word": "pero",
+      "target_part_of_speech": "conjunction",
+      "target_article": null,
+      "target_syllables": [
+        "pe",
+        "ro"
+      ],
+      "target_phonetic_guide": "[\u02c8pe.\u027eo]",
+      "target_additional_info": null,
+      "english_word": "but",
+      "search_query": [
+        "contrast",
+        "opposite",
+        "difference"
+      ],
+      "synonyms": [
+        {
+          "synonym": "sin embargo",
+          "explanation": "'Sin embargo' bedeutet 'jedoch' oder 'dennoch' und wird meist am Satzanfang verwendet. Es ist formeller und hebt einen st\u00e4rkeren Gegensatz hervor als 'pero', das neutraler und h\u00e4ufiger im allt\u00e4glichen Sprachgebrauch ist."
+        },
+        {
+          "synonym": "aunque",
+          "explanation": "'Aunque' bedeutet 'obwohl' und leitet einen Nebensatz ein. Im Gegensatz zu 'pero', das zwei Haupts\u00e4tze verbindet, dr\u00fcckt 'aunque' eine Einschr\u00e4nkung oder einen Gegensatz innerhalb eines Satzes aus."
+        },
+        {
+          "synonym": "no obstante",
+          "explanation": "'No obstante' entspricht 'nichtsdestotrotz' oder 'trotzdem' im Deutschen. Es ist formeller als 'pero' und wird meist in schriftlicher oder gehobener Sprache verwendet, um einen starken Gegensatz zu markieren."
+        }
+      ],
+      "media_ref": "MEDIA#de#contrast_difference_opposite",
+      "examples": [
+        {
+          "original": "Ich wollte gestern ins Kino gehen, aber es hat den ganzen Abend geregnet, also bin ich zu Hause geblieben.",
+          "translation": "Quer\u00eda ir al cine ayer, pero estuvo lloviendo toda la tarde, as\u00ed que me qued\u00e9 en casa.",
+          "context": "Kontrast zwischen Wunsch und Realit\u00e4t, h\u00e4ufige Alltagssituation."
+        },
+        {
+          "original": "Dein Vorschlag klingt interessant, aber ich glaube, wir brauchen noch mehr Informationen, bevor wir entscheiden.",
+          "translation": "Tu propuesta suena interesante, pero creo que necesitamos m\u00e1s informaci\u00f3n antes de decidir.",
+          "context": "Ablehnung oder Einschr\u00e4nkung nach einer positiven Aussage."
+        },
+        {
+          "original": "Er spricht sehr gut Spanisch, aber er hat nie in Spanien gelebt.",
+          "translation": "\u00c9l habla muy bien espa\u00f1ol, pero nunca ha vivido en Espa\u00f1a.",
+          "context": "\u00dcberraschung oder Unerwartetes ausdr\u00fccken."
+        }
+      ],
+      "conjugation": null,
+      "validation_quality_approved": true,
+      "classification_quality_approved": true,
+      "translation_quality_approved": true,
+      "media_quality_approved": true,
+      "examples_quality_approved": true,
+      "synonyms_quality_approved": true,
+      "syllables_quality_approved": true,
+      "conjugation_quality_approved": true,
+      "validation_quality_score": 10.0,
+      "classification_quality_score": 8.0,
+      "translation_quality_score": 10.0,
+      "media_quality_score": 8.5,
+      "examples_quality_score": 9.0,
+      "synonyms_quality_score": 9.0,
+      "syllables_quality_score": 10.0,
+      "conjugation_quality_score": 10.0,
+      "sequential_quality_passed": true,
+      "overall_quality_score": 9.3125,
+      "quality_checks_passed": 8,
+      "quality_checks_failed": 0
+    },
+    "token_usage": {
+      "test_id": "aber_German_to_Spanish",
+      "total_execution_time": 20.393456291989423,
+      "total_input_tokens": 12182,
+      "total_output_tokens": 1547,
+      "total_tokens": 13729
+    }
+  },
+  "yo_Spanish_to_English": {
+    "output": {
+      "source_word": "yo",
+      "source_language": "Spanish",
+      "target_language": "English",
+      "validation_passed": true,
+      "source_definition": [
+        "Pronombre personal de primera persona singular.",
+        "Se utiliza para referirse a la persona que habla o escribe."
+      ],
+      "source_part_of_speech": "pronoun",
+      "source_article": null,
+      "source_additional_info": null,
+      "word_exists": false,
+      "existing_item": null,
+      "target_word": "I",
+      "target_part_of_speech": "pronoun",
+      "target_article": null,
+      "target_syllables": [
+        "I"
+      ],
+      "target_phonetic_guide": "a\u026a",
+      "target_additional_info": null,
+      "english_word": "I",
+      "search_query": [
+        "self portrait",
+        "person",
+        "individual"
+      ],
+      "synonyms": [
+        {
+          "synonym": "myself",
+          "explanation": "'Myself' se utiliza para enfatizar o reflexionar sobre la propia persona, pero no reemplaza a 'I' como sujeto en una oraci\u00f3n normal. Por ejemplo, 'I did it myself' ('Yo lo hice yo mismo')."
+        },
+        {
+          "synonym": "me",
+          "explanation": "'Me' es el pronombre de primera persona en funci\u00f3n de objeto, no de sujeto como 'I'. Por ejemplo, en 'He saw me' ('\u00c9l me vio'), no se puede usar 'I' en ese lugar."
+        }
+      ],
+      "media_ref": "MEDIA#es#individual_person_selfportrait",
+      "examples": [
+        {
+          "original": "Yo siempre desayuno caf\u00e9 con pan antes de ir al trabajo, porque me ayuda a empezar bien el d\u00eda.",
+          "translation": "I always have coffee and bread for breakfast before going to work, because it helps me start the day well.",
+          "context": "Uso de 'yo' para hablar de rutinas personales."
+        },
+        {
+          "original": "Aunque todos quer\u00edan ir al cine, yo prefer\u00ed quedarme en casa leyendo un libro.",
+          "translation": "Although everyone wanted to go to the movies, I preferred to stay at home reading a book.",
+          "context": "Se utiliza 'yo' para expresar una preferencia personal diferente a la de los dem\u00e1s."
+        },
+        {
+          "original": "Yo no sab\u00eda que la reuni\u00f3n era hoy, as\u00ed que llegu\u00e9 tarde sin querer.",
+          "translation": "I didn't know the meeting was today, so I arrived late unintentionally.",
+          "context": "Uso de 'yo' para asumir responsabilidad o explicar una acci\u00f3n propia."
+        }
+      ],
+      "conjugation": null,
+      "validation_quality_approved": true,
+      "classification_quality_approved": true,
+      "translation_quality_approved": true,
+      "media_quality_approved": true,
+      "examples_quality_approved": true,
+      "synonyms_quality_approved": true,
+      "syllables_quality_approved": true,
+      "conjugation_quality_approved": true,
+      "validation_quality_score": 10.0,
+      "classification_quality_score": 9.0,
+      "translation_quality_score": 10.0,
+      "media_quality_score": 8.5,
+      "examples_quality_score": 9.0,
+      "synonyms_quality_score": 8.0,
+      "syllables_quality_score": 10.0,
+      "conjugation_quality_score": 10.0,
+      "sequential_quality_passed": true,
+      "overall_quality_score": 9.3125,
+      "quality_checks_passed": 8,
+      "quality_checks_failed": 0
+    },
+    "token_usage": {
+      "test_id": "yo_Spanish_to_English",
+      "total_execution_time": 16.45065033301944,
+      "total_input_tokens": 12082,
+      "total_output_tokens": 1516,
+      "total_tokens": 13598
+    }
+  },
+  "el_Spanish_to_German": {
+    "output": {
+      "source_word": "el",
+      "source_language": "Spanish",
+      "target_language": "German",
+      "validation_passed": true,
+      "source_definition": [
+        "Art\u00edculo definido masculino singular que se usa para referirse a un sustantivo espec\u00edfico.",
+        "Se utiliza antes de sustantivos masculinos singulares para indicar que son conocidos por el hablante y el oyente."
+      ],
+      "source_part_of_speech": "article",
+      "source_article": null,
+      "source_additional_info": null,
+      "word_exists": false,
+      "existing_item": null,
+      "target_word": "der",
+      "target_part_of_speech": "article",
+      "target_article": null,
+      "target_syllables": [
+        "der"
+      ],
+      "target_phonetic_guide": "[de\u02d0\u0250\u032f]",
+      "target_additional_info": "Definite article for masculine singular nouns in German.",
+      "english_word": "the",
+      "search_query": [
+        "definite article",
+        "grammar",
+        "language"
+      ],
+      "synonyms": [
+        {
+          "synonym": "die",
+          "explanation": "'Die' es el art\u00edculo definido femenino singular y plural en alem\u00e1n. Aunque no es sin\u00f3nimo directo de 'der', ambos cumplen la funci\u00f3n de art\u00edculo definido, pero se usan para diferentes g\u00e9neros y n\u00fameros."
+        },
+        {
+          "synonym": "das",
+          "explanation": "'Das' es el art\u00edculo definido neutro singular en alem\u00e1n. Al igual que 'der', introduce sustantivos definidos, pero se utiliza para el g\u00e9nero neutro, no para el masculino."
+        },
+        {
+          "synonym": "dieser",
+          "explanation": "'Dieser' es un pronombre demostrativo que puede funcionar como determinante, similar a 'este' en espa\u00f1ol. Aunque no es un art\u00edculo, a veces se usa en contextos donde se se\u00f1ala o enfatiza un sustantivo masculino singular, funci\u00f3n que puede recordar a 'der' en ciertos usos enf\u00e1ticos."
+        }
+      ],
+      "media_ref": "MEDIA#es#definitearticle_grammar_language",
+      "examples": [
+        {
+          "original": "El perro de mi vecino siempre ladra cuando alguien pasa por la calle por la noche.",
+          "translation": "Der Hund meines Nachbarn bellt immer, wenn nachts jemand die Stra\u00dfe entlanggeht.",
+          "context": "Uso de 'el' como art\u00edculo definido masculino singular para referirse a un animal espec\u00edfico."
+        },
+        {
+          "original": "El libro que me prestaste estaba tan interesante que lo termin\u00e9 en un solo d\u00eda.",
+          "translation": "Das Buch, das du mir geliehen hast, war so interessant, dass ich es an einem einzigen Tag gelesen habe.",
+          "context": "Aqu\u00ed 'el' introduce un sustantivo masculino singular; en alem\u00e1n, se usa 'das' porque 'Buch' es neutro."
+        },
+        {
+          "original": "El profesor explic\u00f3 la lecci\u00f3n de una manera tan clara que todos entendimos el tema.",
+          "translation": "Der Lehrer erkl\u00e4rte die Lektion so klar, dass wir alle das Thema verstanden haben.",
+          "context": "En este caso, 'el' se usa para referirse a una persona masculina; en alem\u00e1n, 'der' es el art\u00edculo definido masculino."
+        }
+      ],
+      "conjugation": null,
+      "validation_quality_approved": true,
+      "classification_quality_approved": true,
+      "translation_quality_approved": true,
+      "media_quality_approved": true,
+      "examples_quality_approved": true,
+      "synonyms_quality_approved": true,
+      "syllables_quality_approved": true,
+      "conjugation_quality_approved": true,
+      "validation_quality_score": 10.0,
+      "classification_quality_score": 9.0,
+      "translation_quality_score": 9.0,
+      "media_quality_score": 8.0,
+      "examples_quality_score": 9.0,
+      "synonyms_quality_score": 8.0,
+      "syllables_quality_score": 10.0,
+      "conjugation_quality_score": 10.0,
+      "sequential_quality_passed": true,
+      "overall_quality_score": 9.125,
+      "quality_checks_passed": 8,
+      "quality_checks_failed": 0
+    },
+    "token_usage": {
+      "test_id": "el_Spanish_to_German",
+      "total_execution_time": 27.450113750004675,
+      "total_input_tokens": 12266,
+      "total_output_tokens": 1983,
+      "total_tokens": 14249
+    }
+  },
+  "wow_English_to_Spanish": {
+    "output": {
+      "source_word": "wow",
+      "source_language": "English",
+      "target_language": "Spanish",
+      "validation_passed": true,
+      "source_definition": [
+        "An exclamation used to express surprise, admiration, or excitement.",
+        "A reaction to something impressive or unexpected."
+      ],
+      "source_part_of_speech": "interjection",
+      "source_article": null,
+      "source_additional_info": "Commonly used in informal speech and writing; can also be used sarcastically.",
+      "word_exists": false,
+      "existing_item": null,
+      "target_word": "guau",
+      "target_part_of_speech": "interjection",
+      "target_article": null,
+      "target_syllables": [
+        "guau"
+      ],
+      "target_phonetic_guide": "[\u02c8\u0261wau]",
+      "target_additional_info": "Used to express surprise, admiration, or amazement, just like 'wow' in English. Common in all Spanish-speaking regions and informal contexts.",
+      "english_word": "wow",
+      "search_query": [
+        "surprise",
+        "amazement",
+        "admiration"
+      ],
+      "synonyms": [
+        {
+          "synonym": "bau",
+          "explanation": "'Bau' is a playful or childlike variant sometimes used in Spanish to imitate a dog's bark, but it is much less common than 'guau' and may sound unnatural to most speakers."
+        },
+        {
+          "synonym": "wof",
+          "explanation": "'Wof' is another rare onomatopoeic variant for a dog's bark in Spanish, used mostly in playful or comic contexts, and is not standard."
+        }
+      ],
+      "media_ref": "MEDIA#en#admiration_amazement_surprise",
+      "examples": [
+        {
+          "original": "Wow, I can't believe how beautiful this sunset is! The colors are just amazing.",
+          "translation": "\u00a1Guau, no puedo creer lo hermoso que es este atardecer! Los colores son simplemente incre\u00edbles.",
+          "context": "Expressing surprise and admiration at a beautiful view."
+        },
+        {
+          "original": "Wow, you finished the project already? That was so fast!",
+          "translation": "\u00a1Guau, \u00bfya terminaste el proyecto? \u00a1Eso fue muy r\u00e1pido!",
+          "context": "Reacting to someone completing a task much sooner than expected."
+        },
+        {
+          "original": "Wow, that movie was so emotional. I almost cried at the end.",
+          "translation": "Guau, esa pel\u00edcula fue tan emotiva. Casi lloro al final.",
+          "context": "Describing a strong emotional reaction after watching a film."
+        }
+      ],
+      "conjugation": null,
+      "validation_quality_approved": true,
+      "classification_quality_approved": true,
+      "translation_quality_approved": true,
+      "media_quality_approved": true,
+      "examples_quality_approved": true,
+      "synonyms_quality_approved": true,
+      "syllables_quality_approved": true,
+      "conjugation_quality_approved": true,
+      "validation_quality_score": 10.0,
+      "classification_quality_score": 9.0,
+      "translation_quality_score": 10.0,
+      "media_quality_score": 8.5,
+      "examples_quality_score": 9.0,
+      "synonyms_quality_score": 8.0,
+      "syllables_quality_score": 10.0,
+      "conjugation_quality_score": 10.0,
+      "sequential_quality_passed": true,
+      "overall_quality_score": 9.3125,
+      "quality_checks_passed": 8,
+      "quality_checks_failed": 0
+    },
+    "token_usage": {
+      "test_id": "wow_English_to_Spanish",
+      "total_execution_time": 15.385569625010248,
+      "total_input_tokens": 12148,
+      "total_output_tokens": 1531,
+      "total_tokens": 13679
     }
   }
 }
