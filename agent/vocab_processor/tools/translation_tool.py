@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from langchain.tools import tool
 from pydantic import BaseModel, Field
@@ -39,8 +39,8 @@ async def get_translation(
     target_language: Language,
     source_part_of_speech: PartOfSpeech,
     quality_feedback: Optional[str] = None,
-    previous_issues: Optional[List[str]] = None,
-    suggestions: Optional[List[str]] = None,
+    previous_issues: Optional[list[str]] = None,
+    suggestions: Optional[list[str]] = None,
 ) -> Translation:
     """Translate a word between supported languages English, German and Spanish and categorize the part of speech."""
 

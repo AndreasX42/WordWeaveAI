@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from langchain.tools import tool
 from pydantic import BaseModel, Field
@@ -29,7 +29,7 @@ class WordValidationResult(BaseModel):
         None,
         description="An explanatory message if the word is not valid (e.g., 'Misspelled', 'Ambiguous language', 'Language not clear').",
     )
-    suggestions: Optional[List[SuggestedWordInfo]] = Field(
+    suggestions: Optional[list[SuggestedWordInfo]] = Field(
         None,
         max_items=3,
         description="A list of suggested corrections or alternative words, including their language, if the input word is misspelled or ambiguous.",

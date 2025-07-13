@@ -1,6 +1,5 @@
 import asyncio
 import os
-import re
 from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any

@@ -1,4 +1,4 @@
-from typing import Dict, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -35,12 +35,12 @@ class EnglishConjugationForm(BaseModel):
 class EnglishVerbConjugation(BaseModel):
     """English verb conjugation table."""
 
-    non_personal_forms: Dict[NonPersonalForms, str] = Field(
+    non_personal_forms: dict[NonPersonalForms, str] = Field(
         description="infinitive, present participle, past participle"
     )
-    indicative: Dict[IndicativeTenses, EnglishConjugationForm] = Field(
+    indicative: dict[IndicativeTenses, EnglishConjugationForm] = Field(
         description="present=simple present, past=simple past, present_perfect=have/has+past participle, past_perfect=had+past participle, present_perfect_progressive=have/has been+present participle, past_perfect_progressive=had been+present participle, future=will+infinitive, future_perfect=will have+past participle, future_progressive=will be+present participle, future_perfect_progressive=will have been+present participle, conditional=would+infinitive, conditional_perfect=would have+past participle"
     )
-    subjunctive: Dict[SubjunctiveTenses, EnglishConjugationForm] = Field(
+    subjunctive: dict[SubjunctiveTenses, EnglishConjugationForm] = Field(
         description="present=present subjunctive, past=past subjunctive"
     )

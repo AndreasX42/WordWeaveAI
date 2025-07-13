@@ -1,7 +1,7 @@
 import asyncio
 import os
 import random
-from typing import Dict, Optional
+from typing import Optional
 
 from aws_lambda_powertools import Logger
 from elevenlabs import VoiceSettings

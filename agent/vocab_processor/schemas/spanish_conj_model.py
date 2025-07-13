@@ -1,4 +1,4 @@
-from typing import Dict, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -38,12 +38,12 @@ class SpanishConjugationForm(BaseModel):
 class SpanishVerbConjugation(BaseModel):
     """Spanish verb conjugation table."""
 
-    formas_no_personales: Dict[NonPersonalForms, str] = Field(
+    formas_no_personales: dict[NonPersonalForms, str] = Field(
         description="infinitivo, participio, gerundio"
     )
-    indicativo: Dict[IndicativeTenses, SpanishConjugationForm] = Field(
+    indicativo: dict[IndicativeTenses, SpanishConjugationForm] = Field(
         description="presente=present, preterito_perfecto_simple=simple past, preterito_imperfecto=imperfect past, preterito_perfecto_compuesto=present perfect, preterito_pluscuamperfecto=past perfect, futuro=future, futuro_perfecto=future perfect, condicional=conditional, condicional_perfecto=perfect conditional"
     )
-    subjuntivo: Dict[SubjunctiveTenses, SpanishConjugationForm] = Field(
+    subjuntivo: dict[SubjunctiveTenses, SpanishConjugationForm] = Field(
         description="presente=present subjunctive, preterito_imperfecto=past subjunctive, preterito_perfecto_compuesto=present perfect subjunctive, preterito_pluscuamperfecto=past perfect subjunctive, futuro=future subjunctive"
     )

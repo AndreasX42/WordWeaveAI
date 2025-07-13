@@ -1,4 +1,4 @@
-from typing import Dict, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -24,12 +24,12 @@ class GermanConjugationForm(BaseModel):
 class GermanVerbConjugation(BaseModel):
     """German verb conjugation table."""
 
-    non_personal_forms: Dict[NonPersonalForms, str] = Field(
+    non_personal_forms: dict[NonPersonalForms, str] = Field(
         description="infinitive, present participle, past participle"
     )
-    indikativ: Dict[IndicativeTenses, GermanConjugationForm] = Field(
+    indikativ: dict[IndicativeTenses, GermanConjugationForm] = Field(
         description="praesens=present, praeteritum=simple past, perfekt=present perfect, plusquamperfekt=past perfect, futur_i=future, futur_ii=future perfect"
     )
-    konjunktiv: Dict[KonjunktivTenses, GermanConjugationForm] = Field(
+    konjunktiv: dict[KonjunktivTenses, GermanConjugationForm] = Field(
         description="konjunktiv_i=subjunctive I, konjunktiv_ii=subjunctive II, konjunktiv_perfekt=subjunctive perfect"
     )

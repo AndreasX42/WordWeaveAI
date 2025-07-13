@@ -1,9 +1,8 @@
 """Token usage tracking utilities for test framework."""
 
-import os
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from vocab_processor.constants import is_tracing_enabled
 
@@ -38,8 +37,8 @@ class TestTokenUsage:
     total_input_tokens: int = 0
     total_output_tokens: int = 0
     total_tokens: int = 0
-    llm_calls: List[TokenUsage] = field(default_factory=list)
-    models_used: List[str] = field(default_factory=list)
+    llm_calls: list[TokenUsage] = field(default_factory=list)
+    models_used: list[str] = field(default_factory=list)
 
     def add_llm_call(self, usage: TokenUsage) -> None:
         """Add a single LLM call's token usage to the test totals."""
@@ -51,7 +50,7 @@ class TestTokenUsage:
         if usage.model_name and usage.model_name not in self.models_used:
             self.models_used.append(usage.model_name)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "test_id": self.test_id,
@@ -78,7 +77,7 @@ class TokenTracker:
 
     def __init__(self):
         self.current_test_usage: Optional[TestTokenUsage] = None
-        self._test_usages: Dict[str, TestTokenUsage] = {}
+        self._test_usages: dict[str, TestTokenUsage] = {}
 
     def start_test(self, test_id: str) -> None:
         """Start tracking tokens for a new test case."""
@@ -154,7 +153,7 @@ class TokenTracker:
         """Get token usage for a specific test."""
         return self._test_usages.get(test_id)
 
-    def get_all_usages(self) -> Dict[str, TestTokenUsage]:
+    def get_all_usages(self) -> dict[str, TestTokenUsage]:
         """Get all test token usages."""
         return self._test_usages.copy()
 

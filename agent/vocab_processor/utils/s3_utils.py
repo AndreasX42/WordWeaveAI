@@ -1,6 +1,5 @@
 import asyncio
 import os
-from typing import Dict
 
 import boto3
 from aws_lambda_powertools import Logger
@@ -30,7 +29,7 @@ def generate_safe_word_key(word: str, max_length: int = 20) -> str:
 
 def generate_vocab_s3_paths(
     target_language: Language, target_word: str
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Generate standardized S3 paths for vocabulary content.
     """
@@ -44,7 +43,7 @@ def generate_vocab_s3_paths(
     }
 
 
-def generate_english_image_s3_paths(english_word: str) -> Dict[str, str]:
+def generate_english_image_s3_paths(english_word: str) -> dict[str, str]:
     """
     Generate English-based S3 paths for images.
     All images are stored under vocabs/en/{english_word}/images/* regardless of source/target language.

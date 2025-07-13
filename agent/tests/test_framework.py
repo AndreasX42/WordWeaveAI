@@ -11,7 +11,7 @@ import sys
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 # Add the parent directory to the Python path so we can import vocab_processor
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -21,7 +21,6 @@ from rich.columns import Columns
 # Add Rich for colored output and better formatting
 from rich.console import Console
 from rich.panel import Panel
-from rich.syntax import Syntax
 from rich.table import Table
 
 # Initialize Rich console
@@ -61,11 +60,11 @@ class TestCase:
     target_language: str
     source_language: Optional[str] = None
     description: Optional[str] = None
-    tags: Optional[List[str]] = None
+    tags: Optional[list[str]] = None
     test_id: str = field(init=False)
-    expected_output: Optional[Dict[str, Any]] = None
+    expected_output: Optional[dict[str, Any]] = None
     expected_execution_time: Optional[float] = None
-    expected_token_usage: Optional[Dict[str, Any]] = None
+    expected_token_usage: Optional[dict[str, Any]] = None
 
     def __post_init__(self):
         self.test_id = _generate_test_id(
@@ -77,7 +76,7 @@ class TestCase:
         return cls(**data)
 
     @property
-    def input_data(self) -> Dict[str, Any]:
+    def input_data(self) -> dict[str, Any]:
         """Get the input data for the graph invocation."""
         return {
             "source_word": self.source_word,
@@ -226,7 +225,7 @@ class LangGraphTestFramework:
                 differences=differences,
             )
 
-    async def build_ground_truth(self, test_cases: List[TestCase]) -> None:
+    async def build_ground_truth(self, test_cases: list[TestCase]) -> None:
         """Build ground truth by running test cases sequentially and storing their outputs."""
         ground_truth_data = {}
         console.print(
@@ -260,7 +259,7 @@ class LangGraphTestFramework:
         # Save ground truth
         self.save_ground_truth(ground_truth_data)
 
-    def save_ground_truth(self, ground_truth_data: Dict[str, Any]) -> None:
+    def save_ground_truth(self, ground_truth_data: dict[str, Any]) -> None:
         """Save ground truth data to file."""
         with open(self.ground_truth_file, "w") as f:
             json.dump(ground_truth_data, f, indent=2)
@@ -268,7 +267,7 @@ class LangGraphTestFramework:
             f"Saved ground truth for {len(ground_truth_data)} test cases to {self.ground_truth_file}"
         )
 
-    def load_ground_truth(self, test_cases: List[TestCase]) -> None:
+    def load_ground_truth(self, test_cases: list[TestCase]) -> None:
         """Load ground truth data and attach it to the test cases."""
         try:
             with open(self.ground_truth_file, "r") as f:
@@ -297,7 +296,7 @@ class LangGraphTestFramework:
         except Exception as e:
             logger.error(f"Error loading ground truth: {e}")
 
-    async def run_test_suite(self, test_cases: List[TestCase]) -> List[TestResult]:
+    async def run_test_suite(self, test_cases: list[TestCase]) -> list[TestResult]:
         """Run the full test suite sequentially and return results."""
         console.print(
             f"Running regression tests for {len(test_cases)} test cases sequentially..."
@@ -315,7 +314,7 @@ class LangGraphTestFramework:
         self.save_test_results(results)
         return results
 
-    def save_test_results(self, results: List[TestResult]) -> None:
+    def save_test_results(self, results: list[TestResult]) -> None:
         """Save test results to a timestamped file."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         file_path = self.test_data_dir / "results" / f"test_results_{timestamp}.json"
@@ -343,8 +342,8 @@ class LangGraphTestFramework:
         logger.info(f"Saved test results to {file_path}")
 
     def _compare_outputs(
-        self, actual: Dict[str, Any], expected: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, actual: dict[str, Any], expected: dict[str, Any]
+    ) -> dict[str, Any]:
         """Compare actual output with expected output and return differences."""
         differences = {}
         filtered_actual = self._filter_excluded_attributes(actual)
@@ -361,11 +360,11 @@ class LangGraphTestFramework:
 
     def _compare_regression_metrics(
         self,
-        actual: Dict[str, Any],
-        expected: Dict[str, Any],
-        actual_token_usage: Optional[Dict[str, Any]],
-        expected_token_usage: Optional[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        actual: dict[str, Any],
+        expected: dict[str, Any],
+        actual_token_usage: Optional[dict[str, Any]],
+        expected_token_usage: Optional[dict[str, Any]],
+    ) -> dict[str, Any]:
         """Compare only quality scores, token usage, and quality gate failures for regression testing."""
         differences = {}
 
@@ -476,7 +475,7 @@ class LangGraphTestFramework:
             return repr(value)
 
     def print_colored_diff(
-        self, actual: Dict[str, Any], expected: Dict[str, Any]
+        self, actual: dict[str, Any], expected: dict[str, Any]
     ) -> None:
         """Print a colored diff between actual and expected outputs directly to console."""
         console.print(Panel("DETAILED DIFF", style="cyan bold", width=60, expand=False))
@@ -506,10 +505,10 @@ class LangGraphTestFramework:
 
     def print_regression_diff(
         self,
-        actual: Dict[str, Any],
-        expected: Dict[str, Any],
-        actual_token_usage: Optional[Dict[str, Any]],
-        expected_token_usage: Optional[Dict[str, Any]],
+        actual: dict[str, Any],
+        expected: dict[str, Any],
+        actual_token_usage: Optional[dict[str, Any]],
+        expected_token_usage: Optional[dict[str, Any]],
         test_result: Optional["TestResult"] = None,
     ) -> None:
         """Print a focused diff for regression testing showing only quality scores, token usage, and quality gates."""
@@ -580,7 +579,7 @@ class LangGraphTestFramework:
         for issue in other_issues:
             console.print(f"\n[red bold]~ ISSUE: {issue}[/red bold]")
 
-    def print_colored_test_report(self, results: List[TestResult]) -> None:
+    def print_colored_test_report(self, results: list[TestResult]) -> None:
         """Print a colored test report with detailed diffs for regression testing directly to console."""
         total_tests = len(results)
         passed_tests = sum(1 for r in results if r.passed)
@@ -768,7 +767,7 @@ class LangGraphTestFramework:
                         )
                     console.print()
 
-    def _extract_quality_scores(self, output: Dict[str, Any]) -> Dict[str, float]:
+    def _extract_quality_scores(self, output: dict[str, Any]) -> dict[str, float]:
         """Extract quality scores from the output dictionary."""
         scores = {}
         for key, value in output.items():

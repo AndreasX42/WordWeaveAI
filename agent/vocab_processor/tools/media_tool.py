@@ -1,7 +1,7 @@
 import asyncio
 import os
 import random
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 import aiohttp
 from aws_lambda_powertools import Logger
@@ -210,11 +210,11 @@ async def get_media(
     english_word: str,
     source_language: Language,
     target_language: Language,
-    source_definition: Optional[List[str]] = None,
+    source_definition: Optional[list[str]] = None,
     target_additional_info: Optional[str] = None,
     quality_feedback: Optional[str] = None,
-    previous_issues: Optional[List[str]] = None,
-    suggestions: Optional[List[str]] = None,
+    previous_issues: Optional[list[str]] = None,
+    suggestions: Optional[list[str]] = None,
 ) -> dict[str, Any]:
     """
     Get the most memorable photo for a vocabulary word and upload to S3.
@@ -376,8 +376,8 @@ async def _create_new_media(
     target_language: Language,
     search_query_result: SearchQueryResult,
     quality_feedback: Optional[str] = None,
-    previous_issues: Optional[List[str]] = None,
-    suggestions: Optional[List[str]] = None,
+    previous_issues: Optional[list[str]] = None,
+    suggestions: Optional[list[str]] = None,
 ) -> dict[str, Any]:
     """Create new media by fetching from Pexels API."""
     image_paths = generate_english_image_s3_paths(english_word)
@@ -463,14 +463,14 @@ def _create_mock_media(photo: PhotoOption, target_word: str) -> Media:
 
 
 async def _select_best_photo(
-    photos: List[PhotoOption],
+    photos: list[PhotoOption],
     source_word: str,
     target_word: str,
     source_language: Language,
     target_language: Language,
     quality_feedback: Optional[str] = None,
-    previous_issues: Optional[List[str]] = None,
-    suggestions: Optional[List[str]] = None,
+    previous_issues: Optional[list[str]] = None,
+    suggestions: Optional[list[str]] = None,
 ) -> Media:
     """Use LLM to select the best photo from the available options."""
     rank_prompt = f"Choose best photo for '{source_word}' ({source_language}) → '{target_word}' ({target_language}). Translate the texts like in alt, explanation, memory_tip to the source language {source_language}. Photos: {[p.model_dump() for p in photos]}"

@@ -1,6 +1,6 @@
 """Base tool utilities and common patterns for vocab processor tools."""
 
-from typing import Any, Dict, List, Optional, Type, TypeVar
+from typing import Any, Optional, Type, TypeVar
 
 from aws_lambda_powertools import Logger
 from pydantic import BaseModel
@@ -23,9 +23,9 @@ class SystemMessages:
 def add_quality_feedback_to_prompt(
     base_prompt: str,
     quality_feedback: Optional[str] = None,
-    previous_issues: Optional[List[str]] = None,
-    suggestions: Optional[List[str]] = None,
-    quality_requirements: Optional[List[str]] = None,
+    previous_issues: Optional[list[str]] = None,
+    suggestions: Optional[list[str]] = None,
+    quality_requirements: Optional[list[str]] = None,
 ) -> str:
     """Add quality feedback section to a prompt if provided."""
     if (
@@ -103,8 +103,8 @@ async def create_llm_response(
 
 
 def create_tool_error_response(
-    error: Exception, context: Dict[str, Any]
-) -> Dict[str, Any]:
+    error: Exception, context: dict[str, Any]
+) -> dict[str, Any]:
     """
     Create standardized error response for tools.
 

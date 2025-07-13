@@ -1,7 +1,7 @@
 import asyncio
 import os
 from asyncio import TimeoutError
-from typing import Any, Dict
+from typing import Any
 
 from aws_lambda_powertools import Logger, Metrics
 from aws_lambda_powertools.metrics import MetricUnit
@@ -28,7 +28,7 @@ processor = AsyncBatchProcessor(event_type=EventType.SQS)
 
 
 @logger.inject_lambda_context()
-def lambda_handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, Any]:
+def lambda_handler(event: dict[str, Any], context: LambdaContext) -> dict[str, Any]:
     """Entrypoint for the Vocab Processor Lambda."""
     return async_process_partial_response(
         event=event,
@@ -38,7 +38,7 @@ def lambda_handler(event: Dict[str, Any], context: LambdaContext) -> Dict[str, A
     )
 
 
-async def _process_record(record: Dict[str, Any]) -> None:
+async def _process_record(record: dict[str, Any]) -> None:
     """Handle one SQS record."""
     try:
         request: VocabProcessRequestDto = parse(
@@ -71,7 +71,7 @@ async def _process_record(record: Dict[str, Any]) -> None:
         raise
 
 
-async def _handle_request(req: VocabProcessRequestDto) -> Dict[str, Any]:
+async def _handle_request(req: VocabProcessRequestDto) -> dict[str, Any]:
     """Main request handler."""
     notifier = WebSocketNotifier(user_id=req.user_id, request_id=req.request_id)
 
@@ -93,8 +93,8 @@ async def _handle_request(req: VocabProcessRequestDto) -> Dict[str, Any]:
 
 
 async def _evaluate_final_state(
-    result: Dict[str, Any], req: VocabProcessRequestDto, notifier: WebSocketNotifier
-) -> Dict[str, Any]:
+    result: dict[str, Any], req: VocabProcessRequestDto, notifier: WebSocketNotifier
+) -> dict[str, Any]:
     """Evaluate the final graph state and send appropriate notifications."""
 
     # Check if validation failed
@@ -147,7 +147,7 @@ async def _evaluate_final_state(
     return _build_error_response("failed", req, error="Unexpected processing state")
 
 
-def _build_validation_result(result: Dict[str, Any]) -> Dict[str, Any]:
+def _build_validation_result(result: dict[str, Any]) -> dict[str, Any]:
     """Build validation result object for notifications."""
     return {
         "is_valid": False,
@@ -158,8 +158,8 @@ def _build_validation_result(result: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _build_ddb_hit_response(
-    result: Dict[str, Any], req: VocabProcessRequestDto
-) -> Dict[str, Any]:
+    result: dict[str, Any], req: VocabProcessRequestDto
+) -> dict[str, Any]:
     """Build DDB hit response object."""
     return {
         "status": "exists",
@@ -175,8 +175,8 @@ def _build_error_response(
     status: str,
     req: VocabProcessRequestDto,
     error: str = None,
-    validation_result: Dict[str, Any] = None,
-) -> Dict[str, Any]:
+    validation_result: dict[str, Any] = None,
+) -> dict[str, Any]:
     """Build standardized error response."""
     response = {
         "status": status,
@@ -193,7 +193,7 @@ def _build_error_response(
     return response
 
 
-def _is_processing_complete(result: Dict[str, Any]) -> bool:
+def _is_processing_complete(result: dict[str, Any]) -> bool:
     """Check if processing is complete based on essential fields."""
     required_fields = [
         "source_word",
@@ -206,7 +206,7 @@ def _is_processing_complete(result: Dict[str, Any]) -> bool:
 
 async def _process_word_with_graph(
     req: VocabProcessRequestDto, notifier: WebSocketNotifier
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Process the word using the vocab processing graph."""
     initial_state = {
         "source_word": req.source_word,

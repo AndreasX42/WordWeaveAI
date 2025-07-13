@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 from langchain.tools import tool
 from pydantic import BaseModel, Field
@@ -33,8 +33,8 @@ async def get_conjugation(
     target_language: Language,
     target_part_of_speech: PartOfSpeech,
     quality_feedback: Optional[str] = None,
-    previous_issues: Optional[List[str]] = None,
-    suggestions: Optional[List[str]] = None,
+    previous_issues: Optional[list[str]] = None,
+    suggestions: Optional[list[str]] = None,
 ) -> ConjugationResult:
     """Get full verb conjugation table for a given verb in the specified language and part of speech."""
 

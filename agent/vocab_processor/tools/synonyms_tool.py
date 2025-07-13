@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from langchain.tools import tool
 from pydantic import BaseModel, Field
@@ -43,8 +43,8 @@ async def get_synonyms(
     target_language: Language,
     target_part_of_speech: PartOfSpeech,
     quality_feedback: Optional[str] = None,
-    previous_issues: Optional[List[str]] = None,
-    suggestions: Optional[List[str]] = None,
+    previous_issues: Optional[list[str]] = None,
+    suggestions: Optional[list[str]] = None,
 ) -> Synonyms:
     """Return synonyms of the word in the specified language."""
 

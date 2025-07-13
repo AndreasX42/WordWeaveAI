@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from langchain.tools import tool
 from pydantic import BaseModel, Field
@@ -7,7 +7,6 @@ from vocab_processor.constants import Language
 from vocab_processor.tools.base_tool import (
     add_quality_feedback_to_prompt,
     create_llm_response,
-    create_tool_error_response,
 )
 
 
@@ -44,8 +43,8 @@ async def get_examples(
     source_language: Language,
     target_language: Language,
     quality_feedback: Optional[str] = None,
-    previous_issues: Optional[List[str]] = None,
-    suggestions: Optional[List[str]] = None,
+    previous_issues: Optional[list[str]] = None,
+    suggestions: Optional[list[str]] = None,
 ) -> Examples:
     """Generate bilingual example phrases using the word and its translation."""
 

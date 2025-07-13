@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from langchain.tools import tool
 from pydantic import BaseModel, Field
@@ -13,7 +13,7 @@ from vocab_processor.tools.base_tool import (
 class SyllableBreakdown(BaseModel):
     """Syllable breakdown of the word in the specified language."""
 
-    syllables: List[str] = Field(
+    syllables: list[str] = Field(
         ..., description="List of syllables for the target word"
     )
     phonetic_guide: str = Field(
@@ -27,8 +27,8 @@ async def get_syllables(
     target_word: str,
     target_language: Language,
     quality_feedback: Optional[str] = None,
-    previous_issues: Optional[List[str]] = None,
-    suggestions: Optional[List[str]] = None,
+    previous_issues: Optional[list[str]] = None,
+    suggestions: Optional[list[str]] = None,
 ) -> SyllableBreakdown:
     """Break down a word into syllables with phonetic guidance."""
 

@@ -1,11 +1,10 @@
 import json
 import os
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Optional, Tuple
 
 import boto3
 from aws_lambda_powertools import Logger
-from botocore.exceptions import ClientError
 
 from vocab_processor.utils.websocket_utils import (
     create_vocab_word_key,
@@ -28,7 +27,7 @@ connections_table = (
 
 
 def get_connection_params(
-    event: Dict[str, Any],
+    event: dict[str, Any],
 ) -> Tuple[str, str, Optional[str], Optional[str]]:
     """Extract connection parameters from WebSocket event."""
     connection_id = event["requestContext"]["connectionId"]
@@ -39,7 +38,7 @@ def get_connection_params(
     return connection_id, user_id, source_word, target_language
 
 
-def parse_websocket_message(event: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
+def parse_websocket_message(event: dict[str, Any]) -> Tuple[str, dict[str, Any]]:
     """Parse WebSocket message and return connection_id and body."""
     connection_id = event["requestContext"]["connectionId"]
     body = json.loads(event.get("body", "{}"))
@@ -52,7 +51,7 @@ def create_connection_item(
     websocket_endpoint: str,
     source_word: Optional[str] = None,
     target_language: Optional[str] = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Create a connection item for DynamoDB storage."""
     ttl = int((datetime.now(timezone.utc) + timedelta(minutes=30)).timestamp())
 
@@ -77,7 +76,7 @@ def create_connection_item(
 # =============================================================================
 
 
-def store_connection(connection_item: Dict[str, Any]) -> bool:
+def store_connection(connection_item: dict[str, Any]) -> bool:
     """Store connection in DynamoDB."""
     try:
         connections_table.put_item(Item=connection_item)
@@ -130,7 +129,7 @@ def cleanup_stale_connections():
 # =============================================================================
 
 
-def handle_subscribe(connection_id: str, body: Dict[str, Any]) -> Dict[str, Any]:
+def handle_subscribe(connection_id: str, body: dict[str, Any]) -> dict[str, Any]:
     """Handle subscription to word pair updates."""
     source_word = body.get("source_word")
     target_language = body.get("target_language")
@@ -154,7 +153,7 @@ def handle_subscribe(connection_id: str, body: Dict[str, Any]) -> Dict[str, Any]
         return {"statusCode": 500}
 
 
-def handle_unsubscribe(connection_id: str, body: Dict[str, Any]) -> Dict[str, Any]:
+def handle_unsubscribe(connection_id: str, body: dict[str, Any]) -> dict[str, Any]:
     """Handle unsubscription from word pair updates."""
     try:
         connections_table.update_item(
@@ -172,7 +171,7 @@ def handle_unsubscribe(connection_id: str, body: Dict[str, Any]) -> Dict[str, An
         return {"statusCode": 500}
 
 
-def handle_ping(connection_id: str) -> Dict[str, Any]:
+def handle_ping(connection_id: str) -> dict[str, Any]:
     """Handle ping messages to keep connection alive."""
     try:
         connections_table.update_item(
@@ -193,7 +192,7 @@ def handle_ping(connection_id: str) -> Dict[str, Any]:
 # =============================================================================
 
 
-def connect_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+def connect_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """Handle WebSocket connection requests."""
     connection_id, user_id, source_word, target_language = get_connection_params(event)
 
@@ -227,7 +226,7 @@ def connect_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return {"statusCode": 500}
 
 
-def disconnect_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+def disconnect_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """Handle WebSocket disconnection requests."""
     connection_id = event["requestContext"]["connectionId"]
     logger.info("websocket_disconnection_request", connection_id=connection_id)
@@ -239,7 +238,7 @@ def disconnect_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return {"statusCode": 500}
 
 
-def default_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+def default_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """Handle default WebSocket messages (subscriptions, unsubscriptions, etc.)."""
     connection_id, body = parse_websocket_message(event)
     action = body.get("action")
@@ -274,7 +273,7 @@ def default_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 # =============================================================================
 
 
-def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """Main Lambda handler for WebSocket API Gateway events."""
     route_key = event["requestContext"]["routeKey"]
 

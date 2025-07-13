@@ -2,7 +2,7 @@ import json
 import os
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import boto3
 from aws_lambda_powertools import Logger
@@ -77,7 +77,7 @@ class WebSocketNotifier:
 
     def _create_message(
         self, message_type: str, data: Any, step: Optional[str] = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a standardized WebSocket message."""
         message = {
             "type": message_type,
@@ -94,7 +94,7 @@ class WebSocketNotifier:
 
         return message
 
-    def _send_to_connection(self, connection_id: str, message: Dict[str, Any]) -> bool:
+    def _send_to_connection(self, connection_id: str, message: dict[str, Any]) -> bool:
         """Send a message to a specific WebSocket connection."""
         if not self.api_gateway:
             logger.debug("websocket_not_configured")
@@ -127,7 +127,7 @@ class WebSocketNotifier:
 
     def _get_vocab_word_subscribers(
         self, source_word: str, target_language: str
-    ) -> List[Dict]:
+    ) -> list[Dict]:
         """Get all connections subscribed to a specific vocab_word."""
         if not self.connections_table:
             return []
@@ -150,7 +150,7 @@ class WebSocketNotifier:
             )
             return []
 
-    def _get_user_connections(self) -> List[Dict]:
+    def _get_user_connections(self) -> list[Dict]:
         """Get all active connections for the current user."""
         if not self.connections_table:
             return []
@@ -232,7 +232,7 @@ class WebSocketNotifier:
         target_language: str,
         status: str,
         **extra_data,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a standardized vocab word message with common fields."""
         data = {
             "source_word": source_word,
@@ -274,7 +274,7 @@ class WebSocketNotifier:
         self._broadcast_to_vocab_word_subscribers(source_word, target_language, message)
 
     def send_processing_completed(
-        self, source_word: str, target_language: str, result: Dict[str, Any]
+        self, source_word: str, target_language: str, result: dict[str, Any]
     ):
         """Notify ALL subscribers that vocab processing has completed for this word pair."""
         message = self._create_vocab_message(
@@ -300,7 +300,7 @@ class WebSocketNotifier:
         self._close_vocab_word_connections(source_word, target_language)
 
     def send_ddb_hit(
-        self, source_word: str, target_language: str, ddb_data: Dict[str, Any]
+        self, source_word: str, target_language: str, ddb_data: dict[str, Any]
     ):
         """Notify ALL subscribers that a ddb hit occurred for this word pair."""
         message = self._create_vocab_message(
@@ -331,7 +331,7 @@ class WebSocketNotifier:
         self._close_vocab_word_connections(source_word, target_language)
 
     def _broadcast_to_vocab_word_subscribers(
-        self, source_word: str, target_language: str, message: Dict[str, Any]
+        self, source_word: str, target_language: str, message: dict[str, Any]
     ) -> int:
         """Broadcast a message to ALL connections subscribed to this word pair."""
         connections = self._get_vocab_word_subscribers(source_word, target_language)
@@ -405,7 +405,7 @@ class WebSocketNotifier:
 
         return close_messages_sent
 
-    def _broadcast_to_user(self, message: Dict[str, Any]) -> int:
+    def _broadcast_to_user(self, message: dict[str, Any]) -> int:
         """Broadcast a message to all user connections (legacy method for user-specific messages)."""
         connections = self._get_user_connections()
         successful_sends = 0
@@ -450,7 +450,7 @@ def notify_chunk_update(
 def notify_processing_completed(
     source_word: str,
     target_language: str,
-    result: Dict[str, Any],
+    result: dict[str, Any],
     user_id: str = None,
     request_id: str = None,
 ):

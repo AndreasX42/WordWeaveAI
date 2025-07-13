@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -29,7 +29,7 @@ class VocabState(BaseModel):
         None,
         description="Message from the validation step, explaining issues or confirming validity.",
     )
-    suggested_words: Optional[List[SuggestedWordInfo]] = Field(
+    suggested_words: Optional[list[SuggestedWordInfo]] = Field(
         None,
         description="Suggested corrections or alternatives from the validation step.",
     )
@@ -99,7 +99,7 @@ class VocabState(BaseModel):
         description="True if media was adapted from one language to another.",
     )
 
-    synonyms: Optional[List[Synonym]] = Field(
+    synonyms: Optional[list[Synonym]] = Field(
         None, description="List of synonyms for the target word."
     )
     pronunciations: Optional[Pronunciations] = Field(
@@ -114,7 +114,7 @@ class VocabState(BaseModel):
         None,
         description="Reference to media object in the ddb media table.",
     )
-    examples: Optional[List[ExampleSentence]] = Field(
+    examples: Optional[list[ExampleSentence]] = Field(
         None, description="Example sentences using the target word."
     )
     conjugation: Optional[Any] = Field(
@@ -170,9 +170,9 @@ class VocabState(BaseModel):
 
     # Supervisor coordination fields
     sequential_quality_passed: Optional[bool] = Field(None)
-    failed_quality_steps: Optional[List[str]] = Field(None)
-    parallel_tasks_to_execute: Optional[List[str]] = Field(None)
-    completed_parallel_tasks: Optional[List[str]] = Field(
+    failed_quality_steps: Optional[list[str]] = Field(None)
+    parallel_tasks_to_execute: Optional[list[str]] = Field(None)
+    completed_parallel_tasks: Optional[list[str]] = Field(
         None, description="List of parallel tasks that have completed"
     )
     parallel_tasks_complete: Optional[bool] = Field(

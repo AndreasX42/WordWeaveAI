@@ -1,4 +1,4 @@
-from typing import List, Optional, TypedDict
+from typing import Optional, TypedDict
 
 
 class TestCaseDict(TypedDict, total=False):
@@ -6,10 +6,10 @@ class TestCaseDict(TypedDict, total=False):
     target_language: str
     source_language: Optional[str]
     description: Optional[str]
-    tags: Optional[List[str]]
+    tags: Optional[list[str]]
 
 
-TEST_CASES: List[TestCaseDict] = [
+TEST_CASES: list[TestCaseDict] = [
     {
         "source_word": "to be",
         "target_language": "Spanish",
