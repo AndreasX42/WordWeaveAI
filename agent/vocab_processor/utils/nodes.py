@@ -387,16 +387,14 @@ async def node_get_pronunciation(state: VocabState) -> VocabState:
         get_pronunciation, "pronunciation", inputs
     )
 
-    pronunciations_obj = result.get("pronunciations", None)
-
     logger.debug(
         "pronunciation_result",
         word=state.target_word,
-        pronunciations=pronunciations_obj,
+        pronunciations=result,
     )
 
     return {
-        "pronunciations": pronunciations_obj,
+        "pronunciations": result,
     }
 
 
