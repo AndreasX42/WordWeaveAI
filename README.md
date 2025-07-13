@@ -28,8 +28,9 @@ The LangGraph agent processes vocabulary through an optimized workflow:
    - Usage examples
    - Conjugation patterns
    - Media/audio generation
+5. **Supervision** → Supervisor LLM provides quality controls
   
-<img width="723" alt="image" src="https://github.com/user-attachments/assets/e2e5cfb1-0f46-4eed-b9cf-c0b5a979ff96" />
+<img width="801" height="362" alt="image" src="https://github.com/user-attachments/assets/832aa86c-463b-494a-8306-bd8ede70bed4" />
 
 
 ## 🗺️ Architecture
