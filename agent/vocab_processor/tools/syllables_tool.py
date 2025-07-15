@@ -46,6 +46,7 @@ Provide the breakdown for: '{target_word}'"""
     quality_requirements = [
         f"Syllables must be correct for the target word {target_word} in {target_language}, following the rules provided, taking into account the possible original source language nuances.",
         "Phonetic guide must be accurate and in the International Phonetic Alphabet (IPA).",
+        "Choose the most common phonetic guide for the target word.",
     ]
 
     # Add quality feedback if provided

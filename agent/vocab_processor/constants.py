@@ -131,9 +131,9 @@ class PartOfSpeech(str, Enum):
 client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Cache instructor clients to avoid recreation and improve performance
-_instructor_oai_gpt4_1_mini = None
-_instructor_oai_gpt4_1 = None
 _instructor_aws_claude4 = None
+_instructor_node_executor_llm = None
+_instructor_supervisor_llm = None
 
 
 class TracedInstructorClient:
@@ -249,43 +249,43 @@ class TracedInstructorClient:
             )
 
 
-def get_instructor_oai_gpt4_1_mini():
+def get_instructor_node_executor_llm():
     """Get cached instructor client for GPT-4.1-mini with LangSmith tracing."""
-    global _instructor_oai_gpt4_1_mini
+    global _instructor_node_executor_llm
 
     # "gpt-4.1-mini-2025-04-14"  # "gpt-4.1-nano-2025-04-14"
     model_name = "gpt-4.1-2025-04-14"
 
-    if _instructor_oai_gpt4_1_mini is None:
+    if _instructor_node_executor_llm is None:
         base_client = from_openai(
             client=client,
             model=model_name,
-            temperature=0.1,
+            temperature=0.0,
             mode=Mode.JSON,
         )
-        _instructor_oai_gpt4_1_mini = TracedInstructorClient(base_client, model_name)
-    return _instructor_oai_gpt4_1_mini
+        _instructor_node_executor_llm = TracedInstructorClient(base_client, model_name)
+    return _instructor_node_executor_llm
 
 
-def get_instructor_oai_gpt4_1():
-    """Get cached instructor client for GPT-4.1 (highest accuracy) with LangSmith tracing."""
-    global _instructor_oai_gpt4_1
+def get_instructor_supervisor_llm():
+    """Get cached supervisor LLM with LangSmith tracing."""
+    global _instructor_supervisor_llm
 
     # "gpt-4.1-2025-04-14"  # "gpt-4.1-mini-2025-04-14"
-    model_name = "gpt-4.1-2025-04-14"
+    model_name = "gpt-4o-2024-08-06"
 
-    if _instructor_oai_gpt4_1 is None:
+    if _instructor_supervisor_llm is None:
         base_client = from_openai(
             client=client,
             model=model_name,
-            temperature=0.1,
+            temperature=0.0,
             mode=Mode.JSON,
         )
-        _instructor_oai_gpt4_1 = TracedInstructorClient(base_client, model_name)
-    return _instructor_oai_gpt4_1
+        _instructor_supervisor_llm = TracedInstructorClient(base_client, model_name)
+    return _instructor_supervisor_llm
 
 
-def get_instructor_aws_claude4():
+def get_node_executor_llm():
     """Get cached instructor client for Claude-4 Sonnet via AWS Bedrock with LangSmith tracing."""
     global _instructor_aws_claude4
     if _instructor_aws_claude4 is None:
@@ -330,28 +330,27 @@ def get_instructor_aws_claude4():
     return _instructor_aws_claude4
 
 
-instructor_oai_gpt4_1_mini = get_instructor_oai_gpt4_1_mini()
-instructor_oai_gpt4_1 = get_instructor_oai_gpt4_1()
-instructor_aws_claude4 = get_instructor_aws_claude4()
+instructor_node_executor_llm = get_instructor_node_executor_llm()
+instructor_supervisor_llm = get_instructor_supervisor_llm()
+# instructor_aws_claude4 = get_instructor_aws_claude4()
 
 
 class LLMVariant(str, Enum):
     """Supported LLM back-ends."""
 
-    GPT41M = "gpt41m"  # OpenAI GPT-4.1-mini
-    GPT41 = "gpt41"  # OpenAI GPT-4.1
-    CLAUDE4S = "claude4s"  # Claude-4 Sonnet via AWS Bedrock
+    NODE_EXECUTOR = "node_executor"  # llm for executing node tasks
+    SUPERVISOR = "supervisor"  # llm for supervising node tasks
 
 
 # Map each variant to its cached Instructor client
 LLM_PROVIDERS = {
-    LLMVariant.GPT41M: instructor_oai_gpt4_1_mini,
-    LLMVariant.GPT41: instructor_oai_gpt4_1,
-    LLMVariant.CLAUDE4S: instructor_aws_claude4,
+    LLMVariant.NODE_EXECUTOR: instructor_node_executor_llm,
+    LLMVariant.SUPERVISOR: instructor_supervisor_llm,
+    # LLMVariant.CLAUDE4S: instructor_aws_claude4,
 }
 
 
-def get_llm_client(provider: LLMVariant = LLMVariant.GPT41M):
+def get_llm_client(provider: LLMVariant = LLMVariant.NODE_EXECUTOR):
     """Return the traced Instructor client for the requested provider.
 
     Args:

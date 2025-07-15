@@ -3,7 +3,7 @@ from typing import Optional
 from langchain.tools import tool
 from pydantic import BaseModel, Field
 
-from vocab_processor.constants import Language, LLMVariant
+from vocab_processor.constants import Language
 from vocab_processor.tools.base_tool import SystemMessages, create_llm_response
 
 
@@ -83,7 +83,6 @@ async def validate_word(
             response_model=WordValidationResult,
             user_prompt=prompt,
             system_message=SystemMessages.VALIDATION_SPECIALIST,
-            llm_provider=LLMVariant.GPT41,
         )
     except Exception as e:
         return WordValidationResult(

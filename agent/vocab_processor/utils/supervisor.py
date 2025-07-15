@@ -63,20 +63,21 @@ class LLMRouter:
     """Smart routing between expensive and cheap models."""
 
     @staticmethod
-    def get_model_for_task(task_type: TaskType, is_retry: bool = False) -> LLMVariant:
+    def get_model_for_task(task_type: TaskType, num_retries: int) -> LLMVariant:
         """Select appropriate LLM model based on task complexity."""
+
+        llm_variant = LLMVariant.NODE_EXECUTOR
 
         # Use powerful model for supervisor decisions
         if task_type in [
-            TaskType.SUPERVISION,
-            TaskType.VALIDATION,
-            TaskType.CLASSIFICATION,
             TaskType.QUALITY_CHECK,
         ]:
-            return LLMVariant.GPT41
+            llm_variant = LLMVariant.SUPERVISOR
 
         # Use cheaper model for routine tool execution, upgrade on retry
         if task_type in [
+            TaskType.VALIDATION,
+            TaskType.CLASSIFICATION,
             TaskType.TRANSLATION,
             TaskType.EXAMPLES,
             TaskType.SYNONYMS,
@@ -84,9 +85,11 @@ class LLMRouter:
             TaskType.CONJUGATION,
             TaskType.MEDIA_SELECTION,
         ]:
-            return LLMVariant.GPT41 if is_retry else LLMVariant.GPT41M
+            llm_variant = (
+                LLMVariant.SUPERVISOR if num_retries > 1 else LLMVariant.NODE_EXECUTOR
+            )
 
-        return LLMVariant.GPT41M
+        return llm_variant
 
 
 def get_schema_specification(model_class: BaseModel) -> str:
@@ -143,7 +146,7 @@ def get_schema_specification(model_class: BaseModel) -> str:
 class VocabSupervisor:
     """Supervisor for vocabulary processing quality control."""
 
-    def __init__(self, quality_threshold: float = 8.0, max_retries: int = 3):
+    def __init__(self, quality_threshold: float = 8.0, max_retries: int = 2):
         self.quality_threshold = quality_threshold
         self.max_retries = max_retries
         self.router = LLMRouter()
@@ -392,16 +395,23 @@ class VocabSupervisor:
             **Context:**
             - Target word: "{state.target_word}" ({state.target_language})
             
+            **SYLLABLES TOOL PURPOSE:**
+            This tool ONLY breaks down the target word into syllables and provides a common phonetic pronunciation.
+            It should NOT provide translations, context, or additional explanations.
+            
             **Validation Checklist:**
             1. All required fields are present and have correct types
-            2. Syllables are correctly identified for the target word {state.target_word} in {state.target_language} taking into account the possible original source language nuances of the {state.source_language} word {state.source_word}
-            3. Correct usage of the International Phonetic Alphabet (IPA)
+            2. Syllables are correctly identified for the target word "{state.target_word}" in {state.target_language}
+            3. Phonetic guide uses correct International Phonetic Alphabet (IPA) symbols
+            4. Phonetic guide represents the most common pronunciation for the target word
+
             
             **LEARNING QUALITY CHECK:**
-            - Is the breakdown into syllables correct for the target word {state.target_word} in {state.target_language}?
-            - Is the phonetic guide in correct International Phonetic Alphabet?
+            - Is the syllable breakdown linguistically accurate for the target word?
+            - Is the phonetic guide in proper IPA format?
+            - Does the phonetic guide represent the most common pronunciation?
             
-            Rate 1-10 based on schema compliance, accuracy, and pronunciation learning value.
+            Rate 1-10 based on syllable accuracy and phonetic correctness only.
             """
 
         elif tool_name == "conjugation":
@@ -506,7 +516,7 @@ class VocabSupervisor:
             )
 
             # For high scores, clear issues and suggestions
-            if validation_result.score >= 8.0:
+            if validation_result.score >= self.quality_threshold:
                 validation_result.issues = []
                 validation_result.suggestions = []
 
@@ -529,7 +539,7 @@ class VocabSupervisor:
         retry_count = getattr(state, f"{tool_name}_retry_count", 0)
 
         # Don't retry if score is high enough
-        if validation_result.score >= 8.0:
+        if validation_result.score >= self.quality_threshold:
             return RetryStrategy(
                 should_retry=False,
                 retry_reason="Score meets quality threshold",
