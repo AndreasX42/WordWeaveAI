@@ -144,7 +144,7 @@ class LangGraphTestFramework:
 
     async def run_single_test(self, test_case: TestCase) -> TestResult:
         """Run a single test case through the graph."""
-        logger.info(f"Starting test: {test_case.test_id}")
+        console.print(f"[yellow]Starting test: {test_case.test_id}[/yellow]")
         start_time = asyncio.get_event_loop().time()
 
         # Clear token tracker before starting new test
@@ -182,6 +182,9 @@ class LangGraphTestFramework:
                 )
                 passed = not differences
 
+            console.print(
+                f"[green]Completed test: {test_case.test_id} ({execution_time:.2f}s)[/green]"
+            )
             return TestResult(
                 test_id=test_case.test_id,
                 passed=passed,
@@ -214,6 +217,9 @@ class LangGraphTestFramework:
                     test_case.expected_token_usage,
                 )
 
+            console.print(
+                f"[red]Failed test: {test_case.test_id} ({execution_time:.2f}s) - {str(e)}[/red]"
+            )
             return TestResult(
                 test_id=test_case.test_id,
                 passed=passed,
@@ -232,7 +238,10 @@ class LangGraphTestFramework:
             f"Building ground truth for {len(test_cases)} tests sequentially..."
         )
 
-        for tc in test_cases:
+        for i, tc in enumerate(test_cases, 1):
+            console.print(
+                f"[cyan]Processing test {i}/{len(test_cases)}: {tc.test_id}[/cyan]"
+            )
             try:
                 result = await self.run_single_test(tc)
                 if not result.error:
@@ -248,13 +257,25 @@ class LangGraphTestFramework:
                             result.token_usage
                         )
                     ground_truth_data[result.test_id] = ground_truth_entry
-                    logger.info(f"✓ Ground truth built for {result.test_id}")
+                    console.print(
+                        f"[green]✓ Ground truth built for {result.test_id}[/green]"
+                    )
+                    if result.execution_time:
+                        console.print(
+                            f"   Execution time: {result.execution_time:.2f}s"
+                        )
+                    if result.token_usage:
+                        console.print(
+                            f"   Tokens: {result.token_usage.get('total_tokens', 'N/A')}"
+                        )
                 else:
-                    logger.error(
-                        f"✗ Failed to build ground truth for {result.test_id}: {result.error}"
+                    console.print(
+                        f"[red]✗ Failed to build ground truth for {result.test_id}: {result.error}[/red]"
                     )
             except Exception as e:
-                logger.error(f"Test case {tc.test_id} failed with exception: {e}")
+                console.print(
+                    f"[red]Test case {tc.test_id} failed with exception: {e}[/red]"
+                )
 
         # Save ground truth
         self.save_ground_truth(ground_truth_data)

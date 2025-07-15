@@ -55,14 +55,14 @@ async def get_synonyms(
 1.  First, determine if direct, common synonyms for '{target_word}' exist in {target_language}.
 2.  If no direct synonyms exist, you must add a note in the source language {source_language} to briefly explain why no direct synonym exists.
 3.  In any case, provide at least 1 to a maximum 3 of the closest words or concepts.
-4.  For each synonym, the explanation should be in the source language {source_language} and clarify the nuances and differences of the synonym compared to '{target_word}'.
+4.  For each synonym, the explanation has to be in the source language {source_language} and clarify the nuances and differences of the synonym compared to '{target_word}'.
 
 **Input Word:** '{target_word}'
 """
 
     # Quality requirements for synonyms
     quality_requirements = [
-        "If no direct synonym exists, this must be stated in the 'note' field.",
+        f"If no direct synonym exists, this must be stated in the 'note' field in the source language {source_language}.",
         "The `synonyms` list should contain the closest related concepts, not meta-commentary.",
         "If the synonym is very uncommon but valid, it should be noted in explanation.",
         f"Explanations must clarify subtle differences in meaning and usage in the source language {source_language}.",

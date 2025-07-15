@@ -140,7 +140,11 @@ def get_schema_specification(model_class: BaseModel) -> str:
                     if prop_desc:
                         spec_lines.append(f"      {prop_desc}")
 
-    return "\n".join(spec_lines)
+    schema_spec = "\n".join(spec_lines)
+    print("-" * 100)
+    print(schema_spec)
+    print("-" * 100)
+    return schema_spec
 
 
 class VocabSupervisor:
@@ -283,7 +287,6 @@ class VocabSupervisor:
             - Does the translation help learners understand REAL usage in authentic contexts?
             
             Rate 1-10 based on schema compliance, translation accuracy, and learning effectiveness.
-            Prioritize authenticity and register accuracy over pedagogical conservatism.
             """
 
         elif tool_name == "classification":
@@ -304,7 +307,8 @@ class VocabSupervisor:
             
             **Validation Checklist:**
             1. All required fields are present and have correct types
-            2. Definitions are accurate and in the source language {state.source_language}
+            2. Definitions are accurate and in the source language
+            3. Part of speech is correctly identified
             
             **LEARNING QUALITY CHECK:**
             - Are definitions clear and understandable for learners?
@@ -312,7 +316,7 @@ class VocabSupervisor:
             - Is the part of speech classification pedagogically useful?
             - Are definitions written in natural, learner-friendly language?
             
-            Rate 1-10 based on schema compliance, accuracy, and pedagogical value.
+            Rate 1-10 based on schema compliance and accuracy.
             """
 
         elif tool_name == "examples":
@@ -462,7 +466,7 @@ class VocabSupervisor:
             
             **Context:**
             - Target word: "{state.target_word}" ({state.target_language})
-            - Search Query for review: {result.get('search_query')}
+            - Search Query: {result.get('search_query')}
             
             **Validation Checklist:**
             1. All required fields are present and have correct types
@@ -512,7 +516,9 @@ class VocabSupervisor:
                 response_model=ToolValidationResult,
                 user_prompt=validation_prompt,
                 system_message=SystemMessages.VALIDATION_SPECIALIST,
-                llm_provider=self.router.get_model_for_task(TaskType.QUALITY_CHECK),
+                llm_provider=self.router.get_model_for_task(
+                    TaskType.QUALITY_CHECK, num_retries=0
+                ),
             )
 
             # For high scores, clear issues and suggestions

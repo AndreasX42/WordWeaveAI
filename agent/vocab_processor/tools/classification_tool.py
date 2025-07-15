@@ -16,14 +16,14 @@ class WordCategorization(BaseModel):
 
     source_word: str = Field(
         ...,
-        description="The base source word to categorize, without any article or additional information",
+        description="The source source word to categorize, without any article or additional information",
     )
 
     source_definition: list[str] = Field(
         ...,
         min_items=1,
         max_items=3,
-        description="Definition of the word in its native language",
+        description="Definition of the source word in its source language",
     )
     source_part_of_speech: PartOfSpeech = Field(
         ..., description="Part of speech of the source word"
@@ -62,7 +62,7 @@ async def get_classification(
     # Base prompt
     prompt = f"""Classify '{source_word}' ({source_language}): part of speech ({', '.join(PartOfSpeech.all_values())}). 
     
-    For inputs like 'to build' or 'la casa', extract base word (build, casa).
+    Extract the base form of the word, removing any articles or modifiers.
     
     For source_article:
     - English: null (no articles needed)
@@ -72,8 +72,8 @@ async def get_classification(
 
     # Quality requirements for classification
     quality_requirements = [
-        "Extract base word correctly, removing any articles or other modifiers",
-        f"1 -3 clear and natural {source_language} definitions that are distinct and common",
+        "Extract base word correctly, removing any articles or modifiers",
+        f"1-3 clear and natural {source_language.value} definitions that are distinct and common",
         f"Note informal/slang usage and other important information in source_additional_info in {source_language}",
     ]
 

@@ -62,7 +62,7 @@ async def execute_with_quality_gate(
     retry_count = getattr(state, retry_count_field, 0)
 
     # Select appropriate model
-    llm_model = LLMRouter.get_model_for_task(task_type, num_retries=retry_count)
+    llm_model = LLMRouter.get_model_for_task(task_type, retry_count)
 
     # Add model selection to inputs if supported
     if "llm_provider" in inputs:
