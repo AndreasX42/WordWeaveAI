@@ -9,12 +9,11 @@ import os
 import sys
 from pathlib import Path
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 from rich.console import Console
-
-from tests.test_definitions import TEST_CASES
-from tests.test_framework import LangGraphTestFramework, TestCase
+from test_definitions import TEST_CASES
+from test_framework import LangGraphTestFramework, TestCase
 
 # Initialize Rich console
 console = Console()

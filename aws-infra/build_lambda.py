@@ -454,15 +454,15 @@ def build_parallel(architecture: str, force: bool = False) -> BuildMetrics:
     print(f"🚀 Starting parallel build for {architecture} architecture...")
 
     # Build layer first (functions may depend on it)
-    layer_rebuilt = build_layer(architecture, force)
+    build_layer(architecture, force)
 
     # Build functions in parallel
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         function_future = executor.submit(build_function, force)
         websocket_future = executor.submit(build_websocket_function, force)
 
-        function_rebuilt = function_future.result()
-        websocket_rebuilt = websocket_future.result()
+        function_future.result()
+        websocket_future.result()
 
     # Collect metrics
     if LAYER_ZIP.exists():

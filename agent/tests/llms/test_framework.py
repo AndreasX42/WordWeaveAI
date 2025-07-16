@@ -13,8 +13,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
-# Add the parent directory to the Python path so we can import vocab_processor
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+# Add the project root directory to the Python path so we can import vocab_processor
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from rich.columns import Columns
 
@@ -26,7 +26,8 @@ from rich.table import Table
 # Initialize Rich console
 console = Console()
 
-from tests.test_definitions import TestCaseDict
+from test_definitions import TestCaseDict
+
 from vocab_processor.agent import graph
 
 # Configure logging
