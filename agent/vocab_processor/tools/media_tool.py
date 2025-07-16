@@ -6,13 +6,15 @@ from typing import Any, Optional
 import aiohttp
 from aws_lambda_powertools import Logger
 from langchain.tools import tool
-from pydantic import BaseModel, Field
 
 from vocab_processor.constants import Language
-from vocab_processor.schemas.media_model import Media, PhotoOption
+from vocab_processor.prompts import (
+    MEDIA_SEARCH_QUERY_PROMPT_TEMPLATE,
+    MEDIA_SELECTION_PROMPT_TEMPLATE,
+)
+from vocab_processor.schemas.media_model import Media, PhotoOption, SearchQueryResult
 from vocab_processor.tools.base_tool import (
     SystemMessages,
-    add_quality_feedback_to_prompt,
     create_llm_response,
     create_tool_error_response,
 )
@@ -41,14 +43,6 @@ MAX_UPLOAD_RETRIES = 3
 
 # HTTP session configuration
 _session_config = aiohttp.ClientTimeout(total=HTTP_TIMEOUT, connect=5)
-
-
-class SearchQueryResult(BaseModel):
-    search_query: list[str] = Field(
-        description="English search query to find the most relevant photos in Pexels. Each entry should be 1-2 words maximum, with 2-3 total entries.",
-        min_length=1,
-        max_length=3,
-    )
 
 
 async def fetch_photos(query: str | list[str], per_page: int = 3) -> list[PhotoOption]:
@@ -234,17 +228,13 @@ async def get_media(
         if target_additional_info:
             context_info += f"\nAdditional context: {target_additional_info}"
 
-        search_query_prompt = f"""For the English word '{english_word}' generate optimal search terms for finding relevant photos in Pexels.{context_info}
-
-Requirements:
-- Use 1-3 search terms, each containing 1-2 words maximum
-- Focus on the core concept/meaning rather than exact word form
-- For word variations (swim/swimming/swimmer), use the base concept (like 'swimming', or 'water')
-- Prioritize terms that would work for related word forms
-- For complex concepts, include specific terms that capture the essence 
-- Use the provided context to understand the word's specific meaning and generate more targeted search terms
-
-Word: {english_word}"""
+        search_query_prompt = MEDIA_SEARCH_QUERY_PROMPT_TEMPLATE.build_enhanced_prompt(
+            english_word=english_word,
+            context_info=context_info,
+            quality_feedback=quality_feedback,
+            previous_issues=previous_issues,
+            suggestions=suggestions,
+        )
 
         search_query_result = await create_llm_response(
             response_model=SearchQueryResult,
@@ -260,7 +250,7 @@ Word: {english_word}"""
             search_query_result.search_query
         )
         if existing_media:
-            return await _adapt_existing_media(
+            result = await _adapt_existing_media(
                 existing_media,
                 source_word,
                 target_word,
@@ -270,8 +260,14 @@ Word: {english_word}"""
                 search_query_result,
             )
 
-        # If no database entry, fetch from Pexels API
-        return await _create_new_media(
+            if result:
+                result_dict = {**result, "search_query_prompt": search_query_prompt}
+                if "media_selection_prompt" not in result_dict:
+                    result_dict["media_selection_prompt"] = None
+                return result_dict
+
+        # If no existing media, create new media
+        result = await _create_new_media(
             source_word,
             target_word,
             english_word,
@@ -282,6 +278,8 @@ Word: {english_word}"""
             previous_issues,
             suggestions,
         )
+
+        return {**result, "search_query_prompt": search_query_prompt}
 
     except Exception as e:
         context = {
@@ -405,6 +403,7 @@ async def _create_new_media(
             "english_word": english_word,
             "search_query": search_query_result.search_query,
             "media_reused": False,
+            "media_selection_prompt": None,
         }
 
     # Select the best photo
@@ -412,9 +411,10 @@ async def _create_new_media(
         # In dev mode, just use the first photo
         logger.info("Local dev mode: using first photo without LLM selection")
         result_media = _create_mock_media(photos[0], target_word)
+        media_selection_prompt = "mock_prompt"
     else:
         # In lambda context, use LLM to choose the best photo
-        result_media = await _select_best_photo(
+        result_media, media_selection_prompt = await _select_best_photo(
             photos,
             source_word,
             target_word,
@@ -444,6 +444,7 @@ async def _create_new_media(
         "english_word": english_word,
         "search_query": search_query_result.search_query,
         "media_reused": False,
+        "media_selection_prompt": media_selection_prompt,
     }
 
 
@@ -471,33 +472,26 @@ async def _select_best_photo(
     quality_feedback: Optional[str] = None,
     previous_issues: Optional[list[str]] = None,
     suggestions: Optional[list[str]] = None,
-) -> Media:
+) -> tuple[Media, str]:
     """Use LLM to select the best photo from the available options."""
-    rank_prompt = f"Choose best photo for '{source_word}' ({source_language}) → '{target_word}' ({target_language}). Translate the texts like in alt, explanation, memory_tip to the source language {source_language}. Photos: {[p.model_dump() for p in photos]}"
 
-    # Quality requirements for media selection
-    quality_requirements = [
-        "Choose relevant, clear photo",
-        f"Accurate {source_language} translations",
-        "Connect image to word in memory tip",
-        "Clear explanations",
-        "Culturally appropriate",
-    ]
-
-    # Add quality feedback if provided
-    enhanced_prompt = add_quality_feedback_to_prompt(
-        rank_prompt,
-        quality_feedback,
-        previous_issues,
-        suggestions,
-        quality_requirements,
+    enhanced_prompt = MEDIA_SELECTION_PROMPT_TEMPLATE.build_enhanced_prompt(
+        quality_feedback=quality_feedback,
+        previous_issues=previous_issues,
+        suggestions=suggestions,
+        source_word=source_word,
+        source_language=source_language.value,
+        target_word=target_word,
+        target_language=target_language.value,
+        photos=[p.model_dump() for p in photos],
     )
 
-    return await create_llm_response(
+    result = await create_llm_response(
         response_model=Media,
         user_prompt=enhanced_prompt,
         system_message=SystemMessages.MEDIA_SPECIALIST,
     )
+    return result, enhanced_prompt
 
 
 async def _upload_media_to_s3(

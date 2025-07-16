@@ -1,3 +1,5 @@
+import json
+
 from aws_lambda_powertools import Logger
 
 from vocab_processor.tools import (
@@ -70,12 +72,15 @@ async def execute_with_quality_gate(
 
     try:
         # Execute the tool
-        result = await tool_func.ainvoke(inputs)
+        response = await tool_func.ainvoke(inputs)
+
+        result = getattr(response, "result", response)
+        prompt = getattr(response, "prompt", None)
         result_dict = _convert_to_dict(result)
 
         # Validate result quality
         validation_result = await supervisor.validate_tool_output(
-            tool_name, result_dict, state
+            tool_name, result_dict, state, prompt
         )
 
         print()
@@ -138,7 +143,13 @@ async def execute_with_quality_gate(
 
     except Exception as e:
         logger.error(
-            f"{tool_name}_execution_failed", error=str(e), retry_count=retry_count
+            f"{tool_name}_execution_failed",
+            error=(
+                json.dumps(_convert_to_dict(e), default=str)
+                if hasattr(e, "__dict__")
+                else str(e)
+            ),
+            retry_count=retry_count,
         )
         return _create_fallback_result(tool_name, inputs, str(e))
 
@@ -148,17 +159,22 @@ async def execute_without_quality_gate(tool_func, tool_name: str, inputs: dict) 
 
     try:
         # Execute the tool directly
-        result = await tool_func.ainvoke(inputs)
-        result_dict = _convert_to_dict(result)
+        response = await tool_func.ainvoke(inputs)
+        result_dict = _convert_to_dict(getattr(response, "result", response))
 
         logger.info(f"{tool_name}_executed_successfully")
 
-        # Don't add quality fields for pronunciation tool
-        if tool_name == "pronunciation":
-            return result_dict
+        return result_dict
 
     except Exception as e:
-        logger.error(f"{tool_name}_execution_failed", error=str(e))
+        logger.error(
+            f"{tool_name}_execution_failed",
+            error=(
+                json.dumps(_convert_to_dict(e), default=str)
+                if hasattr(e, "__dict__")
+                else str(e)
+            ),
+        )
         return _create_fallback_result(tool_name, inputs, str(e))
 
 
@@ -173,8 +189,8 @@ async def node_validate_source_word(state: VocabState) -> VocabState:
 
     try:
         # Execute validation tool directly first to get business logic result
-        validation_result = await validate_word.ainvoke(inputs)
-        result_dict = _convert_to_dict(validation_result)
+        response = await validate_word.ainvoke(inputs)
+        result_dict = _convert_to_dict(response.result)
 
         logger.info(
             "validation_result",
@@ -185,18 +201,18 @@ async def node_validate_source_word(state: VocabState) -> VocabState:
                 if result_dict.get("source_language")
                 else None
             ),
-            validation_message=result_dict.get("message"),
+            validation_message=result_dict.get("issue_message"),
             suggestions_count=(
-                len(result_dict.get("suggestions", []))
-                if result_dict.get("suggestions")
+                len(result_dict.get("issue_suggestions", []))
+                if result_dict.get("issue_suggestions")
                 else 0
             ),
         )
 
         # If validation failed, return immediately with clear error information
         if not result_dict.get("is_valid", False):
-            error_message = result_dict.get("message", "Word validation failed")
-            suggestions = result_dict.get("suggestions", [])
+            error_message = result_dict.get("issue_message", "Word validation failed")
+            suggestions = result_dict.get("issue_suggestions", [])
 
             logger.warning(
                 "validation_failed",
@@ -442,6 +458,8 @@ async def node_get_examples(state: VocabState) -> VocabState:
         "target_word": state.target_word,
         "source_language": state.source_language,
         "target_language": state.target_language,
+        "source_part_of_speech": state.source_part_of_speech,
+        "target_part_of_speech": state.target_part_of_speech,
     }
 
     # Execute with quality gate

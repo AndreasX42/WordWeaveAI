@@ -1,3 +1,4 @@
+import json
 from enum import Enum
 from typing import Any
 
@@ -5,9 +6,9 @@ from aws_lambda_powertools import Logger
 from pydantic import BaseModel, Field
 
 from vocab_processor.constants import LLMVariant
-from vocab_processor.schemas.media_model import Media
+from vocab_processor.schemas.media_model import SearchQueryResult
 from vocab_processor.tools.base_tool import SystemMessages, create_llm_response
-from vocab_processor.tools.classification_tool import WordCategorization
+from vocab_processor.tools.classification_tool import WordClassification
 from vocab_processor.tools.conjugation_tool import ConjugationResult
 from vocab_processor.tools.examples_tool import Examples
 from vocab_processor.tools.syllables_tool import SyllableBreakdown
@@ -56,7 +57,6 @@ class RetryStrategy(BaseModel):
     should_retry: bool = Field(...)
     retry_reason: str = Field(...)
     adjusted_inputs: dict[str, Any] = Field(default={})
-    use_stronger_model: bool = Field(default=False)
 
 
 class LLMRouter:
@@ -92,61 +92,6 @@ class LLMRouter:
         return llm_variant
 
 
-def get_schema_specification(model_class: BaseModel) -> str:
-    """Extract schema specification from Pydantic model."""
-    schema = model_class.model_json_schema()
-
-    # Build a readable schema specification
-    spec_lines = [f"**{model_class.__name__} Schema:**"]
-
-    if "properties" in schema:
-        for field_name, field_info in schema["properties"].items():
-            field_type = field_info.get("type", "unknown")
-            field_desc = field_info.get("description", "")
-
-            # Handle array types
-            if field_type == "array" and "items" in field_info:
-                items_info = field_info["items"]
-                if "$ref" in items_info:
-                    # Extract referenced type name
-                    ref_type = items_info["$ref"].split("/")[-1]
-                    field_type = f"array of {ref_type}"
-                else:
-                    items_type = items_info.get("type", "unknown")
-                    field_type = f"array of {items_type}"
-
-            # Handle object types with $ref
-            elif "$ref" in field_info:
-                ref_type = field_info["$ref"].split("/")[-1]
-                field_type = ref_type
-
-            required = field_name in schema.get("required", [])
-            req_text = "REQUIRED" if required else "optional"
-
-            spec_lines.append(f"  - {field_name}: {field_type} ({req_text})")
-            if field_desc:
-                spec_lines.append(f"    Description: {field_desc}")
-
-    # Add any additional constraints
-    if "definitions" in schema:
-        spec_lines.append("\n**Referenced Types:**")
-        for def_name, def_info in schema["definitions"].items():
-            spec_lines.append(f"  {def_name}:")
-            if "properties" in def_info:
-                for prop_name, prop_info in def_info["properties"].items():
-                    prop_type = prop_info.get("type", "unknown")
-                    prop_desc = prop_info.get("description", "")
-                    spec_lines.append(f"    - {prop_name}: {prop_type}")
-                    if prop_desc:
-                        spec_lines.append(f"      {prop_desc}")
-
-    schema_spec = "\n".join(spec_lines)
-    print("-" * 100)
-    print(schema_spec)
-    print("-" * 100)
-    return schema_spec
-
-
 class VocabSupervisor:
     """Supervisor for vocabulary processing quality control."""
 
@@ -159,18 +104,19 @@ class VocabSupervisor:
         self.skip_validation_tools = {"pronunciation"}
 
         # Define expected schemas for each tool with actual Pydantic models
-        self.tool_schemas = {
+        self.tool_schemas: dict[str, BaseModel] = {
             "validation": WordValidationResult,
-            "classification": WordCategorization,
+            "classification": WordClassification,
             "translation": Translation,
             "examples": Examples,
             "synonyms": Synonyms,
             "syllables": SyllableBreakdown,
             "conjugation": ConjugationResult,
+            "media": SearchQueryResult,
         }
 
     async def validate_tool_output(
-        self, tool_name: str, result: Any, state: VocabState
+        self, tool_name: str, result: Any, state: VocabState, prompt: str
     ) -> ToolValidationResult:
         """Schema-aware validation of tool outputs."""
 
@@ -178,337 +124,99 @@ class VocabSupervisor:
         if tool_name in self.skip_validation_tools:
             return ToolValidationResult(score=10.0, issues=[], suggestions=[])
 
+        # Special handling for media tool to validate only the search query part
+        if tool_name == "media":
+            # If the media tool successfully retrieved photos, let it pass the quality check.
+            if isinstance(result, dict):
+                media = result.get("media")
+                photos_src = None
+                if hasattr(media, "src"):
+                    photos_src = media.src
+                elif isinstance(media, dict):
+                    photos_src = media.get("src")
+
+                if isinstance(photos_src, dict):
+                    if set(photos_src.keys()) == {"large2x", "large", "medium"} and all(
+                        photos_src.values()
+                    ):
+                        return ToolValidationResult(
+                            score=10.0, issues=[], suggestions=[]
+                        )
+
+            if isinstance(result, dict) and "search_query" in result:
+                # The prompt for search query generation is passed in the result dict
+                prompt = result.get("search_query_prompt")
+                # The result to validate is the search query list, wrapped for the model
+                result = {"search_query": result["search_query"]}
+            else:
+                logger.warning(
+                    "Media tool output format unexpected, skipping validation."
+                )
+                return ToolValidationResult(score=10.0, issues=[], suggestions=[])
+
         # Get expected schema for the tool
         expected_schema_class = self.tool_schemas.get(tool_name)
-
-        # Common context for all validations
-        learning_context = f"""
-        **VOCABULARY LEARNING CONTEXT:**
-        This output is for a vocabulary learning application. The PRIMARY GOAL is to create 
-        high-quality, natural content that helps language learners effectively acquire new words.
-        
-        **QUALITY STANDARDS:**
-        - Content must feel natural and authentic in the target language
-        - Information should be accurate and pedagogically sound
-        - Examples and explanations should aid comprehension and retention
-        - Cultural appropriateness and learner-friendliness are essential
-        
-        **LEARNER PERSPECTIVE:**
-        Evaluate from the perspective of someone learning {state.target_language} who needs:
-        - Clear, understandable explanations
-        - Natural, commonly-used language
-        - Practical, real-world examples
-        - Culturally appropriate content
-        """
-
-        # Schema-specific validation prompts
-        if tool_name == "validation":
-            schema_spec = get_schema_specification(WordValidationResult)
-            validation_prompt = f"""
-            {learning_context}
-            
-            **TOOL: Word Validation**
-            Validate this tool output against its expected Pydantic schema:
-            
-            {schema_spec}
-            
-            **Actual Result:**
-            {result}
-            
-            **Context:**
-            - Source word: "{state.source_word}"
-            - Target language: {state.target_language}
-            
-            **VALIDATION TOOL PURPOSE:**
-            This tool ONLY validates if input is a real word/phrase in ANY source language (not target).
-            It should NOT provide translations, NOT suggest target language words, NOT flag phrases as problematic.
-            
-            **CORRECT BEHAVIOR:**
-            - Input "to build" targeting Spanish → is_valid=True, source_language=English ✅
-            - Input "la casa" targeting English → is_valid=True, source_language=Spanish ✅  
-            - Input "blahblah" targeting any → is_valid=False, suggestions with real words ✅
-            
-            **VALIDATION CHECKLIST:**
-            1. All required fields are present and have correct types
-            3. source_language is a valid Language enum value (like <Language.ENGLISH: 'English'>) or null
-               - Enum values like <Language.ENGLISH: 'English'> are CORRECT and will serialize properly
-            4. If suggestions exist, they are valid SuggestedWordInfo objects
-            5. **CORRECT LOGIC:** 
-               - If is_valid=True: input exists in a source language, source_language should be set
-               - If is_valid=False: input is misspelled/invalid, should have message and/or suggestions
-            6. Phrases like "to build" are VALID and should be accepted (not flagged as problematic)
-            
-            **LEARNING QUALITY CHECK:**
-            - Does it correctly identify valid input as valid (including phrases)?
-            - Does it correctly identify the source language?
-            - Are spelling suggestions helpful for actually misspelled words?
-            
-            Rate 1-10 based on schema compliance, logical consistency, and validation accuracy.
-            """
-
-        elif tool_name == "translation":
-            schema_spec = get_schema_specification(Translation)
-            validation_prompt = f"""
-            {learning_context}
-            
-            **TOOL: Translation**
-            Validate this tool output against its expected Pydantic schema:
-            
-            {schema_spec}
-            
-            **Actual Result:**
-            {result}
-            
-            **Context:**
-            - Source: "{state.source_word}" ({state.source_language}, {state.source_part_of_speech})
-            - Target: "{state.target_word}" ({state.target_language}, {state.target_part_of_speech})
-            - Target language: {state.target_language}
-            
-            **Validation Checklist:**
-            1. All required fields are present and have correct types
-            2. target_word is a reasonable translation of the source {state.source_part_of_speech} {state.source_word} in the target language {state.target_language}
-            3. target_part_of_speech is a valid PartOfSpeech enum value:
-               - For English: "noun"
-               - For German: "masculine noun", "feminine noun", or "neuter noun"
-               - For Spanish: "masculine noun" or "feminine noun"
-               - For other languages: "verb", "adjective", "adverb", etc.
-            4. target_article is appropriate for the language:
-               - English: null
-               - German: der/die/das for nouns
-               - Spanish: el/la/los/las for nouns
-            5. Translation accuracy and grammatical consistency
-            
-            **LEARNING QUALITY CHECK:**
-            - Is this the most common, natural translation a learner should know?
-            - Does the part of speech match how learners would use this word?
-            - Are articles (if applicable) what learners would actually encounter?
-            - **IMPORTANT**: For informal/slang source words, accuracy of register is MORE important than pedagogical politeness
-            - If source word is vulgar/slang, vulgar translation may be MORE accurate than neutral ones
-            - Does the translation help learners understand REAL usage in authentic contexts?
-            
-            Rate 1-10 based on schema compliance, translation accuracy, and learning effectiveness.
-            """
-
-        elif tool_name == "classification":
-            schema_spec = get_schema_specification(WordCategorization)
-            validation_prompt = f"""
-            {learning_context}
-            
-            **TOOL: Word Classification**
-            Validate this tool output against its expected Pydantic schema:
-            
-            {schema_spec}
-            
-            **Actual Result:**
-            {result}
-            
-            **Context:**
-            - Word: "{state.source_word}" ({state.source_language})
-            
-            **Validation Checklist:**
-            1. All required fields are present and have correct types
-            2. Definitions are accurate and in the source language
-            3. Part of speech is correctly identified
-            
-            **LEARNING QUALITY CHECK:**
-            - Are definitions clear and understandable for learners?
-            - Do they represent the most common, essential meanings?
-            - Is the part of speech classification pedagogically useful?
-            - Are definitions written in natural, learner-friendly language?
-            
-            Rate 1-10 based on schema compliance and accuracy.
-            """
-
-        elif tool_name == "examples":
-            schema_spec = get_schema_specification(Examples)
-            validation_prompt = f"""
-            {learning_context}
-            
-            **TOOL: Example Sentences**
-            Validate this tool output against its expected Pydantic schema:
-            
-            {schema_spec}
-            
-            **Actual Result:**
-            {result}
-            
-            **Context:**
-            - Source word: "{state.source_word}" ({state.source_language})
-            - Target word: "{state.target_word}" ({state.target_language})
-            
-            **Validation Checklist:**
-            1. All required fields are present and have correct types
-            2. examples list has 3-4 items (within min/max constraints)
-            3. Examples use the words correctly in context
-            4. Translations are accurate and natural
-            5. Context field is helpful
-            
-            **LEARNING QUALITY CHECK:**
-            - Are examples practical and likely to be encountered in real life?
-            - Do they demonstrate natural, common usage of the word?
-            - Are translations smooth and idiomatic in the target language?
-            - Do examples help learners understand when/how to use the word?
-            - Are contexts culturally appropriate and learner-friendly?
-            
-            Rate 1-10 based on schema compliance, naturalness, and learning effectiveness.
-            """
-
-        elif tool_name == "synonyms":
-            schema_spec = get_schema_specification(Synonyms)
-            validation_prompt = f"""
-            {learning_context}
-            
-            **TOOL: Synonyms**
-            Validate this tool output against its expected Pydantic schema:
-            
-            {schema_spec}
-            
-            **Actual Result:**
-            {result}
-            
-            **Context:**
-            - Source word: "{state.source_word}" ({state.source_language})
-            - Target word: "{state.target_word}" ({state.target_language})
-            - Part of speech: {state.target_part_of_speech}
-            
-            **Validation Checklist:**
-            1. All required fields are present and have correct types
-            4. Synonyms are correct and commonly used for the target word {state.target_word} in the target language {state.target_language}, or if very uncommon it should be noted in explanation
-            5. Explanations are helpful and in source language {state.source_language}
-            
-            **LEARNING QUALITY CHECK:**
-            - Are synonyms commonly used words for the target word {state.target_word} in the target language {state.target_language}?
-            - Do explanations help learners understand subtle differences?
-            
-            Rate 1-10 based on schema compliance, synonym quality, and learning value.
-            """
-
-        elif tool_name == "syllables":
-            schema_spec = get_schema_specification(SyllableBreakdown)
-            validation_prompt = f"""
-            {learning_context}
-            
-            **TOOL: Syllable Breakdown**
-            Validate this tool output against its expected Pydantic schema:
-            
-            {schema_spec}
-            
-            **Actual Result:**
-            {result}
-            
-            **Context:**
-            - Target word: "{state.target_word}" ({state.target_language})
-            
-            **SYLLABLES TOOL PURPOSE:**
-            This tool ONLY breaks down the target word into syllables and provides a common phonetic pronunciation.
-            It should NOT provide translations, context, or additional explanations.
-            
-            **Validation Checklist:**
-            1. All required fields are present and have correct types
-            2. Syllables are correctly identified for the target word "{state.target_word}" in {state.target_language}
-            3. Phonetic guide uses correct International Phonetic Alphabet (IPA) symbols
-            4. Phonetic guide represents the most common pronunciation for the target word
-
-            
-            **LEARNING QUALITY CHECK:**
-            - Is the syllable breakdown linguistically accurate for the target word?
-            - Is the phonetic guide in proper IPA format?
-            - Does the phonetic guide represent the most common pronunciation?
-            
-            Rate 1-10 based on syllable accuracy and phonetic correctness only.
-            """
-
-        elif tool_name == "conjugation":
-            schema_spec = get_schema_specification(ConjugationResult)
-            validation_prompt = f"""
-            {learning_context}
-            
-            **TOOL: Verb Conjugation**
-            Validate this tool output against its expected Pydantic schema:
-            
-            {schema_spec}
-            
-            **Actual Result:**
-            {result}
-            
-            **Context:**
-            - Target word: "{state.target_word}" ({state.target_language})
-            - Part of speech: {state.target_part_of_speech}
-            
-            **Validation Checklist:**
-            1. All required fields are present and have correct types
-            2. Conjugations are accurate for the verb {state.target_word} in the target language {state.target_language}
-            3. All required verb forms are present
-            4. Language-specific conjugation patterns are correct
-            
-            **LEARNING QUALITY CHECK:**
-            - Are conjugations the most common, essential forms learners need?
-            - Do conjugations follow natural, standard patterns?
-            - Are all forms grammatically correct and commonly used?
-            - Would this conjugation table help learners use the verb correctly?
-            - Are irregular forms properly indicated?
-            
-            Rate 1-10 based on schema compliance, conjugation accuracy, and learning utility.
-            """
-
-        elif tool_name == "media":
-            schema_spec = get_schema_specification(Media)
-            validation_prompt = f"""
-            {learning_context}
-            
-            **TOOL: Visual Media**
-            Validate this Media tool output against its expected Pydantic schema:
-            
-            {schema_spec}
-            
-            **Actual Result:**
-            {result}
-            
-            **Context:**
-            - Target word: "{state.target_word}" ({state.target_language})
-            - Search Query: {result.get('search_query')}
-            
-            **Validation Checklist:**
-            1. All required fields are present and have correct types
-            2. Media object structure is valid and complete
-            
-            **Validation Focus on Search Query:**
-            1. Would these search terms help find good visual representations of the word?
-            2. If the target word is abstract or describes a concept, does the search query contain good examples?
-
-            If you have doubts about the search query, but the media object is valid and has found images, return a score of 8 or higher.
- 
-            Rate 1-10 based on schema compliance, search query quality, and learning value.
-            """
-
+        if not expected_schema_class:
+            raise ValueError(f"Unknown tool: {tool_name}")
         else:
-            # Generic schema validation for unknown tools
+            # Serialize result to a JSON string for the prompt
+            if isinstance(result, BaseModel):
+                result_json_str = result.model_dump_json(indent=2)
+            else:
+                try:
+                    result_json_str = json.dumps(result, indent=2)
+                except TypeError:
+                    result_json_str = str(result)
+
             validation_prompt = f"""
-            {learning_context}
-            
-            Tool: {tool_name}
-            Validate output format and quality:
-            
-            Result:
-            {result}
-            
+            **VALIDATION TASK**
+            You are a language learning expert. Your task is to validate the work of a language learning assistant. The overall goal of the assistant is to create accurate and informative vocabulary learning materials.
+
             Context:
-            - Source: {state.source_word} ({state.source_language})
-            - Target: {state.target_word} ({state.target_language})
+            Source word: '{state.source_word}' ('{state.source_language.value if state.source_language else "unknown"}')
+            Target word: '{state.target_word}' ('{state.target_language.value}')
+            Assistant used tool: {tool_name}
+
+            **Assistant's Role:**
+            The assistant is a language learning expert. It is tasked with creating accurate and informative vocabulary learning materials.
+
+            **Assistant's Output:**
+            The assistant's output is a JSON object that conforms to the expected schema.
+
+
+            **1. Expected Output Schema:**
+            The output MUST conform to this Pydantic model schema:
+            --- SCHEMA START ---
+            {expected_schema_class.model_json_schema()}
+            --- SCHEMA END ---
+
+            **2. Input Prompt:**
+            This was the prompt given to the assistant:
+            --- PROMPT START ---
+            {prompt}
+            --- PROMPT END ---
+
+            **3. Assistant's Output:**
+            Here is the assistants output using the above Pydantic model schema:
+            --- JSON START ---
+            {result_json_str}
+            --- JSON END ---
+
+            **Instructions for you, the Supervisor:**
+            1.  **Schema Compliance:** First and foremost, check if the JSON output strictly complies with the Pydantic schema. Are all required fields present? Are the data types correct?
+
+            2.  **Requirement Adherence:** Carefully read the 'REQUIREMENTS' section in the prompt. Has the assistant followed all instructions?
+
+            3. **Content Quality:** The overall goal is to create an accurate and natural vocabulary learning material from the '{state.source_word}' ('{state.source_language}') to the target word '{state.target_word}' ('{state.target_language}'). The content of the output should be accurate, informative and helpful for learning the target word.
             
-            Check:
-            1. Valid structure
-            2. Required fields present
-            3. Correct data types
-            4. Content relevance
-            
-            Learning value:
-            - Effective for vocabulary learning?
-            - Natural for learners?
-            
-            Rate 1-10 on quality and learning value.
-            If score >= 8, return score only without issues/suggestions.
-            If score < 8, include specific issues and improvement suggestions.
+            4. **Quality Score:** Rate the output on a scale of 1-10, where 10 is perfect. The score should reflect both schema compliance and adherence to the prompt's requirements as well as content quality. A low score should be given if either is not met.
+
+            5.  **Issues and Suggestions:**
+                - If the score is below {self.quality_threshold}, you MUST provide a list of found issues. Each issue should be a clear, concise statement describing a specific failure (e.g., "Field 'x' is missing", "Translation for 'y' is unnatural", "Source word "z" as a matter of fact does exist in the source language and is used in certain parts of the world").
+                - If there are issues, you MUST also provide a list of suggestions for the assistant to improve the output on the next attempt. Suggestions should be actionable and directly related to the issues found.
+
+            Your response MUST be a valid JSON object matching the ToolValidationResult schema.
+            The score should be between 1 and 10 and should reflect the accuracy and quality of the output based on the given conditions.
             """
 
         try:
@@ -550,16 +258,22 @@ class VocabSupervisor:
                 should_retry=False,
                 retry_reason="Score meets quality threshold",
                 adjusted_inputs={},
-                use_stronger_model=False,
             )
 
+        # On final retry, accept if score is above 6
         if retry_count >= self.max_retries:
-            return RetryStrategy(
-                should_retry=False,
-                retry_reason="Maximum retries reached",
-                adjusted_inputs={},
-                use_stronger_model=False,
-            )
+            if validation_result.score >= 7.25:
+                return RetryStrategy(
+                    should_retry=False,
+                    retry_reason="Final retry with acceptable score (>7.25)",
+                    adjusted_inputs={},
+                )
+            else:
+                return RetryStrategy(
+                    should_retry=False,
+                    retry_reason="Maximum retries reached",
+                    adjusted_inputs={},
+                )
 
         # Create quality feedback for supported tools
         adjusted_inputs = {}
@@ -570,6 +284,7 @@ class VocabSupervisor:
             "examples",
             "media",
             "translation",
+            "validation",
             "classification",
             "syllables",
             "conjugation",
@@ -601,7 +316,6 @@ class VocabSupervisor:
             should_retry=should_retry,
             retry_reason=retry_reason,
             adjusted_inputs=adjusted_inputs,
-            use_stronger_model=retry_count > 0,
         )
 
     async def should_proceed_with_parallel_execution(self, state: VocabState) -> bool:

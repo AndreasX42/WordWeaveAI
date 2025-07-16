@@ -1,8 +1,7 @@
 import os
 from enum import Enum
 
-import boto3
-from instructor import Mode, from_bedrock, from_openai
+from instructor import Mode, from_openai
 from openai import AsyncOpenAI
 
 
@@ -253,8 +252,8 @@ def get_instructor_node_executor_llm():
     """Get cached instructor client for GPT-4.1-mini with LangSmith tracing."""
     global _instructor_node_executor_llm
 
-    # "gpt-4.1-mini-2025-04-14"  # "gpt-4.1-nano-2025-04-14"
-    model_name = "gpt-4.1-2025-04-14"
+    # "gpt-4.1-nano-2025-04-14" "gpt-4.1-2025-04-14"
+    model_name = "gpt-4.1-mini-2025-04-14"
 
     if _instructor_node_executor_llm is None:
         base_client = from_openai(
@@ -271,8 +270,8 @@ def get_instructor_supervisor_llm():
     """Get cached supervisor LLM with LangSmith tracing."""
     global _instructor_supervisor_llm
 
-    # "gpt-4.1-2025-04-14"  # "gpt-4.1-mini-2025-04-14"
-    model_name = "gpt-4o-2024-08-06"
+    # "gpt-4.1-2025-04-14"  # "gpt-4.1-mini-2025-04-14" "gpt-4o-2024-08-06"
+    model_name = "gpt-4.1-2025-04-14"
 
     if _instructor_supervisor_llm is None:
         base_client = from_openai(
@@ -285,49 +284,49 @@ def get_instructor_supervisor_llm():
     return _instructor_supervisor_llm
 
 
-def get_node_executor_llm():
-    """Get cached instructor client for Claude-4 Sonnet via AWS Bedrock with LangSmith tracing."""
-    global _instructor_aws_claude4
-    if _instructor_aws_claude4 is None:
-        try:
-            bedrock_client = boto3.client(
-                "bedrock-runtime", region_name=os.getenv("AWS_REGION", "us-east-1")
-            )
-        except Exception as e:
-            raise RuntimeError(
-                f"Failed to create Bedrock client. Ensure AWS credentials are configured: {e}"
-            ) from e
+# def get_node_executor_llm():
+#     """Get cached instructor client for Claude-4 Sonnet via AWS Bedrock with LangSmith tracing."""
+#     global _instructor_aws_claude4
+#     if _instructor_aws_claude4 is None:
+#         try:
+#             bedrock_client = boto3.client(
+#                 "bedrock-runtime", region_name=os.getenv("AWS_REGION", "us-east-1")
+#             )
+#         except Exception as e:
+#             raise RuntimeError(
+#                 f"Failed to create Bedrock client. Ensure AWS credentials are configured: {e}"
+#             ) from e
 
-        sync_instructor_client = from_bedrock(
-            client=bedrock_client,
-            mode=Mode.BEDROCK_JSON,
-            temperature=0.0,
-            model="us.anthropic.claude-sonnet-4-20250514-v1:0",
-        )
+#         sync_instructor_client = from_bedrock(
+#             client=bedrock_client,
+#             mode=Mode.BEDROCK_JSON,
+#             temperature=0.0,
+#             model="us.anthropic.claude-sonnet-4-20250514-v1:0",
+#         )
 
-        # Wrap synchronous Bedrock client with async interface
-        import asyncio
+#         # Wrap synchronous Bedrock client with async interface
+#         import asyncio
 
-        class AsyncBedrockInstructor:
-            """Async wrapper for Bedrock's synchronous instructor client."""
+#         class AsyncBedrockInstructor:
+#             """Async wrapper for Bedrock's synchronous instructor client."""
 
-            def __init__(self, sync_client):
-                self.sync_client = sync_client
+#             def __init__(self, sync_client):
+#                 self.sync_client = sync_client
 
-            async def create(self, *args, **kwargs):
-                """Async wrapper for create method."""
-                return await asyncio.to_thread(self.sync_client.create, *args, **kwargs)
+#             async def create(self, *args, **kwargs):
+#                 """Async wrapper for create method."""
+#                 return await asyncio.to_thread(self.sync_client.create, *args, **kwargs)
 
-            async def create_with_completion(self, *args, **kwargs):
-                """Async wrapper for create_with_completion method."""
-                return await asyncio.to_thread(
-                    self.sync_client.create_with_completion, *args, **kwargs
-                )
+#             async def create_with_completion(self, *args, **kwargs):
+#                 """Async wrapper for create_with_completion method."""
+#                 return await asyncio.to_thread(
+#                     self.sync_client.create_with_completion, *args, **kwargs
+#                 )
 
-        base_client = AsyncBedrockInstructor(sync_instructor_client)
-        _instructor_aws_claude4 = TracedInstructorClient(base_client, "claude-sonnet-4")
+#         base_client = AsyncBedrockInstructor(sync_instructor_client)
+#         _instructor_aws_claude4 = TracedInstructorClient(base_client, "claude-sonnet-4")
 
-    return _instructor_aws_claude4
+#     return _instructor_aws_claude4
 
 
 instructor_node_executor_llm = get_instructor_node_executor_llm()

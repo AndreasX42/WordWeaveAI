@@ -151,8 +151,8 @@ def _build_validation_result(result: dict[str, Any]) -> dict[str, Any]:
     """Build validation result object for notifications."""
     return {
         "is_valid": False,
-        "message": result.get("validation_message"),
-        "suggestions": result.get("suggested_words", []),
+        "issue_message": result.get("validation_message"),
+        "issue_suggestions": result.get("suggested_words", []),
         "source_language": result.get("source_language"),
     }
 

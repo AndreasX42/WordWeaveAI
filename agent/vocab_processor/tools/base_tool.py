@@ -1,6 +1,6 @@
 """Base tool utilities and common patterns for vocab processor tools."""
 
-from typing import Any, Optional, Type, TypeVar
+from typing import Any, Type, TypeVar
 
 from aws_lambda_powertools import Logger
 from pydantic import BaseModel
@@ -18,47 +18,6 @@ class SystemMessages:
     LINGUISTIC_SPECIALIST = "You are a linguistic expert. Be accurate and natural."
     VALIDATION_SPECIALIST = "You are a vocabulary validation expert. Follow instructions exactly. Return valid JSON only."
     MEDIA_SPECIALIST = "You are a linguistic expert. Select and adapt media accurately."
-
-
-def add_quality_feedback_to_prompt(
-    base_prompt: str,
-    quality_feedback: Optional[str] = None,
-    previous_issues: Optional[list[str]] = None,
-    suggestions: Optional[list[str]] = None,
-    quality_requirements: Optional[list[str]] = None,
-) -> str:
-    """Add quality feedback section to a prompt if provided."""
-    if (
-        not quality_feedback
-        and not previous_issues
-        and not suggestions
-        and not quality_requirements
-    ):
-        return base_prompt
-
-    quality_section = "\n\n--- QUALITY FEEDBACK & RETRY INSTRUCTIONS ---\n"
-    if quality_feedback:
-        quality_section += f"{quality_feedback}\n"
-
-    if previous_issues:
-        issues_text = "\n".join(f"- {issue}" for issue in previous_issues)
-        quality_section += f"\n**Identified Issues:**\n{issues_text}\n"
-
-    if suggestions:
-        suggestions_text = "\n".join(f"- {suggestion}" for suggestion in suggestions)
-        quality_section += f"\n**MUST FOLLOW THESE SUGGESTIONS:**\n{suggestions_text}\n"
-
-    if quality_requirements:
-        quality_section += "\n**Original Requirements:**\n" + "\n".join(
-            f"- {req}" for req in quality_requirements
-        )
-
-    if quality_feedback and suggestions:
-        print("-" * 100)
-        print("quality_section", quality_section)
-        print("-" * 100)
-
-    return base_prompt + quality_section
 
 
 async def create_llm_response(

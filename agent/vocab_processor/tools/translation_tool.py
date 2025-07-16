@@ -4,10 +4,8 @@ from langchain.tools import tool
 from pydantic import BaseModel, Field
 
 from vocab_processor.constants import Language, PartOfSpeech
-from vocab_processor.tools.base_tool import (
-    add_quality_feedback_to_prompt,
-    create_llm_response,
-)
+from vocab_processor.prompts import TRANSLATION_PROMPT_TEMPLATE
+from vocab_processor.tools.base_tool import create_llm_response
 
 
 class Translation(BaseModel):
@@ -32,6 +30,11 @@ class Translation(BaseModel):
     )
 
 
+class TranslationResponse(BaseModel):
+    result: Translation
+    prompt: str
+
+
 @tool
 async def get_translation(
     source_word: str,
@@ -41,45 +44,22 @@ async def get_translation(
     quality_feedback: Optional[str] = None,
     previous_issues: Optional[list[str]] = None,
     suggestions: Optional[list[str]] = None,
-) -> Translation:
+) -> TranslationResponse:
     """Translate a word between supported languages English, German and Spanish and categorize the part of speech."""
 
-    # Base prompt
-    prompt = f"""Translate '{source_word}' ({source_language}→{target_language}). 
-
-Source POS: {source_part_of_speech}
-
-IMPORTANT: For target_part_of_speech, use correct values for {target_language} if it is a noun:
-- English: "noun" (English has no grammatical gender)
-- German: "masculine noun", "feminine noun", or "neuter noun" 
-- Spanish: "masculine noun" or "feminine noun"
-
-For target_article in case of noun:
-- English: null (no articles needed)
-- German: der/die/das
-- Spanish: el/la/los/las
-
-Provide most common translation, appropriate POS, article if needed, and additional info for register/context."""
-
-    # Quality requirements for translation
-    quality_requirements = [
-        f"Use correct part of speech for {target_language}",
-        f"Match the register and tone of the source word:",
-        f"- If source is informal/slang, provide informal translation",
-        f"- If source is vulgar, note this and provide appropriate equivalent",
-        f"For slang/colloquial words, provide the most natural equivalent learners would encounter",
-        f"Use target_additional_info to explain context, register, and regional usage in {source_language}",
-        f"For informal/vulgar words like 'huevada', consider translations like 'bullshit', 'crap', 'nonsense' and explain the register.",
-        f"Provide the english translation of the target word in 'english_word', including article if it is a proper noun or 'to' if it is a verb",
-        f"Provide only the base form of the translated source word in 'target_word' without any articles or other modifiers",
-    ]
-
-    # Add quality feedback if provided
-    enhanced_prompt = add_quality_feedback_to_prompt(
-        prompt, quality_feedback, previous_issues, suggestions, quality_requirements
+    enhanced_prompt = TRANSLATION_PROMPT_TEMPLATE.build_enhanced_prompt(
+        quality_feedback=quality_feedback,
+        previous_issues=previous_issues,
+        suggestions=suggestions,
+        source_word=source_word,
+        source_language=source_language.value,
+        target_language=target_language.value,
+        source_part_of_speech=source_part_of_speech.value,
     )
 
-    return await create_llm_response(
+    result = await create_llm_response(
         response_model=Translation,
         user_prompt=enhanced_prompt,
     )
+
+    return TranslationResponse(result=result, prompt=enhanced_prompt)

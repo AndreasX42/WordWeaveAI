@@ -4,14 +4,12 @@ from langchain.tools import tool
 from pydantic import BaseModel, Field
 
 from vocab_processor.constants import Language, PartOfSpeech
-from vocab_processor.tools.base_tool import (
-    add_quality_feedback_to_prompt,
-    create_llm_response,
-)
+from vocab_processor.prompts import CLASSIFICATION_PROMPT_TEMPLATE
+from vocab_processor.tools.base_tool import create_llm_response
 from vocab_processor.utils.ddb_utils import check_word_exists, lang_code
 
 
-class WordCategorization(BaseModel):
+class WordClassification(BaseModel):
     """Categorization of the word in the specified language."""
 
     source_word: str = Field(
@@ -48,6 +46,11 @@ class WordCategorization(BaseModel):
     )
 
 
+class ClassificationResponse(BaseModel):
+    result: WordClassification
+    prompt: str
+
+
 @tool
 async def get_classification(
     source_word: str,
@@ -56,35 +59,21 @@ async def get_classification(
     quality_feedback: Optional[str] = None,
     previous_issues: Optional[list[str]] = None,
     suggestions: Optional[list[str]] = None,
-) -> WordCategorization:
+) -> ClassificationResponse:
     """Categorize part of speech and language, then check if word exists in database."""
 
-    # Base prompt
-    prompt = f"""Classify '{source_word}' ({source_language}): part of speech ({', '.join(PartOfSpeech.all_values())}). 
-    
-    Extract the base form of the word, removing any articles or modifiers.
-    
-    For source_article:
-    - English: null (no articles needed)
-    - German: der/die/das for nouns
-    - Spanish: el/la/los/las for nouns
-    """
-
-    # Quality requirements for classification
-    quality_requirements = [
-        "Extract base word correctly, removing any articles or modifiers",
-        f"1-3 clear and natural {source_language.value} definitions that are distinct and common",
-        f"Note informal/slang usage and other important information in source_additional_info in {source_language}",
-    ]
-
-    # Add quality feedback if provided
-    enhanced_prompt = add_quality_feedback_to_prompt(
-        prompt, quality_feedback, previous_issues, suggestions, quality_requirements
+    enhanced_prompt = CLASSIFICATION_PROMPT_TEMPLATE.build_enhanced_prompt(
+        quality_feedback=quality_feedback,
+        previous_issues=previous_issues,
+        suggestions=suggestions,
+        source_word=source_word,
+        source_language=source_language.value,
+        part_of_speech_values=", ".join(PartOfSpeech.all_values()),
     )
 
     # Get the classification first
     classification = await create_llm_response(
-        response_model=WordCategorization,
+        response_model=WordClassification,
         user_prompt=enhanced_prompt,
     )
 
@@ -100,4 +89,4 @@ async def get_classification(
     classification.word_exists = existence_check["exists"]
     classification.existing_item = existence_check["existing_item"]
 
-    return classification
+    return ClassificationResponse(result=classification, prompt=enhanced_prompt)

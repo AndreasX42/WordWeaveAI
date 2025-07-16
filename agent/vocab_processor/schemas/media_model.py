@@ -33,3 +33,11 @@ class Media(BaseModel):
         min_length=10,
         description="Specific tip for using this visual to remember the word in the source language",
     )
+
+
+class SearchQueryResult(BaseModel):
+    search_query: list[str] = Field(
+        description="English search query to find the most relevant photos in Pexels. Each entry should be 1-2 words maximum, with 2-3 total entries.",
+        min_items=1,
+        max_items=3,
+    )

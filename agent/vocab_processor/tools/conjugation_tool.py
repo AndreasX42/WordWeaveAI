@@ -4,11 +4,11 @@ from langchain.tools import tool
 from pydantic import BaseModel, Field
 
 from vocab_processor.constants import Language, PartOfSpeech
+from vocab_processor.prompts import CONJUGATION_PROMPT_TEMPLATE
 from vocab_processor.schemas.english_conj_model import EnglishVerbConjugation
 from vocab_processor.schemas.german_conj_model import GermanVerbConjugation
 from vocab_processor.schemas.spanish_conj_model import SpanishVerbConjugation
 from vocab_processor.tools.base_tool import (
-    add_quality_feedback_to_prompt,
     create_llm_response,
     create_tool_error_response,
 )
@@ -27,6 +27,11 @@ class ConjugationResult(BaseModel):
     )
 
 
+class ConjugationResponse(BaseModel):
+    result: ConjugationResult
+    prompt: str
+
+
 @tool
 async def get_conjugation(
     target_word: str,
@@ -35,12 +40,16 @@ async def get_conjugation(
     quality_feedback: Optional[str] = None,
     previous_issues: Optional[list[str]] = None,
     suggestions: Optional[list[str]] = None,
-) -> ConjugationResult:
+) -> ConjugationResponse:
     """Get full verb conjugation table for a given verb in the specified language and part of speech."""
 
     if not target_part_of_speech.is_conjugatable:
-        return ConjugationResult(
-            conjugation=f"The word '{target_word}' is not a verb, so there is no conjugation table for it."
+        # This case does not have a prompt.
+        return ConjugationResponse(
+            result=ConjugationResult(
+                conjugation=f"The word '{target_word}' is not a verb, so there is no conjugation table for it."
+            ),
+            prompt="",
         )
 
     try:
@@ -52,20 +61,12 @@ async def get_conjugation(
         }
         schema = schema_map[target_language]
 
-        # Base prompt
-        prompt = f"Create comprehensive conjugation table for {target_language} verb '{target_word}'. Include all essential forms learners need. Output JSON only."
-
-        # Quality requirements for conjugation
-        quality_requirements = [
-            "Follow natural, standard conjugation patterns for {target_language}",
-            "All forms are grammatically correct and commonly used",
-            f"Include all required tenses and persons for {target_language}",
-            "JSON structure matches the expected schema exactly",
-        ]
-
-        # Add quality feedback if provided
-        enhanced_prompt = add_quality_feedback_to_prompt(
-            prompt, quality_feedback, previous_issues, suggestions, quality_requirements
+        enhanced_prompt = CONJUGATION_PROMPT_TEMPLATE.build_enhanced_prompt(
+            quality_feedback=quality_feedback,
+            previous_issues=previous_issues,
+            suggestions=suggestions,
+            target_language=target_language.value,
+            target_word=target_word,
         )
 
         result = await create_llm_response(
@@ -73,7 +74,9 @@ async def get_conjugation(
             user_prompt=enhanced_prompt,
         )
 
-        return ConjugationResult(conjugation=result)
+        return ConjugationResponse(
+            result=ConjugationResult(conjugation=result), prompt=enhanced_prompt
+        )
 
     except Exception as e:
         context = {
@@ -82,6 +85,9 @@ async def get_conjugation(
             "target_part_of_speech": target_part_of_speech,
         }
         error_response = create_tool_error_response(e, context)
-        return ConjugationResult(
-            conjugation=f"Error creating conjugation: {error_response}"
+        return ConjugationResponse(
+            result=ConjugationResult(
+                conjugation=f"Error creating conjugation: {error_response}"
+            ),
+            prompt="",
         )

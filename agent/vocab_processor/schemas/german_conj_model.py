@@ -3,7 +3,11 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 # Simplified type definitions
-NonPersonalForms = Literal["infinitive", "partizip_praesens", "partizip_perfekt"]
+NonPersonalForms = Literal[
+    "infinitive",
+    "partizip_praesens",
+    "partizip_perfekt",
+]
 IndicativeTenses = Literal[
     "praesens", "praeteritum", "perfekt", "plusquamperfekt", "futur_i", "futur_ii"
 ]
