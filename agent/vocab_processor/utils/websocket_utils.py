@@ -321,9 +321,11 @@ class WebSocketNotifier:
             "invalid",
             validation_result={
                 "is_valid": validation_result.get("is_valid", False),
-                "reason": validation_result.get("message"),
+                "validation_issue": validation_result.get("validation_issue"),
                 "source_language": validation_result.get("source_language"),
-                "suggestions": validation_result.get("suggestions", []),
+                "validation_suggestions": validation_result.get(
+                    "validation_suggestions", []
+                ),
             },
         )
         self._broadcast_to_vocab_word_subscribers(source_word, target_language, message)

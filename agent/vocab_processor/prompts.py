@@ -220,19 +220,17 @@ Instructions:
 - Validate if the input is a valid word/phrase in any supported and possible source language {possible_source_languages}
 - If the source_language is provided, validate if the input is a valid word/phrase in the source language
 - Accept common articles, prefixes and modifiers (like "to", "la", "el", "der", "die", "das", "the") as part of valid input
-- If the input is valid in any supported and possible source language {possible_source_languages}, mark as valid and return the detected language
-- If the input is not valid/misspelled, suggest up to 3 real, high-frequency corrections with smallest spelling difference (edit distance up to 3)
-- Only suggest corrections if they are common and actually exist in the possible source languages {possible_source_languages}
+- If the input is valid in any supported and possible source language '{possible_source_languages}', mark as valid and return the detected language
+- If the input is not valid or misspelled, suggest up to 3 real, common corrections in the languages '{possible_source_languages}' with smallest spelling difference (edit distance up to 3), if there are no useful suggestions, return an empty list
 - **Never invent words.**
 - **Never suggest rare words, names, or words in the target language.**
 - **Never suggest the input word itself as a suggestion.**
-
-Rules: No invented words, no rare words, no target language suggestions.
-Supported: {all_languages}
 
 Output JSON only.""",
     quality_requirements=[
         "Do only validate the word, also consider that it is a region specific word that is onlny spoken in parts of the Spanish, English or German speaking world.",
         "Do ONLY check if it is a valid word, DO NOT provide translations or any other kind of additional information.",
+        "In case of invalid word, suggested words have to exist, DO NOT MAKE UP WORDS.",
+        "Return distinct suggestions, do not suggest the same word multiple times.",
     ],
 )

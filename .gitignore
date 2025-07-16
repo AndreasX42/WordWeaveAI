@@ -10,6 +10,7 @@ wheels/
 .venv
 
 # Project files
+aws-infra/.build_cache
 aws-infra/.cdk.staging
 aws-infra/cdk.context.json
 aws-infra/cdk.out

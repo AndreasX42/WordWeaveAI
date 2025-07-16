@@ -52,6 +52,14 @@ def lang_code(lang_enum) -> str:
     return getattr(lang_enum, "code", str(lang_enum.value).lower())
 
 
+def _normalize_part_of_speech(part_of_speech_value: str) -> str:
+    """Normalize part-of-speech value to match storage format."""
+    # Handle compound part-of-speech values like "masculine noun" -> "noun"
+    if len(part_of_speech_value.split(" ")) == 2:
+        return "noun"
+    return part_of_speech_value
+
+
 async def check_word_exists(
     base_word: str, source_language, target_language: str, source_part_of_speech: str
 ) -> dict[str, Any]:
@@ -62,9 +70,30 @@ async def check_word_exists(
         )
         return {"exists": False, "existing_item": None}
 
+    # Extract the part-of-speech value if it's an enum
+    if hasattr(source_part_of_speech, "value"):
+        pos_value = source_part_of_speech.value
+    else:
+        pos_value = str(source_part_of_speech)
+
+    # Normalize part-of-speech the same way it's normalized during storage
+    normalized_pos = _normalize_part_of_speech(pos_value)
+
     pk = f"SRC#{lang_code(source_language)}#{normalize_word(base_word)}"
-    # Query for any translation to target language (regardless of POS)
-    sk = f"TGT#{target_language}#POS#{source_part_of_speech}"
+    sk = f"TGT#{target_language}#POS#{normalized_pos}"
+
+    logger.info(
+        "existence_check_attempt",
+        base_word=base_word,
+        source_language=lang_code(source_language),
+        target_language=target_language,
+        original_pos=pos_value,
+        normalized_pos=normalized_pos,
+        pk=pk,
+        sk=sk,
+        table_name=VOCAB_TABLE.name,
+        aws_region=os.getenv("AWS_REGION", "us-east-1"),
+    )
 
     try:
         response = await asyncio.to_thread(
@@ -79,10 +108,11 @@ async def check_word_exists(
             logger.info("ddb_hit", pk=pk, sk=sk)
             return {"exists": True, "existing_item": existing_item}
 
+        logger.info("ddb_miss", pk=pk, sk=sk, items_count=len(items))
         return {"exists": False, "existing_item": None}
 
     except Exception as exc:
-        logger.error("existence_check_failed", error=str(exc), pk=pk)
+        logger.error("existence_check_failed", error=str(exc), pk=pk, sk=sk)
         return {"exists": False, "existing_item": None}
 
 
@@ -305,11 +335,9 @@ async def store_result(result: dict[str, Any], req: VocabProcessRequestDto):
     pk = f"SRC#{lang_code(src_lang)}#{normalize_word(src_word)}"
     source_pos = getattr(result.get("source_part_of_speech"), "value", "unknown")
 
-    # in case of "masculine noun" or "feminine noun", we want to store it as "noun"
-    if len(source_pos.split(" ")) == 2:
-        source_pos = "noun"
+    normalized_pos = _normalize_part_of_speech(source_pos)
 
-    sk = f"TGT#{lang_code(tgt_lang)}#POS#{source_pos}"
+    sk = f"TGT#{lang_code(tgt_lang)}#POS#{normalized_pos}"
 
     # Prepare search words for individual entries
     search_query = result.get("search_query", [])

@@ -127,12 +127,19 @@ class PartOfSpeech(str, Enum):
         return [pos.value for pos in cls]
 
 
-client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
 # Cache instructor clients to avoid recreation and improve performance
 _instructor_aws_claude4 = None
 _instructor_node_executor_llm = None
 _instructor_supervisor_llm = None
+_openai_client = None
+
+
+def get_openai_client():
+    """Get cached OpenAI client, creating it only when needed."""
+    global _openai_client
+    if _openai_client is None:
+        _openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    return _openai_client
 
 
 class TracedInstructorClient:
@@ -257,7 +264,7 @@ def get_instructor_node_executor_llm():
 
     if _instructor_node_executor_llm is None:
         base_client = from_openai(
-            client=client,
+            client=get_openai_client(),
             model=model_name,
             temperature=0.0,
             mode=Mode.JSON,
@@ -275,7 +282,7 @@ def get_instructor_supervisor_llm():
 
     if _instructor_supervisor_llm is None:
         base_client = from_openai(
-            client=client,
+            client=get_openai_client(),
             model=model_name,
             temperature=0.0,
             mode=Mode.JSON,
@@ -329,11 +336,6 @@ def get_instructor_supervisor_llm():
 #     return _instructor_aws_claude4
 
 
-instructor_node_executor_llm = get_instructor_node_executor_llm()
-instructor_supervisor_llm = get_instructor_supervisor_llm()
-# instructor_aws_claude4 = get_instructor_aws_claude4()
-
-
 class LLMVariant(str, Enum):
     """Supported LLM back-ends."""
 
@@ -341,11 +343,11 @@ class LLMVariant(str, Enum):
     SUPERVISOR = "supervisor"  # llm for supervising node tasks
 
 
-# Map each variant to its cached Instructor client
+# Map each variant to its cached Instructor client getter function
 LLM_PROVIDERS = {
-    LLMVariant.NODE_EXECUTOR: instructor_node_executor_llm,
-    LLMVariant.SUPERVISOR: instructor_supervisor_llm,
-    # LLMVariant.CLAUDE4S: instructor_aws_claude4,
+    LLMVariant.NODE_EXECUTOR: get_instructor_node_executor_llm,
+    LLMVariant.SUPERVISOR: get_instructor_supervisor_llm,
+    # LLMVariant.CLAUDE4S: get_instructor_aws_claude4,
 }
 
 
@@ -358,4 +360,4 @@ def get_llm_client(provider: LLMVariant = LLMVariant.NODE_EXECUTOR):
     Returns:
         TracedInstructorClient: Client with LangSmith tracing and token usage reporting
     """
-    return LLM_PROVIDERS[provider]
+    return LLM_PROVIDERS[provider]()

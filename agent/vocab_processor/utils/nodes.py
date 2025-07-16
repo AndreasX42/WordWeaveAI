@@ -219,12 +219,13 @@ async def node_validate_source_word(state: VocabState) -> VocabState:
                 word=state.source_word,
                 reason=error_message,
                 suggestions=suggestions,
+                suggestions_count=len(suggestions) if suggestions else 0,
             )
 
             return {
                 "validation_passed": False,
-                "validation_message": error_message,
-                "suggested_words": suggestions,
+                "validation_issue": error_message,
+                "validation_suggestions": suggestions,
                 "validation_quality_approved": False,  # Failed validation is not a quality issue
                 "validation_quality_score": 0.0,
             }
@@ -249,8 +250,8 @@ async def node_validate_source_word(state: VocabState) -> VocabState:
         logger.error("validation_execution_failed", error=str(e))
         return {
             "validation_passed": False,
-            "validation_message": f"Validation failed due to system error: {str(e)}",
-            "suggested_words": [],
+            "validation_issue": f"Validation failed due to system error: {str(e)}",
+            "validation_suggestions": [],
             "validation_quality_approved": False,
             "validation_quality_score": 0.0,
         }

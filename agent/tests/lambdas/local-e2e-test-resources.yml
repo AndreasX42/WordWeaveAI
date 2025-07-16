@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  localstack:
+    container_name: "${LOCALSTACK_DOCKER_NAME:-localstack-main}"
+    image: localstack/localstack:latest
+    ports:
+      - "4566:4566"            # LocalStack Gateway
+      - "4510-4559:4510-4559"  # External services port range
+    environment:
+      # Core LocalStack configuration
+      - DEBUG=1
+      - PERSISTENCE=1
+      - LAMBDA_EXECUTOR=docker
+      - LAMBDA_REMOTE_DOCKER=0
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      
+      # AWS Services Configuration
+      - SERVICES=lambda,apigateway,apigatewayv2,dynamodb,s3,sqs,iam,logs,events,sts
+      
+      # WebSocket API Gateway Configuration
+      - APIGATEWAY_V2_ENDPOINT=http://localhost:4566
+      
+      # DynamoDB Configuration
+      - DYNAMODB_ENDPOINT=http://localhost:4566
+      - DYNAMODB_ERROR_PROBABILITY=0.0
+      - DYNAMODB_HEAP_SIZE=256m
+      
+      # S3 Configuration
+      - S3_ENDPOINT=http://localhost:4566
+      - S3_SKIP_SIGNATURE_VALIDATION=1
+      
+      # SQS Configuration
+      - SQS_ENDPOINT=http://localhost:4566
+      
+      # Lambda Configuration
+      - LAMBDA_ENDPOINT=http://localhost:4566
+      - LAMBDA_STAY_OPEN_MODE=1
+      - LAMBDA_REMOVE_CONTAINERS=1
+      - LAMBDA_DOCKER_NETWORK=localstack-net
+      
+      # Performance and stability settings
+      - KINESIS_ERROR_PROBABILITY=0.0
+      - SKIP_INFRA_DOWNLOADS=0
+      - EDGE_BIND_HOST=0.0.0.0
+      - EDGE_PORT=4566
+      
+      # Additional settings
+      - HOST_TMP_FOLDER=${TMPDIR:-/tmp/}localstack
+      - DOCKER_SOCK=/var/run/docker.sock
+      - TMPDIR=/tmp/localstack
+      - DATA_DIR=/tmp/localstack/data
+      
+      # Logging and monitoring
+      - LOG_LEVEL=INFO
+      - LS_LOG=info
+      
+    volumes:
+      - "${TMPDIR:-/tmp}/localstack:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - ".:/workspace"
+      - "/tmp/localstack:/tmp/localstack"
+    networks:
+      - localstack-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # Test runner container (optional)
+  test-runner:
+    image: python:3.9-slim
+    container_name: vocab-test-runner
+    depends_on:
+      localstack:
+        condition: service_healthy
+    environment:
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-1
+    volumes:
+      - ".:/workspace"
+    working_dir: /workspace
+    networks:
+      - localstack-net
+    command: ["sleep", "infinity"]  # Keep container running for manual testing
+    profiles:
+      - test  # Only start when explicitly requested
+
+networks:
+  localstack-net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16 

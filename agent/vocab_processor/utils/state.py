@@ -7,7 +7,9 @@ from vocab_processor.schemas.media_model import Media
 from vocab_processor.tools.examples_tool import ExampleSentence
 from vocab_processor.tools.pronunciation_tool import Pronunciations
 from vocab_processor.tools.synonyms_tool import Synonym
-from vocab_processor.tools.validation_tool import SuggestedWordInfo
+from vocab_processor.tools.validation_tool import (
+    SuggestedWordInfo,
+)
 
 
 class VocabState(BaseModel):
@@ -25,13 +27,11 @@ class VocabState(BaseModel):
     validation_passed: Optional[bool] = Field(
         None, description="Whether the source word passed initial validation."
     )
-    validation_message: Optional[str] = Field(
-        None,
-        description="Message from the validation step, explaining issues or confirming validity.",
+    validation_issue: Optional[str] = Field(
+        None, description="Detailed validation failure information."
     )
-    suggested_words: Optional[list[SuggestedWordInfo]] = Field(
-        None,
-        description="Suggested corrections or alternatives from the validation step.",
+    validation_suggestions: Optional[list[SuggestedWordInfo]] = Field(
+        None, description="Detailed validation suggestions."
     )
 
     # Fields from classification step

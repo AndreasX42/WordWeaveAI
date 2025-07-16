@@ -15,7 +15,7 @@ def is_lambda_context() -> bool:
 
 def normalize_word(word: str) -> str:
     """Return lowercase, accent stripped, alnumonly version of the word."""
-    _NORMALISE_RGX = re.compile(r"[^a-z0-9]")
+    _NORMALISE_RGX = re.compile(r"[^a-z0-9']")
     word = unicodedata.normalize("NFKC", word.lower())
     word = "".join(
         ch

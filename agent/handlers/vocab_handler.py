@@ -104,7 +104,7 @@ async def _evaluate_final_state(
             word=req.source_word,
             target_lang=req.target_language,
             source_lang=req.source_language,
-            reason=result.get("validation_message", "unknown"),
+            reason=result.get("validation_issue", "unknown"),
         )
 
         validation_result = _build_validation_result(result)
@@ -151,8 +151,8 @@ def _build_validation_result(result: dict[str, Any]) -> dict[str, Any]:
     """Build validation result object for notifications."""
     return {
         "is_valid": False,
-        "issue_message": result.get("validation_message"),
-        "issue_suggestions": result.get("suggested_words", []),
+        "validation_issue": result.get("validation_issue"),
+        "validation_suggestions": result.get("validation_suggestions", []),
         "source_language": result.get("source_language"),
     }
 
@@ -161,14 +161,7 @@ def _build_ddb_hit_response(
     result: dict[str, Any], req: VocabProcessRequestDto
 ) -> dict[str, Any]:
     """Build DDB hit response object."""
-    return {
-        "status": "exists",
-        "source_word": result.get("source_word", req.source_word),
-        "target_language": req.target_language,
-        "source_language": req.source_language,
-        "result": result.get("existing_item", {}),
-        "ddb_hit": True,
-    }
+    return {"word_exists": True, "item": result.get("existing_item", {})}
 
 
 def _build_error_response(
