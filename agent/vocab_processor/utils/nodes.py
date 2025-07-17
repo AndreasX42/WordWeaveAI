@@ -55,10 +55,6 @@ async def execute_with_quality_gate(
 ) -> dict:
     """Execute a tool with supervisor quality control and retry logic."""
 
-    # Skip quality gate for pronunciation tool
-    if tool_name == "pronunciation":
-        return await execute_without_quality_gate(tool_func, tool_name, inputs)
-
     # Get current retry count
     retry_count_field = f"{tool_name}_retry_count"
     retry_count = getattr(state, retry_count_field, 0)
@@ -162,7 +158,14 @@ async def execute_without_quality_gate(tool_func, tool_name: str, inputs: dict) 
         response = await tool_func.ainvoke(inputs)
         result_dict = _convert_to_dict(getattr(response, "result", response))
 
-        logger.info(f"{tool_name}_executed_successfully")
+        print()
+        print("-" * 100)
+        print("tool_name", tool_name)
+        print("result_dict", result_dict)
+        print("-" * 100)
+        print()
+
+        logger.info(msg=f"{tool_name}_executed_successfully")
 
         return result_dict
 

@@ -130,7 +130,9 @@ async def generate_audio_with_retry(
             else:
                 raise e
 
-    raise RuntimeError(f"Max retries exceeded for audio generation")
+    # Instead of raising an exception, return None to indicate fallback should be used
+    logger.error(f"Max retries exceeded for audio generation - will use fallback")
+    return None
 
 
 def validate_audio_quality(chunks: list, text: str) -> bool:
@@ -169,6 +171,14 @@ async def get_pronunciation(
             logger.info(
                 f"Local dev mode: pronunciation audio will use mock URLs (not uploaded to S3)"
             )
+            # Return mock URLs immediately in dev mode
+            audio_url = f"https://mock-s3-bucket.local/{audio_prefix}/pronunciation.mp3"
+            syllables_url = None
+            if len(target_syllables) > 1:
+                syllables_url = (
+                    f"https://mock-s3-bucket.local/{audio_prefix}/syllables.mp3"
+                )
+            return Pronunciations(audio=audio_url, syllables=syllables_url)
 
         async def generate_and_upload_audio(
             text: str, filename: str, is_syllables: bool = False
@@ -179,6 +189,7 @@ async def get_pronunciation(
             if not is_lambda_context():
                 return f"https://mock-s3-bucket.local/{s3_key}"
 
+            # Only make real API calls in lambda context
             voice_settings = VoiceSettings(
                 speed=(
                     VOICE_CONFIG["syllables_speed"]
@@ -200,6 +211,13 @@ async def get_pronunciation(
                 model_id=VOICE_CONFIG["model_id"],
                 voice_settings=voice_settings,
             )
+
+            # Check if generation failed and return fallback
+            if audio_generator is None:
+                logger.warning(
+                    f"Audio generation failed for {text}, using fallback URL"
+                )
+                return f"ERROR: Audio generation failed for {text}, {filename}, {'text' if not is_syllables else 'syllables'}"
 
             # Upload stream directly to S3
             return await upload_stream_to_s3(audio_generator, s3_key, "audio/mpeg")
@@ -240,4 +258,4 @@ async def get_pronunciation(
         }
         error_response = create_tool_error_response(e, context)
         # Return a Pronunciations object with error URLs
-        return Pronunciations(audio=f"error: {str(error_response)}", syllables=None)
+        return Pronunciations(audio=f"ERROR: {str(error_response)}", syllables=None)

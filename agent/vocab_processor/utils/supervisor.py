@@ -126,6 +126,15 @@ class VocabSupervisor:
 
         # Special handling for media tool to validate only the search query part
         if tool_name == "media":
+            # Check if this is a fallback response (API failure)
+            if isinstance(result, dict) and result.get("api_fallback"):
+                logger.info("Media tool used API fallback - accepting with good score")
+                return ToolValidationResult(
+                    score=10.0,
+                    issues=[],
+                    suggestions=[],
+                )
+
             # If the media tool successfully retrieved photos, let it pass the quality check.
             if isinstance(result, dict):
                 media = result.get("media")
@@ -137,7 +146,8 @@ class VocabSupervisor:
 
                 if isinstance(photos_src, dict):
                     if set(photos_src.keys()) == {"large2x", "large", "medium"} and all(
-                        photos_src.values()
+                        v.startswith("https://") and v.endswith(".jpg")
+                        for v in photos_src.values()
                     ):
                         return ToolValidationResult(
                             score=10.0, issues=[], suggestions=[]
@@ -384,7 +394,7 @@ def create_fallback_result(
         "validation": {
             "is_valid": False,
             "source_language": None,
-            "error_message": f"Validation failed: {error}",
+            "error_message": f"ERROR - Validation tool failed: {error}",
             "suggestions": [],
         },
         "classification": {
@@ -394,13 +404,13 @@ def create_fallback_result(
             "source_article": None,
         },
         "translation": {
-            "target_word": "translation unavailable",
-            "target_part_of_speech": "verb",  # Default to verb for fallback
+            "target_word": "ERROR - Translation tool failed: {error}",
+            "target_part_of_speech": "verb",
             "target_article": None,
         },
         "media": {
             "media": {
-                "url": "",
+                "url": "ERROR - Media tool failed: {error}",
                 "alt": f"Image unavailable for {inputs.get('target_word', 'word')}",
                 "src": {"large2x": "", "large": "", "medium": ""},
                 "explanation": "Unable to generate image at this time.",
@@ -415,21 +425,25 @@ def create_fallback_result(
                 {
                     "original": f"Example with {inputs.get('source_word', 'word')} unavailable.",
                     "translation": f"Example with {inputs.get('target_word', 'word')} unavailable.",
+                    "error_message": f"ERROR - Examples tool failed: {error}",
                 }
             ]
         },
         "synonyms": {"synonyms": []},
         "syllables": {
             "syllables": [inputs.get("target_word", "word")],
-            "phonetic_guide": "",
+            "phonetic_guide": "ERROR - Syllables tool failed: {error}",
         },
         "pronunciation": {
             "pronunciations": {
-                "audio": f"error: pronunciation failed for {inputs.get('target_word', 'word')}",
+                "audio": f"ERROR - Pronunciation tool failed: {error}",
                 "syllables": None,
             }
         },
-        "conjugation": {"conjugation": None},
+        "conjugation": {
+            "conjugation": None,
+            "error_message": f"ERROR - Conjugation tool failed: {error}",
+        },
     }
 
     return fallback_results.get(

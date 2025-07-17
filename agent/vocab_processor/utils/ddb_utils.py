@@ -46,6 +46,30 @@ class VocabProcessRequestDto(BaseModel):
     user_id: str | None = Field(None)
     request_id: str | None = Field(None)
 
+    def model_post_init(self, __context):
+        """Validate language codes after initialization."""
+        from vocab_processor.constants import Language
+
+        # Validate target_language (required)
+        if self.target_language:
+            valid_codes = [lang.code for lang in Language]
+            if self.target_language not in valid_codes:
+                raise ValueError(
+                    f"Invalid target_language '{self.target_language}'. Must be one of: {valid_codes}"
+                )
+
+        # Validate source_language (optional)
+        if self.source_language:
+            valid_codes = [lang.code for lang in Language]
+            if self.source_language not in valid_codes:
+                raise ValueError(
+                    f"Invalid source_language '{self.source_language}'. Must be one of: {valid_codes}"
+                )
+
+        # Validate source_word is not empty
+        if not self.source_word or not self.source_word.strip():
+            raise ValueError("source_word cannot be empty")
+
 
 def lang_code(lang_enum) -> str:
     """Return iso code for Language enum, falling back to .value."""

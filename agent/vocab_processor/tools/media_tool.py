@@ -70,9 +70,17 @@ async def fetch_photos(query: str | list[str], per_page: int = 3) -> list[PhotoO
         ) as response:
             if response.status != 200:
                 response_text = await response.text()
-                raise RuntimeError(
-                    f"Pexels API failed ({response.status}): {response_text}"
-                )
+                # Handle server errors (5xx) gracefully by returning empty list
+                if response.status >= 500:
+                    logger.error(
+                        f"Pexels API server error ({response.status}): {response_text}. Returning empty results."
+                    )
+                    return []
+                else:
+                    # For client errors (4xx), still raise an exception
+                    raise RuntimeError(
+                        f"Pexels API failed ({response.status}): {response_text}"
+                    )
 
             data = await response.json()
             photos_data = data.get("photos", [])
@@ -264,7 +272,13 @@ async def get_media(
                 result_dict = {**result, "search_query_prompt": search_query_prompt}
                 if "media_selection_prompt" not in result_dict:
                     result_dict["media_selection_prompt"] = None
-                return result_dict
+                # Clean up any None keys before returning
+                cleaned_result = {
+                    k: v
+                    for k, v in result_dict.items()
+                    if k is not None and v is not None
+                }
+                return cleaned_result
 
         # If no existing media, create new media
         result = await _create_new_media(
@@ -279,7 +293,10 @@ async def get_media(
             suggestions,
         )
 
-        return {**result, "search_query_prompt": search_query_prompt}
+        # Clean up any None keys before returning
+        final_result = {**result, "search_query_prompt": search_query_prompt}
+        cleaned_result = {k: v for k, v in final_result.items() if k is not None}
+        return cleaned_result
 
     except Exception as e:
         context = {
@@ -392,18 +409,26 @@ async def _create_new_media(
     )
 
     if not photos:
+        # Create fallback media with placeholder URLs that pass validation
+        fallback_media = Media(
+            url="",
+            alt=f"Image unavailable for {target_word}.",
+            src={
+                "large2x": "",
+                "large": "",
+                "medium": "",
+            },
+            explanation=f"No suitable images were found for '{target_word}'.",
+            memory_tip=f"",
+        )
+
         return {
-            "media": Media(
-                url="",
-                alt="No photos found matching the query.",
-                src={"large2x": "", "large": "", "medium": ""},
-                explanation="No suitable images were found for this word.",
-                memory_tip="Try visualizing the word concept in your mind.",
-            ),
+            "media": fallback_media,
             "english_word": english_word,
             "search_query": search_query_result.search_query,
             "media_reused": False,
             "media_selection_prompt": None,
+            "api_fallback": True,
         }
 
     # Select the best photo

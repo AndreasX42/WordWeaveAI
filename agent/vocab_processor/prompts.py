@@ -36,8 +36,7 @@ def add_quality_feedback_to_prompt(
 
     if suggestions or previous_issues:
         print()
-        print("-" * 100)
-        print("suggestions or previous_issues")
+        print("ISSUESS DETECTED" + "-" * 100)
         print(suggestions)
         print(previous_issues)
         print("-" * 100)

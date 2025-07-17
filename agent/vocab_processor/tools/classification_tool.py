@@ -89,18 +89,4 @@ async def get_classification(
     classification.word_exists = existence_check["exists"]
     classification.existing_item = existence_check["existing_item"]
 
-    # Debug logging
-    from aws_lambda_powertools import Logger
-
-    logger = Logger(service="classification-tool")
-    logger.info(
-        "classification_existence_check",
-        base_word=classification.source_word,
-        source_language=source_language.value,
-        target_language=lang_code(target_language),
-        source_part_of_speech=classification.source_part_of_speech.value,
-        word_exists=existence_check["exists"],
-        has_existing_item=existence_check["existing_item"] is not None,
-    )
-
     return ClassificationResponse(result=classification, prompt=enhanced_prompt)
