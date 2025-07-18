@@ -5,10 +5,10 @@ from typing import Any, Optional
 
 import aiohttp
 from aws_lambda_powertools import Logger
-from langchain.tools import tool
+from langchain_core.tools import tool
 
 from vocab_processor.constants import Language
-from vocab_processor.prompts import (
+from vocab_processor.prompts_simple import (
     MEDIA_SEARCH_QUERY_PROMPT_TEMPLATE,
     MEDIA_SELECTION_PROMPT_TEMPLATE,
 )

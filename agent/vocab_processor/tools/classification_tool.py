@@ -1,10 +1,10 @@
 from typing import Optional
 
-from langchain.tools import tool
+from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 from vocab_processor.constants import Language, PartOfSpeech
-from vocab_processor.prompts import CLASSIFICATION_PROMPT_TEMPLATE
+from vocab_processor.prompts_simple import CLASSIFICATION_PROMPT_TEMPLATE
 from vocab_processor.tools.base_tool import create_llm_response
 from vocab_processor.utils.ddb_utils import check_word_exists, lang_code
 

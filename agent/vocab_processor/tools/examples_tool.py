@@ -1,10 +1,10 @@
 from typing import Optional
 
-from langchain.tools import tool
+from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 from vocab_processor.constants import Language, PartOfSpeech
-from vocab_processor.prompts import EXAMPLES_PROMPT_TEMPLATE
+from vocab_processor.prompts_simple import EXAMPLES_PROMPT_TEMPLATE
 from vocab_processor.tools.base_tool import create_llm_response
 
 

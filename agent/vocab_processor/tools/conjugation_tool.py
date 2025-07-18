@@ -1,10 +1,10 @@
 from typing import Optional, Union
 
-from langchain.tools import tool
+from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 from vocab_processor.constants import Language, PartOfSpeech
-from vocab_processor.prompts import CONJUGATION_PROMPT_TEMPLATE
+from vocab_processor.prompts_simple import CONJUGATION_PROMPT_TEMPLATE
 from vocab_processor.schemas.english_conj_model import EnglishVerbConjugation
 from vocab_processor.schemas.german_conj_model import GermanVerbConjugation
 from vocab_processor.schemas.spanish_conj_model import SpanishVerbConjugation

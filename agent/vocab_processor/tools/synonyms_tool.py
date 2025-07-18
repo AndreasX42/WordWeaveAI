@@ -1,10 +1,10 @@
 from typing import Optional
 
-from langchain.tools import tool
+from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 from vocab_processor.constants import Language, PartOfSpeech
-from vocab_processor.prompts import SYNONYMS_PROMPT_TEMPLATE
+from vocab_processor.prompts_simple import SYNONYMS_PROMPT_TEMPLATE
 from vocab_processor.tools.base_tool import create_llm_response
 
 
@@ -26,8 +26,8 @@ class Synonyms(BaseModel):
 
     note: Optional[str] = Field(
         None,
-        max_length=200,
-        description="Note in the source language about the synonyms, for example, if no direct synonym exists.",
+        max_length=500,
+        description="Concise note in the source language about the synonyms, for example, if no direct synonym exists.",
     )
     synonyms: list[Synonym] = Field(
         ...,

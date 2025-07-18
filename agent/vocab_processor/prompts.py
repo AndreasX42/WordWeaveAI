@@ -95,38 +95,43 @@ For source_article:
 )
 
 TRANSLATION_PROMPT_TEMPLATE = PromptTemplate(
-    base_prompt="""Translate '{source_word}' ({source_language}→{target_language}). 
+    base_prompt="""Translate '{source_word}' ({source_language}→{target_language}).
 
-Source POS: {source_part_of_speech}
-Usually, the target POS is the same as the source POS.
+Source part of speech (POS): {source_part_of_speech}
+Target POS should generally match the source POS.
 
-IMPORTANT: If the target word is a noun, use correct part of speech depending on the gender and target language {target_language}:
-- English: "noun" (English has no grammatical gender)
-- German: "masculine noun", "feminine noun", or "neuter noun" 
-- Spanish: "masculine noun" or "feminine noun"
+IMPORTANT rules for nouns based on target language ({target_language}) for "target_part_of_speech":
+- English: Use "noun" (no grammatical gender)
+- German: Use "masculine noun", "feminine noun", or "neuter noun"
+- Spanish: Use "masculine noun" or "feminine noun"
 
-If the target word is a noun, provide one of the following articles depending on the gender and target language:
-- English: null (no articles needed)
-- German: der/die/das
-- Spanish: el/la/los/las
+If the target word is a noun, provide the appropriate definite article in "target_article":
+- English: null (no article needed)
+- German: 'der' / 'die' / 'das'
+- Spanish: 'el' / 'la' / 'los' / 'las'
 
-- if it is a noun, also provide the plural form in 'target_plural_form' of the translated word in the target language {target_language}
+If the target word is a noun, include its plural form in 'target_plural_form' in the target language ({target_language}) including its article in the plural form ( for example "casa" -> "las casas").
 
-Provide most common translation, appropriate POS, article if needed, and additional info for register/context.""",
+Return the most common and natural translation, appropriate part of speech, required article (if applicable), and any relevant context or register in 'target_additional_info'.""",
     quality_requirements=[
-        f"For target language English use American English related translations, for Spanish use Latin American related translations and for German use German translations commonly used in Germany.",
-        "Use correct part of speech for {target_language}",
-        "Match the register and tone of the source word:",
-        "- If source is informal/slang, provide informal translation",
-        "- If source is vulgar, note this and provide appropriate equivalent",
-        "For slang/colloquial words, provide the most natural equivalent learners would encounter",
-        "Use 'target_additional_info' for very important or special context, informal/slang usage, meaning and regional usage of the translated word in its language '{target_language}', written in the language {source_language}",
-        "For informal/vulgar words like 'huevada', consider translations like 'bullshit', 'crap', 'nonsense' and explain the register. If there is no special context, leave it empty.",
-        "Provide the english translation of the target word in 'english_word', including article if it is a proper noun or 'to' if it is a verb",
-        "Provide only the base form of the translated source word in 'target_word' without any articles or other modifiers",
+        "Use region-appropriate vocabulary:",
+        "- For English: Use American English",
+        "- For Spanish: Use Latin American Spanish",
+        "- For German: Use words commonly used in Germany",
+        "Ensure the part of speech matches {target_language} norms.",
+        "Respect the tone and register of the source word:",
+        "- Informal/slang → informal/slang translation",
+        "- Vulgar → appropriate vulgar equivalent (and mark it)",
+        "- If formal → formal equivalent",
+        "Provide natural learner-friendly equivalents for colloquial or slang expressions.",
+        "Fill 'target_additional_info' with key contextual or regional notes (in the source language: {source_language}):",
+        "- e.g., if usage is slang, informal, country-specific, or contextually bound",
+        "- Leave empty if no relevant context",
+        "For vulgar/informal terms (e.g., 'huevada'), use common equivalents like 'bullshit', 'crap', 'nonsense', and describe the tone and register appropriately.",
+        "Fill 'english_word' with the English equivalent (include 'to' if verb, article if proper noun).",
+        "Return only the **base form** of the translated word in 'target_word'—no articles or modifiers.",
     ],
 )
-
 EXAMPLES_PROMPT_TEMPLATE = PromptTemplate(
     base_prompt="Create 3-4 natural examples using '{source_word}' ({source_language}) and '{target_word}' ({target_language}). Context in {source_language}.",
     quality_requirements=[

@@ -1,11 +1,11 @@
 from typing import Optional
 
 from aws_lambda_powertools import Logger
-from langchain.tools import tool
+from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 from vocab_processor.constants import Language
-from vocab_processor.prompts import SYLLABLES_PROMPT_TEMPLATE
+from vocab_processor.prompts_simple import SYLLABLES_PROMPT_TEMPLATE
 from vocab_processor.tools.base_tool import create_llm_response
 
 logger = Logger(service="vocab-processor")

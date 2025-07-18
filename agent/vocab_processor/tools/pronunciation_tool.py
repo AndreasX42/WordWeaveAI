@@ -6,7 +6,7 @@ from typing import Optional
 from aws_lambda_powertools import Logger
 from elevenlabs import VoiceSettings
 from elevenlabs.client import AsyncElevenLabs
-from langchain.tools import tool
+from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 from vocab_processor.constants import Language

@@ -226,7 +226,7 @@ class VocabSupervisor:
                 - If there are issues, you MUST also provide a list of suggestions for the assistant to improve the output on the next attempt. Suggestions should be actionable and directly related to the issues found.
 
             Your response MUST be a valid JSON object matching the ToolValidationResult schema.
-            The score should be between 1 and 10 and should reflect the accuracy and quality of the output based on the given conditions.
+            The score should be between 1 and 10 and should reflect the accuracy and quality of the output based on the given conditions. If the score is {self.quality_threshold} or higher, don't provide any issues or suggestions, just return the score.
             """
 
         try:
