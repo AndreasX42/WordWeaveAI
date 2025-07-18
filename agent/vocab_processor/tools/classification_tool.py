@@ -32,7 +32,7 @@ class WordClassification(BaseModel):
     )
     source_additional_info: str | None = Field(
         None,
-        description="Additional information in the source language about the word in the source language if needed. For example if the word is only common in a specific country or region, in what context the word is used, if it is colloquial or vulgar, etc.",
+        description="Information about very important or special context, informal/slang usage, meaning and regional usage of the source word in its language",
     )
 
     # Add existence check fields

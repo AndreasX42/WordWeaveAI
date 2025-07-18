@@ -89,11 +89,10 @@ For source_article:
 """,
     quality_requirements=[
         "Extract base word correctly, removing any articles or modifiers",
-        "1-3 clear and natural {source_language} definitions that are distinct and common",
-        "Note informal/slang usage and other important information in source_additional_info in {source_language}",
+        "1-3 clear and natural dictionary-style '{source_language}' definitions of the source word '{source_word}' that are distinct and common, written in the language '{source_language}'",
+        "IMPORTANT: Note informal/slang usage and other very important or special context, meaning and regional usage of the source word '{source_word}' in the language '{source_language}' in 'source_additional_info', written in the language '{source_language}'. If there is no highly important context, leave it empty.",
     ],
 )
-
 
 TRANSLATION_PROMPT_TEMPLATE = PromptTemplate(
     base_prompt="""Translate '{source_word}' ({source_language}→{target_language}). 
@@ -113,13 +112,14 @@ If the target word is a noun, provide one of the following articles depending on
 
 Provide most common translation, appropriate POS, article if needed, and additional info for register/context.""",
     quality_requirements=[
+        f"For target language English use American English related translations, for Spanish use Latin American related translations and for German use German translations commonly used in Germany.",
         "Use correct part of speech for {target_language}",
         "Match the register and tone of the source word:",
         "- If source is informal/slang, provide informal translation",
         "- If source is vulgar, note this and provide appropriate equivalent",
         "For slang/colloquial words, provide the most natural equivalent learners would encounter",
-        "Use target_additional_info to explain context, register, and regional usage in {source_language}",
-        "For informal/vulgar words like 'huevada', consider translations like 'bullshit', 'crap', 'nonsense' and explain the register.",
+        "Use 'target_additional_info' for very important or special context, informal/slang usage, meaning and regional usage of the translated word in its language '{target_language}', written in the language {source_language}",
+        "For informal/vulgar words like 'huevada', consider translations like 'bullshit', 'crap', 'nonsense' and explain the register. If there is no special context, leave it empty.",
         "Provide the english translation of the target word in 'english_word', including article if it is a proper noun or 'to' if it is a verb",
         "Provide only the base form of the translated source word in 'target_word' without any articles or other modifiers",
     ],
@@ -140,39 +140,52 @@ EXAMPLES_PROMPT_TEMPLATE = PromptTemplate(
 )
 
 SYNONYMS_PROMPT_TEMPLATE = PromptTemplate(
-    base_prompt="""You are a linguistic expert providing synonyms for '{target_word}' ({target_language}, {target_part_of_speech}).
+    base_prompt="""You are a linguistic expert providing synonyms for the {target_part_of_speech} '{target_word}' in the language {target_language}.
 
 **Analysis and Instructions:**
-1.  First, determine if direct, common synonyms for '{target_word}' exist in {target_language}.
-2.  If no direct synonyms exist, you must add a note in the source language {source_language} to briefly explain why no direct synonym exists.
-3.  If possible, provide at least 1 to a maximum 3 of the closest words or concepts.
+1.  First, determine if common synonyms for '{target_word}' exist in {target_language}.
+2.  If no common synonyms exist, you must add a note in the source language '{source_language}' to very briefly explain why no direct synonym exists.
+3.  If possible, provide at least 1 to a maximum 3 of the most commonly words or concepts.
 4.  For each synonym, the explanation has to be in the source language {source_language} and clarify the nuances and differences of the synonym compared to '{target_word}'.
 
 **Input Word:** '{target_word}'
 """,
     quality_requirements=[
+        "Try to start with the most commonly used synonyms in the target language {target_language}, if there are no common synonyms, try to provide synonyms that are very close in meaning.",
         "If there really are no synonyms, just return an empty list with the note that no direct synonyms exist.",
         "The synonyms list should contain the closest related concepts, not meta-commentary.",
         "If the synonym is very uncommon but valid, it should be noted in explanation.",
         "Explanations must clarify subtle differences in meaning and usage in the source language {source_language}.",
-        "Try to avoid archaic or overly academic terms unless the source word is also of that nature.",
     ],
 )
 
 SYLLABLES_PROMPT_TEMPLATE = PromptTemplate(
-    base_prompt="""Break '{target_word}' ({target_language}) into syllables. Provide a syllable list and a clear phonetic guide using the International Phonetic Alphabet (IPA).
+    base_prompt="""You are a linguistic expert in the area of syllable breakdown, phonetics and phonology. Break '{target_word}' ({target_language}) into syllables. Provide a syllable list and a clear phonetic guide using basic International Phonetic Alphabet (IPA) symbols.
 
 **IMPORTANT RULES for {target_language}:**
 - For Spanish verbs ending in '-ear', the 'e' and 'a' are in SEPARATE syllables, creating a hiatus.
 - For Spanish verbs ending in '-uir', the 'ui' is a diphthong and stays in one syllable.
-- For English words use American English related IPA and for Spanish words use Latin American related IPA.
+- For German words ending in '-tion', the 'i' and 'o' are NEVER in separate syllables.
+- For German, be mindful of final-obstruent devoicing (Auslautverhärtung): voiced stops ('b', 'd', 'g') at the end of a syllable are pronounced as their voiceless counterparts ('p', 't', 'k').
+
+- For English words use American English related IPA
+- For Spanish words use Latin American related IPA.
+- For German words, use Standard German (Hochdeutsch) pronunciation.
+
+**CRITICAL IPA REQUIREMENTS:**
+- Use ONLY basic, standard IPA symbols that are commonly found in dictionaries
+- AVOID complex diacritics, combining characters, or non-standard symbols
+- Keep the phonetic guide simple and learner-friendly
+- For any word, prefer clarity over technical precision
 
 Provide the breakdown for: '{target_word}'""",
     quality_requirements=[
         "Syllables must be correct for the target word {target_word} in {target_language}, following the rules provided, taking into account the possible original source language nuances.",
-        "Phonetic guide should be accurate and related to the International Phonetic Alphabet (IPA).",
-        "However, the most important point is that the phonetic guide helps the language learner with the pronunciation, if there are some deviations to IPA, it is not important.",
-        "You dont have to be 100% accurate, also we put '[ ]' around the phonetic guide in a later step, so you dont have to worry about it.",
+        "Phonetic guide should use ONLY basic, standard IPA symbols commonly found in dictionaries.",
+        "CRITICAL: AVOID complex diacritics, combining characters, or non-standard Unicode symbols that may cause encoding issues.",
+        "Keep phonetic guide simple and learner-friendly - prefer clarity over technical precision.",
+        "The most important point is that the phonetic guide helps the language learner with the pronunciation.",
+        "We put '[ ]' around the phonetic guide in a later step, so you dont have to worry about exact formatting.",
     ],
 )
 
@@ -212,24 +225,40 @@ MEDIA_SELECTION_PROMPT_TEMPLATE = PromptTemplate(
 )
 
 VALIDATION_PROMPT_TEMPLATE = PromptTemplate(
-    base_prompt="""You are an expert linguistic validator. For input '{word}' of source language (if provided) '{source_language}', with the aim to translate it to {target_language}:
+    base_prompt="""You are an expert linguistic validator. Your goal is to validate the input '{source_word}' and determine its language.
 
-Instructions:
-- Keep the source_word exactly as provided by the user (preserve "to build", "la casa", etc.)
-- Validate if the input is a valid word/phrase in any supported and possible source language {possible_source_languages}
-- If the source_language is provided, validate if the input is a valid word/phrase in the source language
+**CRITICAL LANGUAGE DETECTION RULES:**
+1. If source_language is "unknown": You MUST detect which language the word belongs to from the possible source languages ({possible_source_languages}) and set source_language to that detected language.
+2. If source_language is provided (not "unknown"): You MUST validate the word against that specific language only.
+
+**Current Input:**
+- Word to validate: '{source_word}'
+- Source language provided: '{source_language}'
+- Possible source languages: {possible_source_languages}
+
+**Instructions:**
+- Keep the input exactly as provided by the user
+- If source_language is "unknown": Check if '{source_word}' is valid in any of the possible source languages ({possible_source_languages}). If valid, set source_language to the detected language.
+- If source_language is provided (not "unknown"): Validate if '{source_word}' is a valid word/phrase in that specific language only.
 - Accept common articles, prefixes and modifiers (like "to", "la", "el", "der", "die", "das", "the") as part of valid input
-- If the input is valid in any supported and possible source language '{possible_source_languages}', mark as valid and return the detected language
-- If the input is not valid or misspelled, suggest up to 3 real, common corrections in the languages '{possible_source_languages}' with smallest spelling difference (edit distance up to 3), if there are no useful suggestions, return an empty list
-- **Never invent words.**
-- **Never suggest rare words, names, or words in the target language.**
-- **Never suggest the input word itself as a suggestion.**
-
-Output JSON only.""",
+- Be aware that words can have multiple parts of speech. For example, 'build' can be a verb ('to build') or a noun ('the build'). Validate accordingly.
+- ONLY in case of invalid word, provide suggestions and a message explaining the issue.
+- ALWAYS set source_language to a valid language (English, Spanish, or German) - never leave it as None or "unknown".
+""",
     quality_requirements=[
-        "Do only validate the word, also consider that it is a region specific word that is onlny spoken in parts of the Spanish, English or German speaking world.",
-        "Do ONLY check if it is a valid word, DO NOT provide translations or any other kind of additional information.",
-        "In case of invalid word, suggested words have to exist, DO NOT MAKE UP WORDS.",
-        "Return distinct suggestions, do not suggest the same word multiple times.",
+        "0. LANGUAGE DETECTION REQUIREMENT: You MUST always set source_language to a valid language (English, Spanish, or German). If the input source_language is 'unknown', detect the language from the possible source languages and set it. Never return None or 'unknown' for source_language.",
+        "1. First, check if the word is a known regional or dialectal variant or used in special or technical contexts. If so, mark it as valid. Also consider that the word might be a proper noun or a name and include the provided articles and modifiers in your validation.",
+        "2. If the word is not valid or misspelled in the detected source language, mark the word as invalid.",
+        "3. If the word is invalid, provide a concise 'issue_message' explaining the issue in one sentence in the detected source language (not 'unknown') or in english if no source language is provided.",
+        "4. For invalid words, suggest up to 3 unique, real, and correctly spelled alternative words in 'issue_suggestions'.",
+        "5. If no good suggestions can be found, return an empty list for 'issue_suggestions' and state in the 'issue_message' that no alternatives were found.",
+        "6. Do not invent words or provide translations. Only validate and suggest.",
+        "7. IMPORTANT: Each suggested word must meet **all** of the following criteria:\n"
+        "   - It must match the corresponding source language.\n"
+        "   - It must be spelled grammatically correctly.\n"
+        "   - If it is a **noun**, include the correct article (e.g., 'der', 'die', 'das' for German; 'la', 'lo' for Spanish; 'the' for English) in the suggested word string (e.g. 'the house').\n"
+        "   - If it is a **verb** in English, prefix it with 'to' (e.g., 'to run').\n"
+        "   - It must be **properly capitalized** according to the grammar rules of the source language.\n"
+        "   - Think as if you had to validate the suggestion yourself - it should clearly be a valid word!",
     ],
 )

@@ -182,7 +182,7 @@ async def execute_without_quality_gate(tool_func, tool_name: str, inputs: dict) 
 
 
 async def node_validate_source_word(state: VocabState) -> VocabState:
-    """Validate the source word for spelling, ambiguity, and clarity."""
+    """Validate the source word and run it through the quality gate, regardless of validity."""
 
     inputs = {
         "source_word": state.source_word,
@@ -191,56 +191,33 @@ async def node_validate_source_word(state: VocabState) -> VocabState:
     }
 
     try:
-        # Execute validation tool directly first to get business logic result
-        response = await validate_word.ainvoke(inputs)
-        result_dict = _convert_to_dict(response.result)
-
-        logger.info(
-            "validation_result",
-            word=state.source_word,
-            is_valid=result_dict.get("is_valid", False),
-            source_language=(
-                str(result_dict.get("source_language"))
-                if result_dict.get("source_language")
-                else None
-            ),
-            validation_message=result_dict.get("issue_message"),
-            suggestions_count=(
-                len(result_dict.get("issue_suggestions", []))
-                if result_dict.get("issue_suggestions")
-                else 0
-            ),
-        )
-
-        # If validation failed, return immediately with clear error information
-        if not result_dict.get("is_valid", False):
-            error_message = result_dict.get("issue_message", "Word validation failed")
-            suggestions = result_dict.get("issue_suggestions", [])
-
-            logger.warning(
-                "validation_failed",
-                word=state.source_word,
-                reason=error_message,
-                suggestions=suggestions,
-                suggestions_count=len(suggestions) if suggestions else 0,
-            )
-
-            return {
-                "validation_passed": False,
-                "validation_issue": error_message,
-                "validation_suggestions": suggestions,
-                "validation_quality_approved": False,  # Failed validation is not a quality issue
-                "validation_quality_score": 0.0,
-            }
-
-        # If validation passed, run through quality gate for additional validation
+        # Always run through the quality gate
         quality_result = await execute_with_quality_gate(
             state, validate_word, "validation", TaskType.VALIDATION, inputs
         )
 
+        is_valid = quality_result.get("is_valid", False)
+        error_message = quality_result.get("issue_message")
+        suggestions = quality_result.get("issue_suggestions")
+        source_language = quality_result.get("source_language")
+
+        logger.info(
+            "validation_result_with_quality",
+            word=state.source_word,
+            is_valid=is_valid,
+            source_language=str(source_language) if source_language else None,
+            validation_message=error_message,
+            suggestions_count=len(suggestions) if suggestions else 0,
+            quality_approved=quality_result.get("validation_quality_approved", False),
+            quality_score=quality_result.get("validation_quality_score", 0.0),
+        )
+
+        # Structure the return state
         return {
-            "validation_passed": True,
-            "source_language": result_dict.get("source_language"),
+            "validation_passed": is_valid,
+            "source_language": source_language,
+            "validation_issue": error_message,
+            "validation_suggestions": suggestions,
             "validation_quality_approved": quality_result.get(
                 "validation_quality_approved", False
             ),
@@ -338,6 +315,14 @@ async def node_get_translation(state: VocabState) -> VocabState:
 
 async def node_get_synonyms(state: VocabState) -> VocabState:
     """Fetch synonyms for the word."""
+
+    if not state.target_part_of_speech.has_synonyms:
+        return {
+            "synonyms": [],
+            "synonyms_quality_approved": True,
+            "synonyms_quality_score": 10.0,
+        }
+
     inputs = {
         "target_word": state.target_word,
         "source_language": state.source_language,
@@ -450,6 +435,7 @@ async def node_get_media(state: VocabState) -> VocabState:
         "media_ref": result.get("media_ref", None),
         "search_query": result.get("search_query", []),
         "media_reused": result.get("media_reused", False),
+        "media_adapted": result.get("media_adapted", False),
         "media_quality_approved": result.get("media_quality_approved", False),
         "media_quality_score": result.get("media_quality_score", 0.0),
     }
@@ -488,7 +474,7 @@ async def node_get_examples(state: VocabState) -> VocabState:
 
 async def node_get_conjugation(state: VocabState) -> VocabState:
     """Get verb conjugation if applicable."""
-    if state.target_part_of_speech != "verb":
+    if not state.target_part_of_speech.is_conjugatable:
         return {
             "conjugation": None,
             "conjugation_quality_approved": True,
@@ -622,13 +608,17 @@ async def join_parallel_tasks(state: VocabState) -> VocabState:
     completed_tasks = getattr(state, "completed_parallel_tasks", []) or []
 
     # Determine which task just completed by checking which quality fields are set
-    parallel_tasks = ["media", "examples", "synonyms", "syllables"]
+    parallel_tasks = ["media", "examples", "syllables"]
 
     # Add conjugation if it's a verb
-    if getattr(state, "target_part_of_speech", None) == "verb":
+    if state.target_part_of_speech and state.target_part_of_speech.is_conjugatable:
         parallel_tasks.append("conjugation")
 
-    # Add pronunciation (no quality gate needed)
+    # Add synonyms if the word has synonyms
+    if state.target_part_of_speech and state.target_part_of_speech.has_synonyms:
+        parallel_tasks.append("synonyms")
+
+    # Add pronunciation
     parallel_tasks.append("pronunciation")
 
     # Find newly completed tasks (tasks that have quality approval but aren't in completed list)

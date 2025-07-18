@@ -10,6 +10,7 @@ from aws_lambda_powertools.metrics import Metrics, MetricUnit
 from botocore.exceptions import ClientError
 from pydantic import BaseModel, Field
 
+from vocab_processor.constants import PartOfSpeech
 from vocab_processor.utils.core_utils import is_lambda_context, normalize_word
 
 logger = Logger(service="vocab-processor")
@@ -76,12 +77,9 @@ def lang_code(lang_enum) -> str:
     return getattr(lang_enum, "code", str(lang_enum.value).lower())
 
 
-def _normalize_part_of_speech(part_of_speech_value: str) -> str:
-    """Normalize part-of-speech value to match storage format."""
-    # Handle compound part-of-speech values like "masculine noun" -> "noun"
-    if len(part_of_speech_value.split(" ")) == 2:
-        return "noun"
-    return part_of_speech_value
+def _get_pos_category(part_of_speech_value: str) -> str:
+    """Get the category of a part-of-speech value."""
+    return PartOfSpeech(part_of_speech_value).category
 
 
 async def check_word_exists(
@@ -101,7 +99,7 @@ async def check_word_exists(
         pos_value = str(source_part_of_speech)
 
     # Normalize part-of-speech the same way it's normalized during storage
-    normalized_pos = _normalize_part_of_speech(pos_value)
+    normalized_pos = _get_pos_category(pos_value)
 
     pk = f"SRC#{lang_code(source_language)}#{normalize_word(base_word)}"
     sk = f"TGT#{target_language}#POS#{normalized_pos}"
@@ -232,6 +230,7 @@ async def get_existing_media_for_search_words(
                 media = media_item["media"]
                 media_copy = dict(media)
                 media_copy["matched_word"] = search_term
+                media_copy["media_ref"] = media_ref
 
                 # Update usage statistics
                 await _update_search_term_usage_media_table(f"SEARCH#{search_term}")
@@ -281,6 +280,7 @@ async def store_media_references(
     1. One main media entry in media table: PK=MEDIA#{hash}
     2. Multiple search term entries in media table: PK=SEARCH#{word}
     """
+
     if not search_words or not media_data:
         return
 
@@ -359,7 +359,7 @@ async def store_result(result: dict[str, Any], req: VocabProcessRequestDto):
     pk = f"SRC#{lang_code(src_lang)}#{normalize_word(src_word)}"
     source_pos = getattr(result.get("source_part_of_speech"), "value", "unknown")
 
-    normalized_pos = _normalize_part_of_speech(source_pos)
+    normalized_pos = _get_pos_category(source_pos)
 
     sk = f"TGT#{lang_code(tgt_lang)}#POS#{normalized_pos}"
 
@@ -418,12 +418,15 @@ async def store_result(result: dict[str, Any], req: VocabProcessRequestDto):
         metrics.add_metric("VocabStored", MetricUnit.Count, 1)
 
         # Store media in separate table if new media was fetched or adapted to a new language
-        needs_storage = result.get("media") and (
-            not result.get("media_reused", False) or result.get("media_adapted", False)
-        )
+        media_adapted = result.get("media_adapted", False)
+        media_reused = result.get("media_reused", False)
+        has_media = result.get("media") is not None
+
+        needs_storage = has_media and (not media_reused or media_adapted)
 
         if needs_storage:
             media_ref = result.get("media_ref")
+
             if media_ref:
                 await store_media_references(
                     media_ref, normalized_search_words, result.get("media")

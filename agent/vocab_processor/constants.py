@@ -28,6 +28,73 @@ else:
         return decorator
 
 
+class PartOfSpeech(str, Enum):
+    """Parts of speech with metadata for language learning."""
+
+    FEMININE_NOUN = "feminine noun"
+    MASCULINE_NOUN = "masculine noun"
+    NEUTER_NOUN = "neuter noun"
+    NOUN = "noun"
+    VERB = "verb"
+    ADJECTIVE = "adjective"
+    ADVERB = "adverb"
+    PREPOSITION = "preposition"
+    CONJUNCTION = "conjunction"
+    PRONOUN = "pronoun"
+    ARTICLE = "article"
+    INTERJECTION = "interjection"
+
+    @property
+    def category(self) -> str:
+        """Get the general grammatical category."""
+        categories = {
+            self.FEMININE_NOUN: "noun",
+            self.MASCULINE_NOUN: "noun",
+            self.NEUTER_NOUN: "noun",
+            self.NOUN: "noun",
+            self.VERB: "verb",
+            self.ADJECTIVE: "adjective",
+            self.ADVERB: "adverb",
+            self.PREPOSITION: "preposition",
+            self.CONJUNCTION: "conjunction",
+            self.PRONOUN: "pronoun",
+            self.ARTICLE: "article",
+            self.INTERJECTION: "interjection",
+        }
+        return categories[self]
+
+    @property
+    def is_conjugatable(self) -> bool:
+        """Whether this part of speech can be conjugated/inflected."""
+        return self == self.VERB
+
+    @property
+    def has_synonyms(self) -> bool:
+        """Whether this part of speech has synonyms."""
+        POS_WITH_SYNONYMS = [
+            PartOfSpeech.FEMININE_NOUN,
+            PartOfSpeech.MASCULINE_NOUN,
+            PartOfSpeech.NEUTER_NOUN,
+            PartOfSpeech.NOUN,
+            PartOfSpeech.VERB,
+            PartOfSpeech.ADJECTIVE,
+            PartOfSpeech.ADVERB,
+            PartOfSpeech.INTERJECTION,
+            PartOfSpeech.CONJUNCTION,
+        ]
+        return self in POS_WITH_SYNONYMS
+
+    @classmethod
+    def get_by_category(cls, category: str) -> list["PartOfSpeech"]:
+        """Get all parts of speech in a category."""
+        return [pos for pos in cls if pos.category == category]
+
+    @classmethod
+    def all_values(cls) -> list[str]:
+        """Get all part of speech string values."""
+        return [pos.value for pos in cls]
+
+
 class Language(str, Enum):
     """Supported languages with their metadata."""
 
@@ -61,70 +128,6 @@ class Language(str, Enum):
     def all_values(cls) -> list[str]:
         """Get all language string values."""
         return [lang.value for lang in cls]
-
-
-class PartOfSpeech(str, Enum):
-    """Parts of speech with metadata for language learning."""
-
-    FEMININE_NOUN = "feminine noun"
-    MASCULINE_NOUN = "masculine noun"
-    NEUTER_NOUN = "neuter noun"
-    NOUN = "noun"
-    VERB = "verb"
-    ADJECTIVE = "adjective"
-    ADVERB = "adverb"
-    PREPOSITION = "preposition"
-    CONJUNCTION = "conjunction"
-    PRONOUN = "pronoun"
-    ARTICLE = "article"
-    INTERJECTION = "interjection"
-
-    @property
-    def category(self) -> str:
-        """Get the general grammatical category."""
-        categories = {
-            self.FEMININE_NOUN: "noun",
-            self.MASCULINE_NOUN: "noun",
-            self.VERB: "verb",
-            self.ADJECTIVE: "adjective",
-            self.ADVERB: "adverb",
-            self.PREPOSITION: "preposition",
-            self.CONJUNCTION: "conjunction",
-            self.PRONOUN: "pronoun",
-            self.ARTICLE: "article",
-            self.INTERJECTION: "interjection",
-        }
-        return categories[self]
-
-    @property
-    def has_gender(self) -> bool:
-        """Whether this part of speech has grammatical gender."""
-        return self in [
-            self.FEMININE_NOUN,
-            self.MASCULINE_NOUN,
-            self.ADJECTIVE,
-            self.ARTICLE,
-        ]
-
-    @property
-    def is_conjugatable(self) -> bool:
-        """Whether this part of speech can be conjugated/inflected."""
-        return self == self.VERB
-
-    @property
-    def is_declinable(self) -> bool:
-        """Whether this part of speech can be declined (nouns, adjectives)."""
-        return self.category in ["noun", "adjective", "pronoun", "article"]
-
-    @classmethod
-    def get_by_category(cls, category: str) -> list["PartOfSpeech"]:
-        """Get all parts of speech in a category."""
-        return [pos for pos in cls if pos.category == category]
-
-    @classmethod
-    def all_values(cls) -> list[str]:
-        """Get all part of speech string values."""
-        return [pos.value for pos in cls]
 
 
 # Cache instructor clients to avoid recreation and improve performance

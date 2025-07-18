@@ -273,11 +273,12 @@ async def get_media(
                 if "media_selection_prompt" not in result_dict:
                     result_dict["media_selection_prompt"] = None
                 # Clean up any None keys before returning
-                cleaned_result = {
-                    k: v
-                    for k, v in result_dict.items()
-                    if k is not None and v is not None
-                }
+                cleaned_result = {k: v for k, v in result_dict.items() if k is not None}
+
+                print("Media1-" * 100)
+                print("cleaned_result", cleaned_result.get("media") is not None)
+                print("-" * 100)
+
                 return cleaned_result
 
         # If no existing media, create new media
@@ -296,6 +297,7 @@ async def get_media(
         # Clean up any None keys before returning
         final_result = {**result, "search_query_prompt": search_query_prompt}
         cleaned_result = {k: v for k, v in final_result.items() if k is not None}
+
         return cleaned_result
 
     except Exception as e:
@@ -363,19 +365,22 @@ Translate alt, explanation, and memory_tip to {source_language}. Keep url and sr
         system_message=SystemMessages.MEDIA_SPECIALIST,
     )
 
-    # Generate consistent media reference based on search terms (not specific word)
-    search_terms_key = "_".join(
-        sorted([normalize_word(term) for term in search_query_result.search_query])
-    )
-    media_ref = f"MEDIA#{requested_lang}#{search_terms_key}"
+    # Generate a new media_ref that preserves the original key, but changes the language
+    original_media_ref = existing_media.get("media_ref")
+    new_media_ref = original_media_ref
+    if original_media_ref and original_media_ref.startswith("MEDIA#"):
+        parts = original_media_ref.split("#")
+        if len(parts) >= 3:
+            # Reconstruct with new language, preserving original key part
+            new_media_ref = f"MEDIA#{requested_lang}#{'#'.join(parts[2:])}"
 
     logger.info(
-        f"Generated new media_ref for adapted media: {media_ref} from search terms: {search_query_result.search_query}"
+        f"Generated new media_ref for adapted media: {new_media_ref} from original: {original_media_ref}"
     )
 
     return {
         "media": media,
-        "media_ref": media_ref,
+        "media_ref": new_media_ref,
         "english_word": english_word,
         "search_query": search_query_result.search_query,
         "media_reused": True,

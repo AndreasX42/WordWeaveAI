@@ -15,7 +15,9 @@ class Synonym(BaseModel):
         ..., description="Commonly used synonym of the word in the target language"
     )
     explanation: str = Field(
-        ..., description="Explanation of the synonym in the source language"
+        ...,
+        max_length=200,
+        description="Explanation of the synonym in the source language",
     )
 
 
@@ -24,6 +26,7 @@ class Synonyms(BaseModel):
 
     note: Optional[str] = Field(
         None,
+        max_length=200,
         description="Note in the source language about the synonyms, for example, if no direct synonym exists.",
     )
     synonyms: list[Synonym] = Field(

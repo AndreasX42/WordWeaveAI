@@ -70,13 +70,13 @@ class LLMRouter:
 
         # Use powerful model for supervisor decisions
         if task_type in [
+            TaskType.VALIDATION,
             TaskType.QUALITY_CHECK,
         ]:
             llm_variant = LLMVariant.SUPERVISOR
 
         # Use cheaper model for routine tool execution, upgrade on retry
         if task_type in [
-            TaskType.VALIDATION,
             TaskType.CLASSIFICATION,
             TaskType.TRANSLATION,
             TaskType.EXAMPLES,

@@ -11,7 +11,7 @@ from vocab_processor.tools.base_tool import SystemMessages, create_llm_response
 class SuggestedWordInfo(BaseModel):
     """Suggested word information."""
 
-    word: str = Field(..., description="The suggested word string.")
+    word: str = Field(..., description="The suggested word.")
     language: Language = Field(..., description="The language of the suggested word.")
 
 
@@ -20,20 +20,20 @@ class WordValidationResult(BaseModel):
 
     is_valid: bool = Field(
         ...,
-        description="True if the word is considered valid (correctly spelled, unambiguous language), False otherwise.",
+        description="True if the word is considered valid, False otherwise.",
     )
     source_language: Optional[Language] = Field(
         None,
-        description="The language of the source word. Will be either provided by the user or detected by the validation step. Has to be a clear, unambiguous and supported language.",
+        description="The language of the source word. Will be either provided by the user or detected by the validation assistant.",
     )
     issue_message: Optional[str] = Field(
         None,
-        description="An explanatory message if the word is not valid (e.g., 'Misspelled', 'Ambiguous language', 'Language not clear').",
+        description="Only in case of invalid word: Explanation for why the word is not valid.",
     )
     issue_suggestions: Optional[list[SuggestedWordInfo]] = Field(
         None,
         max_items=3,
-        description="A list of suggested corrections or alternative words, including their language, if the input word is misspelled or ambiguous.",
+        description="Only in case of invalid word: A list of suggestions for the invalid word.",
     )
 
 
@@ -61,11 +61,9 @@ async def validate_word(
         possible_source_languages = [source_language]
 
     prompt = VALIDATION_PROMPT_TEMPLATE.build_enhanced_prompt(
-        word=source_word,
-        target_language=target_language.value,
-        source_language=source_language.value if source_language else "",
+        source_word=source_word,
+        source_language=source_language.value if source_language else "unknown",
         possible_source_languages=", ".join(l.value for l in possible_source_languages),
-        all_languages=", ".join(Language.all_values()),
         quality_feedback=quality_feedback,
         previous_issues=previous_issues,
         suggestions=suggestions,
@@ -77,6 +75,7 @@ async def validate_word(
             user_prompt=prompt,
             system_message=SystemMessages.VALIDATION_SPECIALIST,
         )
+
         return ValidationResponse(result=result, prompt=prompt)
     except Exception as e:
         result = WordValidationResult(
