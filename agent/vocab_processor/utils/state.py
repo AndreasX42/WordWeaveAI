@@ -7,9 +7,7 @@ from vocab_processor.schemas.media_model import Media
 from vocab_processor.tools.examples_tool import ExampleSentence
 from vocab_processor.tools.pronunciation_tool import Pronunciations
 from vocab_processor.tools.synonyms_tool import Synonym
-from vocab_processor.tools.validation_tool import (
-    SuggestedWordInfo,
-)
+from vocab_processor.tools.validation_tool import SuggestedWordInfo
 
 
 class VocabState(BaseModel):
@@ -76,6 +74,10 @@ class VocabState(BaseModel):
     )
     target_phonetic_guide: Optional[str] = Field(
         None, description="Phonetic guide for the translated word."
+    )
+    target_plural_form: Optional[str] = Field(
+        None,
+        description="Plural form of the translated word in the target language if it is a noun.",
     )
     target_additional_info: Optional[str] = Field(
         None,

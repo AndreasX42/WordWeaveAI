@@ -110,6 +110,8 @@ If the target word is a noun, provide one of the following articles depending on
 - German: der/die/das
 - Spanish: el/la/los/las
 
+- if it is a noun, also provide the plural form in 'target_plural_form' of the translated word in the target language {target_language}
+
 Provide most common translation, appropriate POS, article if needed, and additional info for register/context.""",
     quality_requirements=[
         f"For target language English use American English related translations, for Spanish use Latin American related translations and for German use German translations commonly used in Germany.",
@@ -146,7 +148,7 @@ SYNONYMS_PROMPT_TEMPLATE = PromptTemplate(
 1.  First, determine if common synonyms for '{target_word}' exist in {target_language}.
 2.  If no common synonyms exist, you must add a note in the source language '{source_language}' to very briefly explain why no direct synonym exists.
 3.  If possible, provide at least 1 to a maximum 3 of the most commonly words or concepts.
-4.  For each synonym, the explanation has to be in the source language {source_language} and clarify the nuances and differences of the synonym compared to '{target_word}'.
+4.  For each synonym, the explanation has to be in the source language {source_language} and clarify the nuances and differences of the synonym compared to '{target_word}'. Make it clear and concise, should be maximum 3 sentences and no more than 100 words.
 
 **Input Word:** '{target_word}'
 """,
@@ -160,32 +162,32 @@ SYNONYMS_PROMPT_TEMPLATE = PromptTemplate(
 )
 
 SYLLABLES_PROMPT_TEMPLATE = PromptTemplate(
-    base_prompt="""You are a linguistic expert in the area of syllable breakdown, phonetics and phonology. Break '{target_word}' ({target_language}) into syllables. Provide a syllable list and a clear phonetic guide using basic International Phonetic Alphabet (IPA) symbols.
+    base_prompt="""You are a linguistic expert in the area of syllable breakdown and pronunciation. Break '{target_word}' ({target_language}) into syllables. Provide a syllable list and a simple, learner-friendly phonetic guide.
 
 **IMPORTANT RULES for {target_language}:**
 - For Spanish verbs ending in '-ear', the 'e' and 'a' are in SEPARATE syllables, creating a hiatus.
 - For Spanish verbs ending in '-uir', the 'ui' is a diphthong and stays in one syllable.
 - For German words ending in '-tion', the 'i' and 'o' are NEVER in separate syllables.
-- For German, be mindful of final-obstruent devoicing (Auslautverhärtung): voiced stops ('b', 'd', 'g') at the end of a syllable are pronounced as their voiceless counterparts ('p', 't', 'k').
+- For German, be mindful of final-obstruent devoicing: voiced stops ('b', 'd', 'g') at the end of a syllable are pronounced as their voiceless counterparts ('p', 't', 'k').
 
-- For English words use American English related IPA
-- For Spanish words use Latin American related IPA.
-- For German words, use Standard German (Hochdeutsch) pronunciation.
-
-**CRITICAL IPA REQUIREMENTS:**
-- Use ONLY basic, standard IPA symbols that are commonly found in dictionaries
-- AVOID complex diacritics, combining characters, or non-standard symbols
-- Keep the phonetic guide simple and learner-friendly
-- For any word, prefer clarity over technical precision
+**PHONETIC GUIDE REQUIREMENTS:**
+- Use SIMPLE, learner-friendly phonetic spellings (NO IPA symbols)
+- Use common letters and combinations like: ah, eh, ee, oo, oh, uh
+- Use 'k' for hard 'c' sounds, 'ts' for German 'z', 'sh' for 'sch', etc.
+- Separate syllables with hyphens
+- Important: Make it sound natural when read aloud by the native {target_language} speaker
+- For English, use a American English pronunciation guide.
+- For Spanish, use a Latin American pronunciation guide.
+- For German, use a German (Hochdeutsch) pronunciation guide.
 
 Provide the breakdown for: '{target_word}'""",
     quality_requirements=[
-        "Syllables must be correct for the target word {target_word} in {target_language}, following the rules provided, taking into account the possible original source language nuances.",
-        "Phonetic guide should use ONLY basic, standard IPA symbols commonly found in dictionaries.",
-        "CRITICAL: AVOID complex diacritics, combining characters, or non-standard Unicode symbols that may cause encoding issues.",
-        "Keep phonetic guide simple and learner-friendly - prefer clarity over technical precision.",
-        "The most important point is that the phonetic guide helps the language learner with the pronunciation.",
-        "We put '[ ]' around the phonetic guide in a later step, so you dont have to worry about exact formatting.",
+        "Syllables must be correct for the target word {target_word} in {target_language}, following the rules provided.",
+        "Phonetic guide must use ONLY simple English letters and common combinations - NO IPA symbols whatsoever.",
+        "CRITICAL: Use familiar English approximations that any English speaker can read aloud naturally.",
+        "Keep phonetic guide simple and intuitive - prefer clarity and readability over technical precision.",
+        "The phonetic guide should help English-speaking learners approximate the correct pronunciation.",
+        "Use hyphens to separate syllables in the phonetic guide: syl-la-ble format.",
     ],
 )
 

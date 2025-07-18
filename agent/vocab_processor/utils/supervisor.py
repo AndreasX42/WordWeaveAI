@@ -85,7 +85,7 @@ class LLMRouter:
             TaskType.CONJUGATION,
             TaskType.MEDIA_SELECTION,
         ]:
-            llm_variant = (
+            llm_variant: LLMVariant | LLMVariant = (
                 LLMVariant.SUPERVISOR if num_retries > 1 else LLMVariant.NODE_EXECUTOR
             )
 
@@ -272,10 +272,10 @@ class VocabSupervisor:
 
         # On final retry, accept if score is above 6
         if retry_count >= self.max_retries:
-            if validation_result.score >= 7.25:
+            if validation_result.score >= 7.0:
                 return RetryStrategy(
                     should_retry=False,
-                    retry_reason="Final retry with acceptable score (>7.25)",
+                    retry_reason="Final retry with acceptable score (>= 7.0)",
                     adjusted_inputs={},
                 )
             else:

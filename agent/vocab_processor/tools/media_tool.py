@@ -275,10 +275,6 @@ async def get_media(
                 # Clean up any None keys before returning
                 cleaned_result = {k: v for k, v in result_dict.items() if k is not None}
 
-                print("Media1-" * 100)
-                print("cleaned_result", cleaned_result.get("media") is not None)
-                print("-" * 100)
-
                 return cleaned_result
 
         # If no existing media, create new media

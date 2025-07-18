@@ -34,7 +34,7 @@ def _make_json_serializable(value: Any) -> Any:
 
 
 # DynamoDB and API Gateway setup
-dynamodb = boto3.resource("dynamodb")
+_dynamodb = None
 connections_table_name = os.getenv("DYNAMODB_CONNECTIONS_TABLE_NAME")
 websocket_api_endpoint = os.getenv("WEBSOCKET_API_ENDPOINT")
 
@@ -43,10 +43,19 @@ _connections_table = None
 _api_gateway_client = None
 
 
+def get_dynamodb_resource():
+    """Get DynamoDB resource (cached)."""
+    global _dynamodb
+    if _dynamodb is None:
+        _dynamodb = boto3.resource("dynamodb")
+    return _dynamodb
+
+
 def get_connections_table():
     """Get DynamoDB connections table (cached)."""
     global _connections_table
     if _connections_table is None and connections_table_name:
+        dynamodb = get_dynamodb_resource()
         _connections_table = dynamodb.Table(connections_table_name)
     return _connections_table
 

@@ -16,12 +16,11 @@ class SyllableBreakdown(BaseModel):
 
     syllables: list[str] = Field(
         ...,
-        description="List of syllables that make up the word.",
-        examples=[["ciu", "dad"]],
+        description="List array of syllables that make up the word.",
     )
     phonetic_guide: str = Field(
         ...,
-        description="Phonetic guide related to the International Phonetic Alphabet (IPA).",
+        description="Simple, learner-friendly phonetic guide for the word.",
     )
 
 

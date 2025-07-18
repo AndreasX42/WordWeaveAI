@@ -378,7 +378,15 @@ async def store_result(result: dict[str, Any], req: VocabProcessRequestDto):
         return
 
     pk = f"SRC#{lang_code(src_lang)}#{normalize_word(src_word)}"
-    source_pos = getattr(result.get("source_part_of_speech"), "value", "unknown")
+
+    # Handle source_part_of_speech - could be enum, string, or None
+    source_pos_raw = result.get("source_part_of_speech")
+    if hasattr(source_pos_raw, "value"):
+        source_pos = source_pos_raw.value
+    elif isinstance(source_pos_raw, str):
+        source_pos = source_pos_raw
+    else:
+        raise ValueError(f"Invalid source_part_of_speech: {source_pos_raw}")
 
     normalized_pos = _get_pos_category(source_pos)
 

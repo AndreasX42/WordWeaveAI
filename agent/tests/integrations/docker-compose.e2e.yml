@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   localstack:
-    container_name: "${LOCALSTACK_DOCKER_NAME:-localstack-main}"
+    container_name: "${LOCALSTACK_DOCKER_NAME:-localstack-e2e-test}"
     image: localstack/localstack:latest
     ports:
       - "4566:4566"            # LocalStack Gateway
@@ -10,7 +8,7 @@ services:
     environment:
       # Core LocalStack configuration
       - DEBUG=1
-      - PERSISTENCE=1
+      - PERSISTENCE=0  # Disable persistence for faster test runs
       - LAMBDA_EXECUTOR=docker
       - LAMBDA_REMOTE_DOCKER=0
       - DOCKER_HOST=unix:///var/run/docker.sock
@@ -18,17 +16,17 @@ services:
       # AWS Services Configuration
       - SERVICES=lambda,apigateway,apigatewayv2,dynamodb,s3,sqs,iam,logs,events,sts
       
-      # WebSocket API Gateway Configuration
-      - APIGATEWAY_V2_ENDPOINT=http://localhost:4566
-      
       # DynamoDB Configuration
       - DYNAMODB_ENDPOINT=http://localhost:4566
       - DYNAMODB_ERROR_PROBABILITY=0.0
       - DYNAMODB_HEAP_SIZE=256m
+      - DYNAMODB_SHARE_DB=1
       
       # S3 Configuration
       - S3_ENDPOINT=http://localhost:4566
       - S3_SKIP_SIGNATURE_VALIDATION=1
+      - S3_HOSTNAME_EXTERNAL=localhost
+      - S3_HOSTNAME=localhost
       
       # SQS Configuration
       - SQS_ENDPOINT=http://localhost:4566
@@ -38,42 +36,48 @@ services:
       - LAMBDA_STAY_OPEN_MODE=1
       - LAMBDA_REMOVE_CONTAINERS=1
       - LAMBDA_DOCKER_NETWORK=localstack-net
+      - LAMBDA_RUNTIME_ENVIRONMENT_TIMEOUT=60
       
       # Performance and stability settings
       - KINESIS_ERROR_PROBABILITY=0.0
       - SKIP_INFRA_DOWNLOADS=0
       - EDGE_BIND_HOST=0.0.0.0
       - EDGE_PORT=4566
+      - DISABLE_CORS_CHECKS=1
+      - DISABLE_CUSTOM_CORS_S3=1
       
-      # Additional settings
-      - HOST_TMP_FOLDER=${TMPDIR:-/tmp/}localstack
+      # Additional settings for testing
+      - HOST_TMP_FOLDER=${TMPDIR:-/tmp/}localstack-e2e
       - DOCKER_SOCK=/var/run/docker.sock
-      - TMPDIR=/tmp/localstack
-      - DATA_DIR=/tmp/localstack/data
+      - TMPDIR=/tmp/localstack-e2e
+      - DATA_DIR=/tmp/localstack-e2e/data
       
       # Logging and monitoring
       - LOG_LEVEL=INFO
       - LS_LOG=info
+      - LOCALSTACK_API_KEY=${LOCALSTACK_API_KEY:-}
+      
+      # Test environment specific
+      - EAGER_SERVICE_LOADING=1
+      - SKIP_SSL_CERT_DOWNLOAD=1
       
     volumes:
-      - "${TMPDIR:-/tmp}/localstack:/var/lib/localstack"
+      - "${TMPDIR:-/tmp}/localstack-e2e:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
-      - ".:/workspace"
-      - "/tmp/localstack:/tmp/localstack"
+      - "../..:/workspace"  # Mount the entire project
     networks:
       - localstack-net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     restart: unless-stopped
 
-  # Test runner container (optional)
-  test-runner:
-    image: python:3.9-slim
-    container_name: vocab-test-runner
+  # Test initialization service
+  test-init:
+    image: amazon/aws-cli:latest
     depends_on:
       localstack:
         condition: service_healthy
@@ -83,13 +87,18 @@ services:
       - AWS_SECRET_ACCESS_KEY=test
       - AWS_DEFAULT_REGION=us-east-1
     volumes:
-      - ".:/workspace"
+      - "../..:/workspace"
     working_dir: /workspace
     networks:
       - localstack-net
-    command: ["sleep", "infinity"]  # Keep container running for manual testing
+    command: |
+      sh -c "
+        echo 'Waiting for LocalStack to be ready...' &&
+        sleep 10 &&
+        echo 'LocalStack is ready, test environment initialized!'
+      "
     profiles:
-      - test  # Only start when explicitly requested
+      - init
 
 networks:
   localstack-net:
@@ -97,4 +106,4 @@ networks:
     ipam:
       driver: default
       config:
-        - subnet: 172.20.0.0/16 
+        - subnet: 172.21.0.0/16 

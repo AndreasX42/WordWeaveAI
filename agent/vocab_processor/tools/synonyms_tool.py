@@ -16,7 +16,7 @@ class Synonym(BaseModel):
     )
     explanation: str = Field(
         ...,
-        max_length=200,
+        max_length=300,
         description="Explanation of the synonym in the source language",
     )
 

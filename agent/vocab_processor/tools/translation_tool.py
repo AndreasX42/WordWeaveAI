@@ -25,6 +25,10 @@ class Translation(BaseModel):
         None,
         description="Additional information in the source language about the translation in the target language if needed. For example if the word is only common in a specific country or region, in what context the word is used, if it is colloquial or vulgar, etc.",
     )
+    target_plural_form: str | None = Field(
+        None,
+        description="Plural form of the translated word in the target language if it is a noun.",
+    )
     english_word: str = Field(
         description="The English translation of the target word including article if it is a proper noun or 'to' if it is a verb"
     )

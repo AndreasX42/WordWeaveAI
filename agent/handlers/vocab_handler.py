@@ -19,12 +19,14 @@ from vocab_processor.utils.ddb_utils import VocabProcessRequestDto, store_result
 from vocab_processor.utils.websocket_utils import WebSocketNotifier
 
 # Constants
-DEFAULT_TIMEOUT = int(os.getenv("LAMBDA_PROCESSING_TIMEOUT", "90"))
+DEFAULT_TIMEOUT = int(os.getenv("LAMBDA_PROCESSING_TIMEOUT", "180"))
 
 logger = Logger(service="vocab-processor")
 metrics = Metrics(namespace="VocabProcessor")
 
-processor = AsyncBatchProcessor(event_type=EventType.SQS)
+processor = AsyncBatchProcessor(
+    event_type=EventType.SQS, raise_on_entire_batch_failure=False
+)
 
 
 @logger.inject_lambda_context()
