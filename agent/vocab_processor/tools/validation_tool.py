@@ -32,7 +32,7 @@ class WordValidationResult(BaseModel):
     )
     issue_suggestions: Optional[list[SuggestedWordInfo]] = Field(
         None,
-        max_items=3,
+        max_length=3,
         description="Only in case of invalid word: A list of suggestions for the invalid word.",
     )
 

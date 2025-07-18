@@ -32,8 +32,8 @@ class Synonyms(BaseModel):
     synonyms: list[Synonym] = Field(
         ...,
         description="List of synonyms of the target word in the target language",
-        min_items=0,
-        max_items=3,
+        min_length=0,
+        max_length=3,
     )
 
 

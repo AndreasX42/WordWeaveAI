@@ -29,8 +29,8 @@ class Examples(BaseModel):
     examples: list[ExampleSentence] = Field(
         ...,
         description="List of example sentences using the word and its translation.",
-        min_items=3,
-        max_items=4,
+        min_length=3,
+        max_length=4,
     )
 
 

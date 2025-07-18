@@ -114,7 +114,7 @@ def cleanup_stale_connections():
         cleaned_count = 0
 
         for connection in stale_connections:
-            connection_id = connection["connection_id"]
+            connection_id = connection["connection_id"]  # type: ignore
             if remove_connection(connection_id):
                 cleaned_count += 1
 

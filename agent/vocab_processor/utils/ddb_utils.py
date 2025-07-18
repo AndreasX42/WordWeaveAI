@@ -24,17 +24,37 @@ dynamodb = boto3.resource(
     ),
 )
 
-VOCAB_TABLE = dynamodb.Table(os.getenv("DYNAMODB_VOCAB_TABLE_NAME"))
-MEDIA_TABLE = dynamodb.Table(os.getenv("DYNAMODB_VOCAB_MEDIA_TABLE_NAME"))
+# Lazy initialization to avoid import-time errors during testing
+_vocab_table = None
+_media_table = None
+
+
+def get_vocab_table():
+    """Get vocab table instance."""
+    global _vocab_table
+    if _vocab_table is None:
+        table_name = os.getenv("DYNAMODB_VOCAB_TABLE_NAME")
+        if not table_name:
+            raise ValueError("DYNAMODB_VOCAB_TABLE_NAME environment variable not set")
+        _vocab_table = dynamodb.Table(table_name)
+    return _vocab_table
 
 
 def get_media_table():
     """Get media table instance."""
-    try:
-        return MEDIA_TABLE
-    except Exception as exc:
-        logger.error("media_table_connection_failed", error=str(exc))
-        raise
+    global _media_table
+    if _media_table is None:
+        try:
+            table_name = os.getenv("DYNAMODB_VOCAB_MEDIA_TABLE_NAME")
+            if not table_name:
+                raise ValueError(
+                    "DYNAMODB_VOCAB_MEDIA_TABLE_NAME environment variable not set"
+                )
+            _media_table = dynamodb.Table(table_name)
+        except Exception as exc:
+            logger.error("media_table_connection_failed", error=str(exc))
+            raise
+    return _media_table
 
 
 class VocabProcessRequestDto(BaseModel):
@@ -113,18 +133,19 @@ async def check_word_exists(
         normalized_pos=normalized_pos,
         pk=pk,
         sk=sk,
-        table_name=VOCAB_TABLE.name,
+        table_name=get_vocab_table().name,
         aws_region=os.getenv("AWS_REGION", "us-east-1"),
     )
 
     try:
         response = await asyncio.to_thread(
-            VOCAB_TABLE.query,
+            get_vocab_table().query,
             KeyConditionExpression="PK = :pk AND SK = :sk",
             ExpressionAttributeValues={":pk": pk, ":sk": sk},
         )
+
         items = response.get("Items", [])
-        existing_item = items[0] if items else None  # there should be only one item
+        existing_item = items[0] if items else None  # type: ignore
 
         if existing_item:
             logger.info("ddb_hit", pk=pk, sk=sk)
@@ -227,7 +248,7 @@ async def get_existing_media_for_search_words(
 
             media_item = media_response.get("Item")
             if media_item and media_item.get("media"):
-                media = media_item["media"]
+                media = media_item["media"]  # type: ignore
                 media_copy = dict(media)
                 media_copy["matched_word"] = search_term
                 media_copy["media_ref"] = media_ref
@@ -410,7 +431,7 @@ async def store_result(result: dict[str, Any], req: VocabProcessRequestDto):
     try:
         # Store the main item
         await asyncio.to_thread(
-            VOCAB_TABLE.put_item,
+            get_vocab_table().put_item,
             Item=item,
             ConditionExpression="attribute_not_exists(PK) and attribute_not_exists(SK)",
         )
@@ -491,7 +512,7 @@ async def get_media_usage_statistics() -> dict[str, Any]:
                 )
 
         # Sort by usage count
-        search_term_stats.sort(key=lambda x: x["usage_count"], reverse=True)
+        search_term_stats.sort(key=lambda x: x["usage_count"], reverse=True)  # type: ignore
 
         # Get media object count
         media_paginator = media_table.scan(

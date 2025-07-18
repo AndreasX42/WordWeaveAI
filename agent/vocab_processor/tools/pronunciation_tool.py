@@ -196,10 +196,10 @@ async def get_pronunciation(
                     if is_syllables
                     else VOICE_CONFIG["word_speed"]
                 ),
-                stability=VOICE_CONFIG["voice_settings"]["stability"],
-                similarity_boost=VOICE_CONFIG["voice_settings"]["similarity_boost"],
-                style=VOICE_CONFIG["voice_settings"]["style"],
-                use_speaker_boost=VOICE_CONFIG["voice_settings"]["use_speaker_boost"],
+                stability=VOICE_CONFIG["voice_settings"]["stability"],  # type: ignore
+                similarity_boost=VOICE_CONFIG["voice_settings"]["similarity_boost"],  # type: ignore
+                style=VOICE_CONFIG["voice_settings"]["style"],  # type: ignore
+                use_speaker_boost=VOICE_CONFIG["voice_settings"]["use_speaker_boost"],  # type: ignore
             )
 
             # Generate audio stream with retry logic

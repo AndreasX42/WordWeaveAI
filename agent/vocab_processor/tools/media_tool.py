@@ -333,7 +333,7 @@ async def _adapt_existing_media(
         # Parse media_ref format: MEDIA#{lang}#{word} or MEDIA#{lang}#{word}#{hash}
         parts = existing_media_ref.split("#")
         if len(parts) >= 3:
-            existing_lang = parts[1]  # Second part is the language code
+            existing_lang = parts[1]  # Second part is the language code  # type: ignore
 
             if existing_lang == requested_lang:
                 logger.info(
@@ -372,7 +372,7 @@ Translate alt, explanation, and memory_tip to {source_language}. Keep url and sr
         parts = original_media_ref.split("#")
         if len(parts) >= 3:
             # Reconstruct with new language, preserving original key part
-            new_media_ref = f"MEDIA#{requested_lang}#{'#'.join(parts[2:])}"
+            new_media_ref = f"MEDIA#{requested_lang}#{'#'.join(parts[2:])}"  # type: ignore
 
     logger.info(
         f"Generated new media_ref for adapted media: {new_media_ref} from original: {original_media_ref}"

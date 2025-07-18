@@ -19,8 +19,8 @@ class WordClassification(BaseModel):
 
     source_definition: list[str] = Field(
         ...,
-        min_items=1,
-        max_items=3,
+        min_length=1,
+        max_length=3,
         description="Definition of the source word in its source language",
     )
     source_part_of_speech: PartOfSpeech = Field(

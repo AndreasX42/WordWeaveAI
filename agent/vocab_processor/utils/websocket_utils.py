@@ -109,7 +109,7 @@ class WebSocketNotifier:
             return True
 
         except ClientError as e:
-            if e.response["Error"]["Code"] == "GoneException":
+            if e.response["Error"]["Code"] == "GoneException":  # type: ignore
                 # Connection is stale, remove it
                 logger.info("stale_connection_removed", connection_id=connection_id)
                 if self.connections_table:
