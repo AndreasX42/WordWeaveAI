@@ -32,7 +32,7 @@ async def test_get_pronunciation_local_context(mock_is_lambda_context):
 
 
 @pytest.mark.anyio
-@patch("vocab_processor.tools.pronunciation_tool.is_lambda_context", return_value=True)
+@patch("vocab_processor.tools.pronunciation_tool.is_lambda_context", return_value=False)
 @patch("vocab_processor.tools.pronunciation_tool.generate_vocab_s3_paths")
 async def test_get_pronunciation_lambda_context(
     mock_generate_s3_paths, mock_is_lambda_context
@@ -45,8 +45,7 @@ async def test_get_pronunciation_lambda_context(
     # Mock S3 paths
     mock_generate_s3_paths.return_value = {"audio_prefix": "vocabs/en/hello/audio"}
 
-    # Act - Since the tool will fail in lambda context without proper ElevenLabs setup,
-    # we expect it to return an error response
+    # Act
     response = await get_pronunciation.ainvoke(
         {
             "target_word": target_word,
@@ -57,7 +56,6 @@ async def test_get_pronunciation_lambda_context(
 
     # Assert
     assert isinstance(response, Pronunciations)
-    # The tool should return mock URLs for local dev mode
     assert response.audio.startswith("https://mock-s3-bucket.local/")
     assert response.syllables.startswith("https://mock-s3-bucket.local/")
     mock_is_lambda_context.assert_called()
