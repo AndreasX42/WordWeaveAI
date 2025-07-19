@@ -9,7 +9,7 @@ from vocab_processor.tools.base_tool import create_llm_response
 from vocab_processor.utils.ddb_utils import check_word_exists, lang_code
 
 
-class WordClassification(BaseModel):
+class WordClassificationLLM(BaseModel):
     """Categorization of the word in the specified language."""
 
     source_word: str = Field(
@@ -35,10 +35,16 @@ class WordClassification(BaseModel):
         description="Information about very important or special context, informal/slang usage, meaning and regional usage of the source word in its language",
     )
 
+
+class WordClassification(WordClassificationLLM):
     # Add existence check fields
     word_exists: Optional[bool] = Field(
         None,
         description="Whether the word already exists in the database",
+    )
+    word_processing: Optional[bool] = Field(
+        None,
+        description="Whether the word is currently being processed by another request",
     )
     existing_item: Optional[dict] = Field(
         None,
@@ -73,20 +79,23 @@ async def get_classification(
 
     # Get the classification first
     classification = await create_llm_response(
-        response_model=WordClassification,
+        response_model=WordClassificationLLM,
         user_prompt=enhanced_prompt,
     )
+
+    response = WordClassification(**classification.model_dump())
 
     # After getting the base word, check if it exists in the database
     existence_check = await check_word_exists(
         base_word=classification.source_word,
-        source_language=source_language,
+        source_language=lang_code(source_language),
         target_language=lang_code(target_language),
         source_part_of_speech=classification.source_part_of_speech,
     )
 
     # Add existence check results to the classification
-    classification.word_exists = existence_check["exists"]
-    classification.existing_item = existence_check["existing_item"]
+    response.word_exists = existence_check["exists"]
+    response.word_processing = existence_check.get("processing", False)
+    response.existing_item = existence_check["existing_item"]
 
-    return ClassificationResponse(result=classification, prompt=enhanced_prompt)
+    return ClassificationResponse(result=response, prompt=enhanced_prompt)

@@ -34,9 +34,9 @@ def should_proceed_after_validation(state: VocabState) -> str:
 def should_proceed_after_classification(state: VocabState) -> str:
     """
     Determines the next step based on classification and existence check.
-    If word doesn't exist, proceeds to translation. Otherwise, ends the graph.
+    If word exists (complete or being processed), ends the graph. Otherwise, proceeds to translation.
     """
-    if state.word_exists is True:
+    if state.word_exists is True or state.word_processing is True:
         return END
     else:
         return "get_translation"

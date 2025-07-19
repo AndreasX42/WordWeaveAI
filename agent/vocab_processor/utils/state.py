@@ -53,6 +53,10 @@ class VocabState(BaseModel):
         None,
         description="Whether the word already exists in the database after base word extraction",
     )
+    word_processing: Optional[bool] = Field(
+        None,
+        description="Whether the word is currently being processed by another request",
+    )
     existing_item: Optional[dict] = Field(
         None,
         description="The existing database item if the word already exists",

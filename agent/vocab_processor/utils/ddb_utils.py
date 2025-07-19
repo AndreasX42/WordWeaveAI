@@ -103,9 +103,12 @@ def _get_pos_category(part_of_speech_value: str) -> str:
 
 
 async def check_word_exists(
-    base_word: str, source_language, target_language: str, source_part_of_speech: str
+    base_word: str,
+    source_language: str,
+    target_language: str,
+    source_part_of_speech: str,
 ) -> dict[str, Any]:
-    """Check if a word exists in DDB after base word extraction."""
+    """Check if a word exists in DDB after base word extraction. If it doesn't exist, create a placeholder to prevent race conditions."""
     if not is_lambda_context():
         logger.info(
             f"Local dev mode: skipping DynamoDB existence check for {base_word} -> {target_language}"
@@ -121,13 +124,13 @@ async def check_word_exists(
     # Normalize part-of-speech the same way it's normalized during storage
     normalized_pos = _get_pos_category(pos_value)
 
-    pk = f"SRC#{lang_code(source_language)}#{normalize_word(base_word)}"
+    pk = f"SRC#{source_language}#{normalize_word(base_word)}"
     sk = f"TGT#{target_language}#POS#{normalized_pos}"
 
     logger.info(
         "existence_check_attempt",
         base_word=base_word,
-        source_language=lang_code(source_language),
+        source_language=source_language,
         target_language=target_language,
         original_pos=pos_value,
         normalized_pos=normalized_pos,
@@ -138,6 +141,7 @@ async def check_word_exists(
     )
 
     try:
+        # First, try to read the existing item
         response = await asyncio.to_thread(
             get_vocab_table().query,
             KeyConditionExpression="PK = :pk AND SK = :sk",
@@ -148,8 +152,81 @@ async def check_word_exists(
         existing_item = items[0] if items else None  # type: ignore
 
         if existing_item:
-            logger.info("ddb_hit", pk=pk, sk=sk)
-            return {"exists": True, "existing_item": existing_item}
+            # Check if this is a placeholder entry (processing in progress)
+            if existing_item.get("status") == "processing":
+                logger.info("word_processing_in_progress", pk=pk, sk=sk)
+                return {
+                    "exists": True,
+                    "existing_item": existing_item,
+                    "processing": True,
+                }
+            else:
+                logger.info("ddb_hit", pk=pk, sk=sk)
+                return {"exists": True, "existing_item": existing_item}
+
+        # Item doesn't exist - try to create a placeholder to claim it
+        placeholder_item = {
+            "PK": pk,
+            "SK": sk,
+            "status": "processing",
+            "source_word": base_word,
+            "source_language": source_language,
+            "target_language": target_language,
+            "source_pos": normalized_pos,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "schema_version": 1,
+        }
+
+        try:
+            # Conditional put to create placeholder (fails if item already exists)
+            await asyncio.to_thread(
+                get_vocab_table().put_item,
+                Item=placeholder_item,
+                ConditionExpression="attribute_not_exists(PK) and attribute_not_exists(SK)",
+            )
+
+            logger.info("placeholder_created", pk=pk, sk=sk)
+            return {"exists": False, "existing_item": None, "placeholder_created": True}
+
+        except ClientError as put_err:
+            if (
+                put_err.response["Error"].get("Code")
+                == "ConditionalCheckFailedException"
+            ):
+                # Someone else created it while we were checking - read it again
+                logger.info("concurrent_creation_detected", pk=pk, sk=sk)
+
+                retry_response = await asyncio.to_thread(
+                    get_vocab_table().query,
+                    KeyConditionExpression="PK = :pk AND SK = :sk",
+                    ExpressionAttributeValues={":pk": pk, ":sk": sk},
+                )
+
+                retry_items = retry_response.get("Items", [])
+                retry_item = retry_items[0] if retry_items else None  # type: ignore
+
+                if retry_item:
+                    # Check if this is a placeholder or completed item
+                    if retry_item.get("status") == "processing":
+                        logger.info("concurrent_processing_detected", pk=pk, sk=sk)
+                        return {
+                            "exists": True,
+                            "existing_item": retry_item,
+                            "processing": True,
+                        }
+                    else:
+                        logger.info("concurrent_completion_detected", pk=pk, sk=sk)
+                        return {"exists": True, "existing_item": retry_item}
+
+                # If we still can't find it, treat as miss
+                logger.warning("concurrent_creation_race_condition", pk=pk, sk=sk)
+                return {"exists": False, "existing_item": None}
+            else:
+                # Other error during put
+                logger.error(
+                    "placeholder_creation_failed", error=str(put_err), pk=pk, sk=sk
+                )
+                raise
 
         logger.info("ddb_miss", pk=pk, sk=sk, items_count=len(items))
         return {"exists": False, "existing_item": None}
@@ -438,10 +515,13 @@ async def store_result(result: dict[str, Any], req: VocabProcessRequestDto):
 
     try:
         # Store the main item
+        # Allow overwriting placeholder entries but prevent overwriting completed ones
         await asyncio.to_thread(
             get_vocab_table().put_item,
             Item=item,
-            ConditionExpression="attribute_not_exists(PK) and attribute_not_exists(SK)",
+            ConditionExpression="attribute_not_exists(PK) OR attribute_not_exists(SK) OR #status = :processing_status",
+            ExpressionAttributeNames={"#status": "status"},
+            ExpressionAttributeValues={":processing_status": "processing"},
         )
         logger.info("ddb_put_ok", pk=pk, sk=sk, search_words=normalized_search_words)
         metrics.add_metric("VocabStored", MetricUnit.Count, 1)
@@ -462,7 +542,8 @@ async def store_result(result: dict[str, Any], req: VocabProcessRequestDto):
                 )
     except ClientError as err:
         if err.response["Error"].get("Code") == "ConditionalCheckFailedException":
-            logger.info("duplicate_write_ignored", pk=pk, sk=sk)
+            # This means a completed item already exists (not a placeholder)
+            logger.info("completed_word_already_exists", pk=pk, sk=sk)
         else:
             logger.exception("ddb_put_failed", err=str(err))
             metrics.add_metric("VocabStoreFailed", MetricUnit.Count, 1)

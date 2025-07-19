@@ -72,7 +72,7 @@ CLASSIFICATION_PROMPT_TEMPLATE = PromptTemplate(
 Part of speech: {part_of_speech_values}
 
 **Task:**
-1. Extract the base form, removing articles/prefixes/modifiers
+1. Extract the base form, removing articles/prefixes/modifiers (if the source wourd is itself an article or some base form, leave it as is)
 2. Provide 1-3 clear, natural dictionary definitions in {source_language}
 3. Note any important context (slang, regional usage, etc.) in {source_language}
 
@@ -295,8 +295,8 @@ Possible languages: {possible_source_languages}
 - Every suggestion must:
   - Match the detected source language
   - Be spelled correctly
-  - If a **noun**, include the correct article ('der', 'die', 'das', 'la', 'el', etc.)
-  - If an **English verb**, prefix **'to'**
+  - If the suggested word is a noun, include the correct article for the word in the language of the suggested word
+  - If the suggested word is a verb and its language is English, prefix the verb with 'to'
   - Use proper capitalisation according to grammar rules
   - Be a clearly valid word that would pass validation itself
 - If no good suggestions exist, return empty list and explain in issue_message

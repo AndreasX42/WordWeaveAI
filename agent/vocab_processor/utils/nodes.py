@@ -257,6 +257,7 @@ async def node_get_classification(state: VocabState) -> VocabState:
         source_part_of_speech=result.get("source_part_of_speech"),
         source_article=result.get("source_article"),
         word_exists=result.get("word_exists", False),
+        word_processing=result.get("word_processing", False),
         quality_approved=result.get("classification_quality_approved", False),
         quality_score=result.get("classification_quality_score", 0.0),
     )
@@ -268,6 +269,7 @@ async def node_get_classification(state: VocabState) -> VocabState:
         "source_article": result.get("source_article"),
         "source_additional_info": result.get("source_additional_info"),
         "word_exists": result.get("word_exists", False),
+        "word_processing": result.get("word_processing", False),
         "existing_item": result.get("existing_item"),
         "classification_quality_approved": result.get(
             "classification_quality_approved", False

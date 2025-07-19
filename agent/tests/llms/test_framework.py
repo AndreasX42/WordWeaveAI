@@ -26,8 +26,7 @@ from rich.table import Table
 # Initialize Rich console
 console = Console()
 
-from test_definitions import TestCaseDict
-
+from tests.llms.test_definitions import TestCaseDict
 from vocab_processor.agent import graph
 
 # Configure logging
