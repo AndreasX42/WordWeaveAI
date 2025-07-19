@@ -54,7 +54,7 @@ jobs:
         working-directory: ./agent
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          uv pip install -r requirements_lambda.txt
 
       - name: Run unit tests
         working-directory: ./agent
@@ -87,9 +87,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./frontend
-        run: |
-          npm ci
-          npm install --no-save wait-on
+        run: npm ci
 
       - name: Run linter
         working-directory: ./frontend
@@ -102,13 +100,6 @@ jobs:
       - name: Install Playwright browsers
         working-directory: ./frontend
         run: npx playwright install --with-deps
-
-      - name: Start application
-        working-directory: ./frontend
-        run: |
-          npm start &
-          # Wait for the app to be ready
-          npx wait-on http://localhost:4200 --timeout 30000
 
       - name: Run Playwright tests
         working-directory: ./frontend
@@ -124,9 +115,9 @@ jobs:
       dynamodb:
         image: amazon/dynamodb-local:2.6.1
         ports:
-          - 8000:8000
+          - 8081:8000
         options: >-
-          --health-cmd "curl -f http://localhost:8000/shell/ || exit 1"
+          --health-cmd "curl -f http://localhost:8081/shell/ || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -154,7 +145,7 @@ jobs:
           AWS_ACCESS_KEY_ID: test
           AWS_SECRET_ACCESS_KEY: test
           AWS_REGION: us-east-1
-          DYNAMODB_ENDPOINT: http://localhost:8000
+          DYNAMODB_ENDPOINT: http://localhost:8081
         run: make test-integration
 
   # Summary job that runs only if all applicable tests pass
