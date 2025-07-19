@@ -50,6 +50,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
       - name: Install dependencies
         working-directory: ./agent
         run: |
@@ -117,7 +122,7 @@ jobs:
         ports:
           - 8081:8000
         options: >-
-          --health-cmd "curl -f http://localhost:8081/shell/ || exit 1"
+          --health-cmd "curl -f http://localhost:8000/shell/ || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
