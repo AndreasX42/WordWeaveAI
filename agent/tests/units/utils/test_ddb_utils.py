@@ -66,7 +66,7 @@ async def test_check_word_exists_not_found(
         # Assert
         assert result["exists"] is False
         assert result["existing_item"] is None
-        mock_to_thread.assert_called_once()
+        assert mock_to_thread.call_count == 2  # Query + put_item for placeholder
 
 
 @pytest.mark.anyio

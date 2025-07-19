@@ -64,7 +64,7 @@ async def test_get_classification(mock_check_word_exists, mock_create_llm_respon
     mock_create_llm_response.assert_called_once()
     mock_check_word_exists.assert_called_once_with(
         base_word="test_word",
-        source_language=source_language,
+        source_language="en",
         target_language="es",
         source_part_of_speech=PartOfSpeech.NOUN,
     )
