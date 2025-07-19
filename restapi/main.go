@@ -26,7 +26,7 @@ func main() {
 	// Initialize dependency container
 	container := config.NewContainer()
 
-	// Setup Gin server
+	// Set up Gin server
 	server := gin.Default()
 
 	// Configure CORS middleware
