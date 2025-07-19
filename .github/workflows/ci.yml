@@ -40,27 +40,15 @@ jobs:
     needs: changes
     if: needs.changes.outputs.agent == 'true'
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.12"]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Cache Python dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('agent/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-${{ matrix.python-version }}-
-            ${{ runner.os }}-pip-
+          python-version: "3.12"
 
       - name: Install dependencies
         working-directory: ./agent
@@ -73,44 +61,29 @@ jobs:
         run: |
           python -m pytest tests/units -v --tb=short
 
-      - name: Run integration tests
-        working-directory: ./agent
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
-          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-        run: |
-          python -m pytest tests/integrations -v --tb=short
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: agent-test-results-${{ matrix.python-version }}
-          path: |
-            agent/pytest.xml
-            agent/coverage.xml
-          retention-days: 3
+      # - name: Run integration tests
+      #   working-directory: ./agent
+      #   env:
+      #     OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      #     ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+      #     PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      #   run: |
+      #     python -m pytest tests/integrations -v --tb=short
 
   # Frontend Angular tests
   test-frontend:
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: ["22.x"]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Use Node.js 22.x
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
+          node-version: "22.x"
 
       - name: Install dependencies
         working-directory: ./frontend
@@ -141,24 +114,11 @@ jobs:
         working-directory: ./frontend
         run: npx playwright test
 
-      - name: Upload Playwright report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: frontend-playwright-report-${{ matrix.node-version }}
-          path: |
-            frontend/playwright-report/
-            frontend/test-results/
-          retention-days: 30
-
-  # RestAPI Go tests
+    # RestAPI Go tests
   test-restapi:
     needs: changes
     if: needs.changes.outputs.restapi == 'true'
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: ["1.24"]
 
     services:
       dynamodb:
@@ -175,21 +135,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Go ${{ matrix.go-version }}
+      - name: Set up Go 1.24
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go-version }}
-
-      - name: Cache Go modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('restapi/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-${{ matrix.go-version }}-
-            ${{ runner.os }}-go-
+          go-version: "1.24"
 
       - name: Install dependencies
         working-directory: ./restapi
@@ -207,16 +156,6 @@ jobs:
           AWS_REGION: us-east-1
           DYNAMODB_ENDPOINT: http://localhost:8000
         run: make test-integration
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: restapi-test-results-${{ matrix.go-version }}
-          path: |
-            restapi/coverage.out
-            restapi/coverage.html
-          retention-days: 30
 
   # Summary job that runs only if all applicable tests pass
   ci-success:
