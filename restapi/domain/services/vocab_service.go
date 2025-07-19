@@ -59,7 +59,7 @@ func (s *VocabService) SearchVocabulary(ctx context.Context, req SearchVocabular
 			return nil, err
 		}
 
-		if len(results) > 0 || (req.SourceLang != "" && req.TargetLang != "") {
+		if len(results) > 0 {
 			return results, nil
 		}
 	}
@@ -85,7 +85,10 @@ func filterByLanguages(results []entities.VocabWord, sourceLang string, targetLa
 	var filteredResults []entities.VocabWord
 
 	for _, result := range results {
-		if result.SourceLanguage == sourceLang || result.TargetLanguage == targetLang {
+		sourceMatch := sourceLang == "" || result.SourceLanguage == sourceLang
+		targetMatch := targetLang == "" || result.TargetLanguage == targetLang
+
+		if sourceMatch && targetMatch {
 			filteredResults = append(filteredResults, result)
 		}
 	}

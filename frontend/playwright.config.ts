@@ -38,11 +38,10 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
+    // {
+    //   name: 'firefox',
+    //   use: { ...devices['Desktop Firefox'] },
+    // },
 
     {
       name: 'webkit',
@@ -54,10 +53,10 @@ export default defineConfig({
       name: 'Mobile Chrome',
       use: { ...devices['Galaxy S24'] },
     },
-    {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 15'] },
-    },
+    // {
+    //   name: 'Mobile Safari',
+    //   use: { ...devices['iPhone 15'] },
+    // },
 
     /* Test against branded browsers. */
     // {

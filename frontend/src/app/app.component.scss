@@ -5,6 +5,7 @@
   background: transparent !important;
   box-shadow: none !important;
   border: none !important;
+  position: relative;
 }
 
 main {
@@ -12,4 +13,26 @@ main {
   background: transparent !important;
   box-shadow: none !important;
   border: none !important;
+}
+
+/* Global Simple Background */
+.global-background-animation {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -2;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(21, 101, 192, 0.05) 0%,
+    rgba(66, 165, 245, 0.03) 50%,
+    rgba(255, 64, 129, 0.04) 100%
+  );
+}
+
+/* Dark theme background */
+:host-context(.dark-theme) .global-background-animation {
+  background: rgba(21, 101, 192, 0.04);
 }

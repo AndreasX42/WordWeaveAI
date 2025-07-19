@@ -1,7 +1,7 @@
 from typing import Optional, Union
 
 from langchain_core.tools import tool
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from vocab_processor.constants import Language, PartOfSpeech
 from vocab_processor.prompts_simple import CONJUGATION_PROMPT_TEMPLATE
@@ -18,17 +18,8 @@ ConjugationModels = Union[
 ]
 
 
-class ConjugationResult(BaseModel):
-    """Result of conjugation tool with the conjugation table."""
-
-    conjugation: Union[ConjugationModels, str] = Field(
-        ...,
-        description="A structured object containing the full conjugation table for the verb.",
-    )
-
-
 class ConjugationResponse(BaseModel):
-    result: ConjugationResult
+    result: str
     prompt: str
 
 
@@ -46,9 +37,7 @@ async def get_conjugation(
     if not target_part_of_speech.is_conjugatable:
         # This case does not have a prompt.
         return ConjugationResponse(
-            result=ConjugationResult(
-                conjugation=f"The word '{target_word}' is not a verb, so there is no conjugation table for it."
-            ),
+            result=f"The word '{target_word}' is not a verb, so there is no conjugation table for it.",
             prompt="",
         )
 
@@ -75,7 +64,7 @@ async def get_conjugation(
         )
 
         return ConjugationResponse(
-            result=ConjugationResult(conjugation=result), prompt=enhanced_prompt
+            result=result.model_dump_json(indent=2), prompt=enhanced_prompt
         )
 
     except Exception as e:
@@ -86,8 +75,6 @@ async def get_conjugation(
         }
         error_response = create_tool_error_response(e, context)
         return ConjugationResponse(
-            result=ConjugationResult(
-                conjugation=f"Error creating conjugation: {error_response}"
-            ),
+            result=f"Error creating conjugation: {error_response}",
             prompt="",
         )

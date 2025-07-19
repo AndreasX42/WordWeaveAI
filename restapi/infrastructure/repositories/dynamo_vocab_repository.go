@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -12,6 +13,21 @@ import (
 	"github.com/guregu/dynamo/v2"
 	"golang.org/x/sync/errgroup"
 )
+
+// convertToString converts interface{} to string representation
+func convertToString(v interface{}) string {
+	if v == nil {
+		return ""
+	}
+	if s, ok := v.(string); ok {
+		return s
+	}
+	// For complex types, convert to JSON string
+	if bytes, err := json.Marshal(v); err == nil {
+		return string(bytes)
+	}
+	return fmt.Sprintf("%v", v)
+}
 
 // DynamoVocabRepository implements vocabulary operations using DynamoDB
 type DynamoVocabRepository struct {
@@ -24,7 +40,7 @@ type VocabRecord struct {
 	SK               string              `dynamo:"SK,range"`
 	LKP              string              `dynamo:"LKP" index:"ReverseLookupIndex,hash"`
 	SrcLang          string              `dynamo:"SRC_LANG" index:"ReverseLookupIndex,range"`
-	ConjugationTable string              `dynamo:"conjugation_table"`
+	ConjugationTable interface{}         `dynamo:"conjugation_table"`
 	CreatedAt        string              `dynamo:"created_at"`
 	CreatedBy        string              `dynamo:"created_by"`
 	EnglishWord      string              `dynamo:"english_word" index:"EnglishMediaLookupIndex,hash"`
@@ -102,7 +118,7 @@ func (r *DynamoVocabRepository) toEntity(record VocabRecord) *entities.VocabWord
 		Pronunciations:   record.Pronunciations,
 		PhoneticGuide:    record.PhoneticGuide,
 		EnglishWord:      record.EnglishWord,
-		ConjugationTable: record.ConjugationTable,
+		ConjugationTable: convertToString(record.ConjugationTable),
 		CreatedAt:        record.CreatedAt,
 		CreatedBy:        record.CreatedBy,
 		SourcePos:        record.SourcePos,
@@ -163,10 +179,6 @@ func (r *DynamoVocabRepository) SearchByNormalizedWord(ctx context.Context, norm
 						mu.Unlock()
 						return nil
 					}
-					// Only include actual vocab words (PK starts with "SRC#")
-					if !strings.HasPrefix(record.PK, "SRC#") {
-						continue
-					}
 					key := record.PK + record.SK
 					if _, exists := resultMap[key]; !exists {
 						entity := r.toEntity(record)
@@ -189,10 +201,6 @@ func (r *DynamoVocabRepository) SearchByNormalizedWord(ctx context.Context, norm
 				if len(resultMap) >= limit {
 					mu.Unlock()
 					return nil
-				}
-				// Only include actual vocab words (PK starts with "SRC#")
-				if !strings.HasPrefix(record.PK, "SRC#") {
-					continue
 				}
 				key := record.PK + record.SK
 				if _, exists := resultMap[key]; !exists {
@@ -221,7 +229,7 @@ func (r *DynamoVocabRepository) SearchByNormalizedWord(ctx context.Context, norm
 			currentBatchSize := batchSize
 
 			scanOp := r.table.Scan().
-				Filter("(contains(source_word, ?) OR contains(target_word, ?)) AND begins_with(PK, ?)", normalizedQuery, normalizedQuery, "SRC#").
+				Filter("(contains(source_word, ?) OR contains(target_word, ?))", normalizedQuery, normalizedQuery).
 				Limit(currentBatchSize)
 
 			// Continue from where we left off
@@ -246,16 +254,17 @@ func (r *DynamoVocabRepository) SearchByNormalizedWord(ctx context.Context, norm
 
 			batchCount++
 
-			if len(resultMap) > 0 {
-				goto scanComplete
-			}
-
 			// Get the last evaluated key for pagination
 			lastEvaluatedKey, _ = iter.LastEvaluatedKey(ctx)
 
 			// Check if we've scanned all records (no more to scan)
 			if lastEvaluatedKey == nil {
 				break // No more records to scan
+			}
+
+			// If we have enough results, we can stop early
+			if len(resultMap) > limit {
+				break
 			}
 		}
 
@@ -325,16 +334,6 @@ func (r *DynamoVocabRepository) SearchByWordWithLanguages(ctx context.Context, n
 			fmt.Printf("Error querying ReverseLookupIndex: %v\n", err)
 		} else {
 			for _, record := range records {
-				// Only include actual vocab words (PK starts with "SRC#")
-				if !strings.HasPrefix(record.PK, "SRC#") {
-					continue
-				}
-
-				// If both languages are specified, filter by source language
-				if sourceLang != "" && !strings.HasPrefix(record.PK, "SRC#"+sourceLang+"#") {
-					continue
-				}
-
 				key := record.PK + record.SK
 				if _, exists := resultMap[key]; !exists {
 					entity := r.toEntity(record)

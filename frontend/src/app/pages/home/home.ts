@@ -12,14 +12,6 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   template: `
     <div class="home-container" [class.dark-theme]="themeService.isDarkMode()">
-      <!-- Animated Background -->
-      <div class="background-animation">
-        <div class="wave wave-1"></div>
-        <div class="wave wave-2"></div>
-        <div class="wave wave-3"></div>
-        <div class="gradient-overlay"></div>
-      </div>
-
       <!-- Hero Section -->
       <section class="hero-section">
         <div class="hero-content">
@@ -157,128 +149,7 @@ import { CommonModule } from '@angular/common';
         overflow-x: hidden;
       }
 
-      /* Animated Background */
-      .background-animation {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: -2;
-        overflow: hidden;
-        pointer-events: none;
-      }
-
-      .wave {
-        position: absolute;
-        width: 200%;
-        height: 200%;
-        background: linear-gradient(
-          45deg,
-          var(--primary-color, #1565c0) 0%,
-          var(--primary-light, #42a5f5) 50%,
-          var(--accent-color, #ff4081) 100%
-        );
-        opacity: 0.08;
-        animation: wave-animation 45s ease-in-out infinite;
-      }
-
-      .wave-1 {
-        animation-delay: 0s;
-        animation-duration: 45s;
-      }
-
-      .wave-2 {
-        animation-delay: -15s;
-        animation-duration: 60s;
-        opacity: 0.06;
-      }
-
-      .wave-3 {
-        animation-delay: -30s;
-        animation-duration: 75s;
-        opacity: 0.04;
-      }
-
-      @keyframes wave-animation {
-        0% {
-          transform: translateX(-50%) translateY(-50%) rotate(0deg) scale(1);
-          border-radius: 60% 40% 70% 30%;
-        }
-        12.5% {
-          transform: translateX(-48%) translateY(-52%) rotate(45deg) scale(1.05);
-          border-radius: 50% 50% 60% 40%;
-        }
-        25% {
-          transform: translateX(-45%) translateY(-55%) rotate(90deg) scale(1.1);
-          border-radius: 70% 30% 50% 50%;
-        }
-        37.5% {
-          transform: translateX(-52%) translateY(-48%) rotate(135deg)
-            scale(1.03);
-          border-radius: 40% 60% 70% 30%;
-        }
-        50% {
-          transform: translateX(-55%) translateY(-45%) rotate(180deg)
-            scale(0.95);
-          border-radius: 60% 40% 30% 70%;
-        }
-        62.5% {
-          transform: translateX(-48%) translateY(-52%) rotate(225deg)
-            scale(1.08);
-          border-radius: 30% 70% 60% 40%;
-        }
-        75% {
-          transform: translateX(-50%) translateY(-50%) rotate(270deg)
-            scale(1.02);
-          border-radius: 70% 30% 40% 60%;
-        }
-        87.5% {
-          transform: translateX(-52%) translateY(-48%) rotate(315deg)
-            scale(1.06);
-          border-radius: 40% 60% 50% 50%;
-        }
-        100% {
-          transform: translateX(-50%) translateY(-50%) rotate(360deg) scale(1);
-          border-radius: 60% 40% 70% 30%;
-        }
-      }
-
-      .gradient-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(
-          135deg,
-          rgba(21, 101, 192, 0.03) 0%,
-          rgba(66, 165, 245, 0.02) 50%,
-          rgba(255, 64, 129, 0.03) 100%
-        );
-        z-index: -1;
-      }
-
-      /* Dark theme background adjustments */
-      .dark-theme .wave {
-        background: linear-gradient(
-          45deg,
-          rgba(13, 71, 161, 0.6) 0%,
-          rgba(66, 165, 245, 0.4) 50%,
-          rgba(255, 64, 129, 0.3) 100%
-        );
-        opacity: 0.12;
-      }
-
-      .dark-theme .gradient-overlay {
-        background: linear-gradient(
-          135deg,
-          rgba(13, 71, 161, 0.08) 0%,
-          rgba(66, 165, 245, 0.06) 50%,
-          rgba(255, 64, 129, 0.08) 100%
-        );
-      }
-
+      /* Dark theme section adjustments */
       .dark-theme .features-section {
         background: rgba(0, 0, 0, 0.02);
       }

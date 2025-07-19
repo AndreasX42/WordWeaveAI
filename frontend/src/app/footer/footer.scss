@@ -15,7 +15,7 @@
   background: transparent !important;
   color: var(--footer-text-light);
   padding: 1.2rem 0 0.5rem;
-  margin-top: min(5vh, 3rem);
+  margin-top: 20vh;
   border-top: 1px solid var(--footer-border-light);
   font-size: 0.98rem;
   transition: color 0.3s ease;
@@ -129,7 +129,7 @@
 // Responsive design
 @media (max-width: 900px) {
   .footer {
-    margin-top: min(3vh, 2rem);
+    margin-top: 6vh;
   }
 
   .footer-content {
@@ -148,14 +148,14 @@
 // For very short screens, use minimal spacing
 @media (max-height: 600px) {
   .footer {
-    margin-top: min(2vh, 1rem);
+    margin-top: 4vh;
   }
 }
 
 // For very tall screens, limit maximum spacing
 @media (min-height: 1200px) {
   .footer {
-    margin-top: min(4vh, 4rem);
+    margin-top: 8vh;
   }
 }
 

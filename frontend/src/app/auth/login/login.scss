@@ -4,7 +4,7 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background-color: var(--background-color, #ffffff);
+  background: transparent !important;
   box-sizing: border-box;
 
   .login-wrapper {
