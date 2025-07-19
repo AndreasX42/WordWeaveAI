@@ -59,7 +59,7 @@ jobs:
         working-directory: ./agent
         run: |
           python -m pip install --upgrade pip
-          uv pip install --system -r requirements_lambda.txt
+          uv pip install --system -r requirements_test.txt
 
       - name: Run unit tests
         working-directory: ./agent
@@ -116,12 +116,6 @@ jobs:
     if: needs.changes.outputs.restapi == 'true'
     runs-on: ubuntu-latest
 
-    services:
-      dynamodb:
-        image: amazon/dynamodb-local:2.6.1
-        ports:
-          - 8081:8000
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -134,12 +128,6 @@ jobs:
       - name: Install dependencies
         working-directory: ./restapi
         run: go mod download
-
-      - name: Wait for DynamoDB
-        run: |
-          echo "Waiting for DynamoDB to be ready..."
-          timeout 30 bash -c 'until curl -f http://localhost:8081/shell/; do sleep 1; done'
-          echo "DynamoDB is ready!"
 
       - name: Run unit tests
         working-directory: ./restapi
