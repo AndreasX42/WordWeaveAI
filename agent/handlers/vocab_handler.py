@@ -162,8 +162,25 @@ def _build_validation_result(result: dict[str, Any]) -> dict[str, Any]:
 def _build_ddb_hit_response(
     result: dict[str, Any], req: VocabProcessRequestDto
 ) -> dict[str, Any]:
-    """Build DDB hit response object."""
-    return {"word_exists": True, "item": result.get("existing_item", {})}
+    """Build DDB hit response object with minimal data for redirection."""
+    existing_item = result.get("existing_item", {})
+
+    # Extract only the essential data needed for efficient redirect
+    redirect_data = {
+        "word_exists": True,
+        "pk": existing_item.get("PK", ""),
+        "sk": existing_item.get("SK", ""),
+        "media_ref": existing_item.get("media_ref"),  # For efficient media loading
+    }
+
+    logger.info(
+        "ddb_hit_redirect_data",
+        pk=redirect_data["pk"],
+        sk=redirect_data["sk"],
+        media_ref=redirect_data["media_ref"],
+    )
+
+    return redirect_data
 
 
 def _build_error_response(

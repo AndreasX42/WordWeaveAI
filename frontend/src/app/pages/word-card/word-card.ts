@@ -1,4 +1,10 @@
-import { Component, inject, OnInit } from '@angular/core';
+import {
+  Component,
+  inject,
+  OnInit,
+  OnDestroy,
+  ChangeDetectorRef,
+} from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -13,14 +19,77 @@ import { TranslationService } from '../../services/translation.service';
 import { TranslatePipe } from '../../shared/pipes/translate.pipe';
 import { WordService } from '../../services/word.service';
 import {
+  WordRequestService,
+  WordRequestNotification,
+} from '../../services/word-request.service';
+import { MessageService } from '../../services/message.service';
+import {
   VocabularyWord,
   ConjugationTable,
   NonPersonalForms,
   Mood,
   Tense,
+  Synonym,
+  Example,
+  Pronunciation,
+  Media,
 } from '../../models/word.model';
 import { getLanguageConfig, LanguageConfig } from './conjugation.config';
 import { Configs } from '../../shared/config';
+import { Subscription } from 'rxjs';
+
+interface ProcessingStage {
+  id: string;
+  name: string;
+  icon: string;
+  status: 'pending' | 'completed' | 'failed';
+  category: 'sequential' | 'parallel' | 'final';
+  order: number;
+  description: string;
+}
+
+interface WordRequestData {
+  sourceWord: string;
+  sourceLanguage?: string;
+  targetLanguage: string;
+}
+
+interface WordNotificationData {
+  source_word?: string;
+  source_article?: string | null;
+  target_word?: string;
+  target_article?: string | null;
+  source_definition?: string[];
+  source_language?: string;
+  target_pos?: string;
+  target_part_of_speech?: string;
+  target_syllables?: string[];
+  target_phonetic_guide?: string;
+  synonyms?: Synonym[];
+  examples?: Example[];
+  conjugation_table?: ConjugationTable | string;
+  conjugation?: ConjugationTable | string;
+  conjugation_not_available?: boolean;
+  conjugation_message?: string;
+  target_pronunciations?: Pronunciation;
+  pronunciations?: Pronunciation;
+  media?: Media;
+  source_pos?: string;
+  source_part_of_speech?: string;
+  completed_parallel_tasks?: string[];
+  validation_quality_approved?: boolean;
+  classification_quality_approved?: boolean;
+  translation_quality_approved?: boolean;
+  media_quality_approved?: boolean;
+  examples_quality_approved?: boolean;
+  synonyms_quality_approved?: boolean;
+  syllables_quality_approved?: boolean;
+  conjugation_quality_approved?: boolean;
+  processing_complete?: boolean;
+  overall_quality_score?: number;
+  validation_issue?: string;
+  validation_suggestions?: { word: string; language: string }[];
+}
 
 @Component({
   selector: 'app-word-card',
@@ -39,19 +108,143 @@ import { Configs } from '../../shared/config';
   templateUrl: './word-card.html',
   styleUrls: ['./word-card.scss'],
 })
-export class WordCard implements OnInit {
+export class WordCard implements OnInit, OnDestroy {
   themeService = inject(ThemeService);
   translationService = inject(TranslationService);
   wordService = inject(WordService);
+  wordRequestService = inject(WordRequestService);
+  messageService = inject(MessageService);
   route = inject(ActivatedRoute);
   router = inject(Router);
+  cdr = inject(ChangeDetectorRef);
 
   word: VocabularyWord | null = null;
   loading = true;
   error: string | null = null;
   langConfig: LanguageConfig = getLanguageConfig(null);
+
+  // Validation error details for better UI display
+  validationError: {
+    issue?: string;
+    detectedLanguage?: string;
+    suggestions?: { word: string; language: string }[];
+  } | null = null;
   private playSyllablesNext = false;
   private audio: HTMLAudioElement | null = null;
+  private subscriptions = new Subscription();
+  isRequestMode = false;
+
+  // Progressive loading states for different sections
+  loadingStates = {
+    targetWord: true,
+    syllables: true,
+    pronunciation: true,
+    definition: true, // Definition loading state
+    synonyms: true,
+    examples: true,
+    media: true,
+    conjugation: true,
+    languageInfo: true, // Language flags
+    sourcePos: true, // Source part of speech
+    targetPos: true, // Target part of speech
+  };
+
+  // Progressive Processing Stages
+  processingStages: ProcessingStage[] = [
+    // Sequential Stages
+    {
+      id: 'validation',
+      name: 'wordCard.stages.validation',
+      icon: 'check_circle',
+      status: 'pending',
+      category: 'sequential',
+      order: 1,
+      description: 'wordCard.stages.validationDesc',
+    },
+    {
+      id: 'classification',
+      name: 'wordCard.stages.classification',
+      icon: 'category',
+      status: 'pending',
+      category: 'sequential',
+      order: 2,
+      description: 'wordCard.stages.classificationDesc',
+    },
+    {
+      id: 'translation',
+      name: 'wordCard.stages.translation',
+      icon: 'translate',
+      status: 'pending',
+      category: 'sequential',
+      order: 3,
+      description: 'wordCard.stages.translationDesc',
+    },
+    // Parallel Stages
+    {
+      id: 'media',
+      name: 'wordCard.stages.media',
+      icon: 'image',
+      status: 'pending',
+      category: 'parallel',
+      order: 4,
+      description: 'wordCard.stages.mediaDesc',
+    },
+    {
+      id: 'examples',
+      name: 'wordCard.stages.examples',
+      icon: 'format_quote',
+      status: 'pending',
+      category: 'parallel',
+      order: 5,
+      description: 'wordCard.stages.examplesDesc',
+    },
+    {
+      id: 'synonyms',
+      name: 'wordCard.stages.synonyms',
+      icon: 'swap_horiz',
+      status: 'pending',
+      category: 'parallel',
+      order: 6,
+      description: 'wordCard.stages.synonymsDesc',
+    },
+    {
+      id: 'syllables',
+      name: 'wordCard.stages.syllables',
+      icon: 'text_fields',
+      status: 'pending',
+      category: 'parallel',
+      order: 7,
+      description: 'wordCard.stages.syllablesDesc',
+    },
+    {
+      id: 'pronunciation',
+      name: 'wordCard.stages.pronunciation',
+      icon: 'record_voice_over',
+      status: 'pending',
+      category: 'parallel',
+      order: 8,
+      description: 'wordCard.stages.pronunciationDesc',
+    },
+    {
+      id: 'conjugation',
+      name: 'wordCard.stages.conjugation',
+      icon: 'rule',
+      status: 'pending',
+      category: 'parallel',
+      order: 9,
+      description: 'wordCard.stages.conjugationDesc',
+    },
+    // Final Stage
+    {
+      id: 'final_quality',
+      name: 'wordCard.stages.finalQuality',
+      icon: 'done_all',
+      status: 'pending',
+      category: 'final',
+      order: 10,
+      description: 'wordCard.stages.finalQualityDesc',
+    },
+  ];
 
   // Computed properties for performance optimization
   get indicativeTenses() {
@@ -173,11 +366,20 @@ export class WordCard implements OnInit {
   }
 
   ngOnInit() {
+    // Clear any previous validation errors
+    this.validationError = null;
+
     // Get navigation state
     const navigation = this.router.lastSuccessfulNavigation;
     const routeState = navigation?.extras?.state;
 
-    // Case 1: Full word object in state (from search) - fastest path
+    // Case 1: Word request state (from request dialog) - skeleton loading with WebSocket
+    if (routeState && routeState['isRequest']) {
+      this.handleWordRequest(routeState);
+      return;
+    }
+
+    // Case 2: Full word object in state (from search) - fastest path
     if (routeState && routeState['word']) {
       const wordFromState = routeState['word'] as VocabularyWord;
 
@@ -194,16 +396,510 @@ export class WordCard implements OnInit {
       // Use word immediately if it already has media or no media_ref
       this.word = wordFromState;
       this.langConfig = getLanguageConfig(this.word);
+      this.setAllLoadingStates(false); // Word is fully loaded
       this.loading = false;
       return;
     }
 
-    // Case 2: PK/SK in state for optimized fetch (fallback)
+    // Case 3: PK/SK in state for optimized fetch (fallback)
     if (routeState && routeState['pk'] && routeState['sk']) {
       this.loadWordByPkSk(routeState['pk'], routeState['sk']);
       return;
     }
 
+    // Case 4: URL parameters - construct PK/SK and fetch
+    this.handleUrlParameters();
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
+  }
+
+  private handleWordRequest(routeState: Record<string, unknown>): void {
+    const requestData = routeState['requestData'] as WordRequestData;
+    if (!requestData) {
+      this.error = 'Invalid request data';
+      this.loading = false;
+      return;
+    }
+
+    this.isRequestMode = true;
+
+    // Create skeleton word object for immediate display
+    this.createSkeletonWord(requestData);
+
+    // Subscribe to WebSocket notifications to update the word
+    this.subscriptions.add(
+      this.wordRequestService.notifications$.subscribe((notification) => {
+        this.handleWordRequestNotification(notification);
+      })
+    );
+  }
+
+  private createSkeletonWord(requestData: WordRequestData): void {
+    // Create a skeleton word object that will be filled by WebSocket updates
+    this.word = {
+      pk: `SRC#${requestData.sourceLanguage || 'auto'}#${
+        requestData.sourceWord
+      }`,
+      sk: `TGT#${requestData.targetLanguage}`,
+      source_word: requestData.sourceWord,
+      source_language: requestData.sourceLanguage || '',
+      source_pos: 'pending', // Temporary POS
+      source_definition: [],
+      target_word: '', // Will be filled by WebSocket
+      target_language: requestData.targetLanguage,
+      target_pos: '',
+      target_syllables: [],
+      target_phonetic_guide: '',
+      target_pronunciations: undefined,
+      synonyms: [],
+      examples: [],
+      conjugation_table: undefined,
+      media_ref: undefined,
+      media: undefined,
+      created_by: 'user',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // Reset progressive loading states for request mode
+    this.loadingStates = {
+      targetWord: true,
+      syllables: true,
+      pronunciation: true,
+      definition: true, // Definition loading state
+      synonyms: true,
+      examples: true,
+      media: true,
+      conjugation: true,
+      languageInfo: true, // Reset on new request
+      sourcePos: true,
+      targetPos: true,
+    };
+
+    this.langConfig = getLanguageConfig(this.word);
+    this.loading = true; // Keep loading state for skeleton
+    console.log(
+      '🎯 Skeleton word created for:',
+      requestData.sourceWord,
+      '→',
+      requestData.targetLanguage
+    );
+    console.log(
+      '📊 Progressive loading states initialized:',
+      this.loadingStates
+    );
+  }
+
+  private handleWordRequestNotification(
+    notification: WordRequestNotification
+  ): void {
+    // Console log all WebSocket notifications as requested
+    console.log('🔔 Word Request WebSocket Notification:', notification);
+
+    if (!this.isRequestMode || !this.word) return;
+
+    switch (notification.status) {
+      case 'processing':
+        console.log('⏳ Processing notification:', notification);
+        if (notification.word_data) {
+          console.log(
+            '📝 Updating word with partial data:',
+            notification.word_data
+          );
+          this.updateWordFromNotification(notification.word_data);
+          this.updateStageFromWebSocketData(notification.word_data);
+        }
+        break;
+      case 'completed':
+        console.log('✅ Word creation completed:', notification);
+        if (notification.word_data) {
+          console.log('📋 Final word data received:', notification.word_data);
+          this.updateWordFromNotification(notification.word_data, true); // Mark as final update
+          this.updateStageFromWebSocketData(notification.word_data);
+          this.setAllStagesCompleted(); // Ensure all visible stages are marked completed
+        }
+        this.loading = false; // Turn off loading only on completion
+        break;
+      case 'redirect':
+        console.log('🔄 Word already exists - redirecting:', notification);
+        this.handleWordExistsRedirect(notification.word_data);
+        break;
+      case 'failed':
+        console.log('❌ Word creation failed:', notification);
+        this.error = notification.message || 'Failed to create word';
+        this.loading = false;
+        break;
+      case 'invalid':
+        console.log('⚠️ Word validation failed:', notification);
+
+        // Set validation error details for UI display
+        if (notification.word_data) {
+          this.validationError = {
+            issue: notification.word_data.validation_issue,
+            detectedLanguage: notification.word_data.source_language,
+            suggestions: notification.word_data.validation_suggestions || [],
+          };
+          // Set a simple error message since detailed info is in validationError
+          this.error = 'Word validation failed';
+          console.log(
+            '🔍 Validation details set for UI display:',
+            this.validationError
+          );
+        } else {
+          // Fallback if no detailed validation data
+          this.error =
+            notification.error ||
+            notification.message ||
+            'Word validation failed';
+        }
+        this.loading = false;
+        break;
+      default:
+        console.log(
+          '❓ Unknown notification status:',
+          notification.status,
+          notification
+        );
+    }
+  }
+
+  private handleWordExistsRedirect(
+    wordData: WordNotificationData & {
+      word_exists?: boolean;
+      pk?: string;
+      sk?: string;
+      media_ref?: string;
+    }
+  ): void {
+    console.log('🚀 Handling word exists redirect with data:', wordData);
+
+    if (!wordData.word_exists) {
+      console.error('❌ Invalid redirect data - word_exists not true');
+      return;
+    }
+
+    const pk = wordData.pk;
+    const sk = wordData.sk;
+    const mediaRef = wordData.media_ref;
+
+    if (!pk || !sk) {
+      console.error('❌ Missing essential redirect data:', {
+        pk,
+        sk,
+        mediaRef,
+      });
+      this.error = 'Invalid redirect data received';
+      this.loading = false;
+      return;
+    }
+
+    console.log('📱 Loading existing word using efficient redirect');
+
+    // Show snackbar message
+    this.messageService.showInfoMessage(
+      this.translationService.translate('wordCard.wordAlreadyExists'),
+      4000
+    );
+
+    // Exit request mode and load the existing word
+    this.isRequestMode = false;
+
+    // Use efficient media loading if available, otherwise regular loading
+    if (mediaRef) {
+      console.log('🎯 Using efficient API call with media reference');
+      this.loadWordByPkSkWithMedia(pk, sk, mediaRef);
+    } else {
+      console.log('📄 Using standard API call without media reference');
+      this.loadWordByPkSk(pk, sk);
+    }
+
+    // The loadWordByPkSk methods will handle URL updating based on the loaded word data
+  }
+
+  private updateWordFromNotification(
+    data: WordNotificationData,
+    isFinal = false
+  ): void {
+    if (!this.word) return;
+
+    console.log('🔄 Updating word from notification data:', data);
+
+    // Update word properties with incoming data
+    if (Object.prototype.hasOwnProperty.call(data, 'source_word')) {
+      this.word.source_word = data.source_word || '';
+    }
+    if (Object.prototype.hasOwnProperty.call(data, 'source_article')) {
+      this.word.source_article = data.source_article;
+    }
+    if (Object.prototype.hasOwnProperty.call(data, 'target_word')) {
+      this.word.target_word = data.target_word || '';
+      this.loadingStates.targetWord = false;
+    }
+    if (Object.prototype.hasOwnProperty.call(data, 'target_article')) {
+      this.word.target_article = data.target_article;
+    }
+    if (Object.prototype.hasOwnProperty.call(data, 'source_definition')) {
+      this.word.source_definition = data.source_definition || [];
+      this.loadingStates.definition = false;
+      console.log('📖 Definition data received - resolving definition loading');
+    }
+    if (Object.prototype.hasOwnProperty.call(data, 'source_language')) {
+      this.word.source_language = data.source_language || '';
+      this.loadingStates.languageInfo = false; // Language info is now available
+    }
+    if (
+      Object.prototype.hasOwnProperty.call(data, 'target_pos') ||
+      Object.prototype.hasOwnProperty.call(data, 'target_part_of_speech')
+    ) {
+      this.word.target_pos =
+        data.target_pos || data.target_part_of_speech || '';
+      this.loadingStates.targetPos = false;
+    }
+    if (Object.prototype.hasOwnProperty.call(data, 'target_syllables')) {
+      this.word.target_syllables = data.target_syllables || [];
+      this.loadingStates.syllables = false;
+    }
+    if (Object.prototype.hasOwnProperty.call(data, 'target_phonetic_guide')) {
+      this.word.target_phonetic_guide = data.target_phonetic_guide || '';
+      this.loadingStates.pronunciation = false;
+    }
+    if (Object.prototype.hasOwnProperty.call(data, 'synonyms')) {
+      this.word.synonyms = data.synonyms || [];
+      this.loadingStates.synonyms = false;
+    }
+    if (Object.prototype.hasOwnProperty.call(data, 'examples')) {
+      this.word.examples = data.examples || [];
+      this.loadingStates.examples = false;
+    }
+    if (
+      Object.prototype.hasOwnProperty.call(data, 'conjugation_table') ||
+      Object.prototype.hasOwnProperty.call(data, 'conjugation')
+    ) {
+      this.word.conjugation_table = data.conjugation_table || data.conjugation;
+      this.loadingStates.conjugation = false;
+    }
+    // Handle case where conjugation is not available (e.g., not a verb)
+    if (
+      Object.prototype.hasOwnProperty.call(data, 'conjugation_not_available') ||
+      (Object.prototype.hasOwnProperty.call(data, 'conjugation_message') &&
+        typeof data.conjugation_message === 'string' &&
+        data.conjugation_message.includes('not a verb')) ||
+      (Object.prototype.hasOwnProperty.call(data, 'conjugation') &&
+        typeof data.conjugation === 'string' &&
+        (data.conjugation.includes('not a verb') ||
+          data.conjugation.includes('no conjugation table')))
+    ) {
+      this.loadingStates.conjugation = false;
+      console.log('💼 Conjugation not available for non-verb:', data);
+    }
+    if (
+      Object.prototype.hasOwnProperty.call(data, 'target_pronunciations') ||
+      Object.prototype.hasOwnProperty.call(data, 'pronunciations')
+    ) {
+      this.word.target_pronunciations =
+        data.target_pronunciations || data.pronunciations;
+      this.loadingStates.pronunciation = false;
+    }
+    if (Object.prototype.hasOwnProperty.call(data, 'media')) {
+      this.word.media = data.media;
+      this.loadingStates.media = false;
+    }
+
+    // Update source definition if available
+    if (Object.prototype.hasOwnProperty.call(data, 'source_definition')) {
+      this.word.source_definition = data.source_definition || [];
+    }
+
+    // Update part of speech information
+    if (
+      Object.prototype.hasOwnProperty.call(data, 'source_part_of_speech') ||
+      Object.prototype.hasOwnProperty.call(data, 'source_pos')
+    ) {
+      this.word.source_pos =
+        data.source_part_of_speech || data.source_pos || '';
+      this.loadingStates.sourcePos = false;
+    }
+    if (
+      Object.prototype.hasOwnProperty.call(data, 'target_part_of_speech') ||
+      Object.prototype.hasOwnProperty.call(data, 'target_pos')
+    ) {
+      this.word.target_pos =
+        data.target_part_of_speech || data.target_pos || '';
+      this.loadingStates.targetPos = false;
+    }
+
+    // Check for completed parallel tasks to update loading states
+    if (
+      Object.prototype.hasOwnProperty.call(data, 'completed_parallel_tasks') &&
+      Array.isArray(data.completed_parallel_tasks)
+    ) {
+      const completedTasks = data.completed_parallel_tasks;
+
+      if (completedTasks.includes('examples')) {
+        this.loadingStates.examples = false;
+      }
+      if (completedTasks.includes('synonyms')) {
+        this.loadingStates.synonyms = false;
+      }
+      if (completedTasks.includes('pronunciation')) {
+        this.loadingStates.pronunciation = false;
+      }
+      if (completedTasks.includes('media')) {
+        this.loadingStates.media = false;
+      }
+      if (completedTasks.includes('conjugation')) {
+        this.loadingStates.conjugation = false;
+      }
+    }
+
+    // On the final update, ensure all loading states are false
+    if (isFinal) {
+      this.setAllLoadingStates(false);
+    }
+
+    // Update language config and trigger change detection
+    this.langConfig = getLanguageConfig(this.word);
+    this.cdr.detectChanges();
+  }
+
+  private updateStageFromWebSocketData(data: WordNotificationData): void {
+    console.log('🔄 Updating stages from WebSocket data:', data);
+
+    // Sequential stages - based on quality approvals or data presence
+    this.updateStageStatus('validation', data.validation_quality_approved);
+
+    // Classification stage completion also resolves definition loading
+    if (data.classification_quality_approved) {
+      this.updateStageStatus('classification', true);
+      // Definition is obtained during classification, so resolve definition loading
+      this.loadingStates.definition = false;
+      console.log(
+        '📖 Definition loading resolved after classification completion'
+      );
+    }
+
+    this.updateStageStatus('translation', data.translation_quality_approved);
+
+    // Parallel stages
+    this.updateStageStatus('media', data.media_quality_approved);
+    this.updateStageStatus('examples', data.examples_quality_approved);
+    this.updateStageStatus('synonyms', data.synonyms_quality_approved);
+    this.updateStageStatus('syllables', data.syllables_quality_approved);
+    this.updateStageStatus('conjugation', data.conjugation_quality_approved);
+
+    // Pronunciation doesn't have quality gate - check for pronunciations data
+    if (data.pronunciations || data.target_pronunciations) {
+      this.updateStageStatus('pronunciation', true);
+    }
+
+    // Final quality check
+    if (data.processing_complete || data.overall_quality_score) {
+      this.updateStageStatus('final_quality', true);
+    }
+
+    // Check for completed_parallel_tasks array for more granular updates
+    if (
+      data.completed_parallel_tasks &&
+      Array.isArray(data.completed_parallel_tasks)
+    ) {
+      data.completed_parallel_tasks.forEach((taskName: string) => {
+        this.updateStageStatus(taskName, true);
+      });
+    }
+
+    console.log(
+      '📊 Updated stages:',
+      this.processingStages.map((s) => ({ id: s.id, status: s.status }))
+    );
+  }
+
+  private updateStageStatus(
+    stageId: string,
+    approved: boolean | undefined
+  ): void {
+    if (approved === true) {
+      const stage = this.processingStages.find((s) => s.id === stageId);
+      if (stage && stage.status !== 'completed') {
+        stage.status = 'completed';
+        console.log(`✅ Stage '${stageId}' marked as completed`);
+      }
+    }
+  }
+
+  private initializeProcessingStages(): void {
+    this.processingStages.forEach((stage) => {
+      stage.status = 'pending';
+    });
+  }
+
+  private setAllStagesCompleted(): void {
+    this.processingStages.forEach((stage) => {
+      stage.status = 'completed';
+    });
+  }
+
+  getVisibleStages(): ProcessingStage[] {
+    return this.processingStages.filter((stage) => {
+      // Always show conjugation stage initially, only hide after explicit determination
+      if (stage.id === 'conjugation') {
+        // In request mode, always show until we know for sure it's not a verb
+        if (this.isRequestMode) {
+          return true;
+        }
+        // In non-request mode, hide if we definitively know it's not a verb
+        return this.word?.target_pos === 'verb' || this.hasConjugationTable;
+      }
+      // Hide synonyms for POS that don't have synonyms (only after POS is determined)
+      if (
+        stage.id === 'synonyms' &&
+        this.word?.target_pos &&
+        !this.isRequestMode &&
+        !this.shouldHaveSynonyms(this.word.target_pos)
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  private shouldHaveSynonyms(pos: string): boolean {
+    const posWithSynonyms = [
+      'noun',
+      'feminine noun',
+      'masculine noun',
+      'neuter noun',
+      'verb',
+      'adjective',
+      'adverb',
+      'interjection',
+      'conjunction',
+    ];
+    return posWithSynonyms.includes(pos.toLowerCase());
+  }
+
+  shouldShowConjugationTab(): boolean {
+    // In request mode, always show until we know for sure it's not a verb
+    if (this.isRequestMode && this.loadingStates.conjugation) {
+      return true;
+    }
+
+    // Show if we have conjugation data or if it's a verb
+    if (this.hasConjugationTable || this.word?.target_pos === 'verb') {
+      return true;
+    }
+
+    // In request mode but not loading, show if we haven't determined it's not a verb yet
+    if (this.isRequestMode && !this.word?.target_pos) {
+      return true;
+    }
+
+    // Otherwise, hide the tab
+    return false;
+  }
+
+  private handleUrlParameters(): void {
     // Extract parameters from route
     const sourceLanguage = this.route.snapshot.paramMap.get('sourceLanguage');
     const targetLanguage = this.route.snapshot.paramMap.get('targetLanguage');
@@ -214,7 +910,7 @@ export class WordCard implements OnInit {
       // With POS - construct PK/SK and fetch directly
       const pk = `SRC#${sourceLanguage}#${word.toLowerCase().trim()}`;
       let sk = `TGT#${targetLanguage}`;
-      if (pos) {
+      if (pos && pos !== 'pending') {
         sk += `#POS#${pos.toLowerCase().trim()}`;
       }
       this.loadWordByPkSk(pk, sk);
@@ -233,6 +929,7 @@ export class WordCard implements OnInit {
         if (data) {
           this.word = data;
           this.langConfig = getLanguageConfig(this.word);
+          this.setAllLoadingStates(false); // Word is fully loaded
         } else {
           this.error = this.translationService.translate('wordCard.notFound');
         }
@@ -255,6 +952,7 @@ export class WordCard implements OnInit {
         if (data) {
           this.word = data;
           this.langConfig = getLanguageConfig(this.word);
+          this.setAllLoadingStates(false); // Word is fully loaded
         } else {
           this.error = this.translationService.translate('wordCard.notFound');
         }
@@ -265,6 +963,13 @@ export class WordCard implements OnInit {
         this.error = this.translationService.translate('wordCard.loadError');
         this.loading = false;
       },
+    });
+  }
+
+  private setAllLoadingStates(state: boolean): void {
+    Object.keys(this.loadingStates).forEach((key) => {
+      const k = key as keyof typeof this.loadingStates;
+      this.loadingStates[k] = state;
     });
   }
 
@@ -347,6 +1052,8 @@ export class WordCard implements OnInit {
   }
 
   goBack() {
+    // Clear validation error details when going back
+    this.validationError = null;
     this.router.navigate(['/search']);
   }
 
@@ -367,13 +1074,18 @@ export class WordCard implements OnInit {
   getLanguageFlag(langCode: string | undefined): string {
     if (!langCode) return '';
 
+    const lang = langCode.toLowerCase();
+
     const flagMap: Record<string, string> = {
       en: '🇬🇧',
+      english: '🇬🇧',
       es: '🇪🇸',
+      spanish: '🇪🇸',
       de: '🇩🇪',
+      german: '🇩🇪',
     };
 
-    return flagMap[langCode.toLowerCase()] || langCode.toUpperCase();
+    return flagMap[lang] || langCode.toUpperCase();
   }
 
   getConjugationValue(mood: string, tense: string, pronoun: string): string {

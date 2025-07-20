@@ -32,6 +32,7 @@
     "reportOptionalOperand": "none",
     "reportUnboundVariable": "none",
     "reportUnnecessaryTypeIgnoreComment": "none",
+    "reportInvalidTypeForm": "none",
     "executionEnvironments": [
         {
             "root": ".",

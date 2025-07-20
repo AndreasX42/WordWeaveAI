@@ -50,13 +50,15 @@ public class SqsLambdaStack extends Stack {
 
 		// Create Dead Letter Queue first
 		this.deadLetterQueue = Queue.Builder.create(this, "VocabJobsDeadLetterQueue")
-				.queueName("vocab-jobs-dlq")
+				.queueName("vocab-jobs-dlq.fifo")
+				.fifo(true)
 				.encryption(QueueEncryption.SQS_MANAGED)
 				.build();
 
 		// Define the main queue with DLQ configuration
 		this.queue = Queue.Builder.create(this, "VocabJobsQueue")
-				.queueName("vocab-jobs-queue")
+				.queueName("vocab-jobs-queue.fifo")
+				.fifo(true)
 				.visibilityTimeout(Duration.seconds(150))
 				.encryption(QueueEncryption.SQS_MANAGED)
 				.deadLetterQueue(DeadLetterQueue.builder()

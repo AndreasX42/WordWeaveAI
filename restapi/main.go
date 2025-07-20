@@ -98,9 +98,10 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 		api.GET("/auth/google/login", container.OAuthHandler.GoogleLogin)
 		api.GET("/auth/google/callback", container.OAuthHandler.GoogleCallback)
 
-		// Search and vocabularyroutes
+		// Search and vocab routes
 		api.POST("/search", container.SearchHandler.SearchVocabulary)
-		api.GET("/vocab", container.SearchHandler.GetVocabularyByPkSk)
+		api.GET("/vocabs", container.SearchHandler.GetVocabularyByPkSk)
+		api.POST("/vocabs/request")
 		api.GET("/vocabs/:sourceLanguage/:targetLanguage/:pos/:word", container.SearchHandler.GetVocabularyByParams)
 
 		// JWT routes

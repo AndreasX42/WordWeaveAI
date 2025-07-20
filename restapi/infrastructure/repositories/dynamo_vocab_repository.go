@@ -52,11 +52,13 @@ type VocabRecord struct {
 	SourceLanguage   string              `dynamo:"source_language"`
 	SourcePos        string              `dynamo:"source_pos"`
 	SourceWord       string              `dynamo:"source_word"`
+	SourceArticle    string              `dynamo:"source_article"`
 	Syllables        []string            `dynamo:"target_syllables"`
 	Synonyms         []map[string]string `dynamo:"synonyms"`
 	TargetLanguage   string              `dynamo:"target_language"`
 	TargetPos        string              `dynamo:"target_pos"`
 	TargetWord       string              `dynamo:"target_word"`
+	TargetArticle    string              `dynamo:"target_article"`
 	SourceAddInfo    string              `dynamo:"source_additional_info"`
 	TargetAddInfo    string              `dynamo:"target_additional_info"`
 }
@@ -81,8 +83,10 @@ func (r *DynamoVocabRepository) toVocabRecord(vocab *entities.VocabWord) VocabRe
 		SourceWord:       vocab.SourceWord,
 		SourceLanguage:   vocab.SourceLanguage,
 		SourceDefinition: vocab.SourceDefinition,
+		SourceArticle:    vocab.SourceArticle,
 		TargetWord:       vocab.TargetWord,
 		TargetLanguage:   vocab.TargetLanguage,
+		TargetArticle:    vocab.TargetArticle,
 		Examples:         vocab.Examples,
 		Synonyms:         vocab.Synonyms,
 		MediaRef:         vocab.MediaRef,
@@ -110,8 +114,10 @@ func (r *DynamoVocabRepository) toEntity(record VocabRecord) *entities.VocabWord
 		SourceWord:       record.SourceWord,
 		SourceLanguage:   record.SourceLanguage,
 		SourceDefinition: record.SourceDefinition,
+		SourceArticle:    record.SourceArticle,
 		TargetWord:       record.TargetWord,
 		TargetLanguage:   record.TargetLanguage,
+		TargetArticle:    record.TargetArticle,
 		Examples:         record.Examples,
 		Synonyms:         record.Synonyms,
 		MediaRef:         record.MediaRef,

@@ -1,7 +1,7 @@
 <div class="word-card-container" [class.dark-theme]="themeService.isDarkMode()">
   <div class="content-wrapper">
     <!-- Loading State -->
-    @if (loading) {
+    @if (loading && !isRequestMode) {
     <div class="loading-container">
       <mat-spinner></mat-spinner>
       <p>{{ "wordCard.loading" | translate }}</p>
@@ -9,11 +9,50 @@
     }
 
     <!-- Error State -->
-    @if (error && !loading) {
+    @if (error && !loading && !validationError) {
     <div class="error-container">
       <mat-icon>error_outline</mat-icon>
       <h2>{{ "wordCard.errorTitle" | translate }}</h2>
       <p>{{ error }}</p>
+
+      <button mat-flat-button color="primary" (click)="goBack()">
+        {{ "common.back" | translate }}
+      </button>
+    </div>
+    }
+
+    <!-- Validation Error State -->
+    @if (validationError && !loading) {
+    <div class="error-container">
+      <mat-icon>error_outline</mat-icon>
+      <h2>{{ "wordCard.errorTitle" | translate }}</h2>
+
+      <div class="validation-error">
+        <h3>Issue with requested word</h3>
+
+        @if (validationError.issue) {
+        <div class="error-message">
+          <strong>Issue:</strong>
+          <p>{{ validationError.issue }}</p>
+        </div>
+        } @if (validationError.detectedLanguage) {
+        <div class="detected-language">
+          <strong>Detected Language:</strong>
+          {{ validationError.detectedLanguage }}
+        </div>
+        } @if (validationError.suggestions && validationError.suggestions.length
+        > 0) {
+        <div class="suggestions">
+          <strong>Suggestions:</strong>
+          <ul>
+            @for (suggestion of validationError.suggestions; track $index) {
+            <li>{{ suggestion.word }} ({{ suggestion.language }})</li>
+            }
+          </ul>
+        </div>
+        }
+      </div>
+
       <button mat-flat-button color="primary" (click)="goBack()">
         {{ "common.back" | translate }}
       </button>
@@ -21,17 +60,34 @@
     }
 
     <!-- Single Word Card -->
-    @if (word && !loading && !error) {
+    @if (word && !error) {
     <div class="word-card">
       <!-- Header Section -->
       <div class="word-header">
         <div class="word-title-section">
           <h1 class="source-word">
-            {{ word.source_word }}
+            @if (word.source_article) {
+            <span class="article">{{ word.source_article }}</span>
+            } @if (word.source_language === 'en' && word.source_pos &&
+            word.source_pos.toLowerCase().includes('verb')) {
+            <span class="article">to</span>
+            }{{ word.source_word }}@if (word.source_additional_info)
+            {<sup>1</sup>}
           </h1>
+
+          <!-- Target Word - Progressive Loading -->
+          @if (loadingStates.targetWord && isRequestMode) {
+          <div class="skeleton-line skeleton-target-word"></div>
+          } @else {
           <h2 class="target-word">
-            {{ word.target_word }}
-            @if (word.target_pronunciations?.audio) {
+            @if (word.target_article) {
+            <span class="article">{{ word.target_article }}</span>
+            } @if (word.target_language === 'en' && word.target_pos &&
+            word.target_pos.toLowerCase().includes('verb')) {
+            <span class="article">to</span>
+            }{{ word.target_word }}@if (word.target_additional_info)
+            {<sup>2</sup>} @if (word.target_pronunciations?.audio &&
+            !loadingStates.pronunciation) {
             <button
               mat-icon-button
               (click)="playCombinedAudio()"
@@ -39,9 +95,16 @@
             >
               <mat-icon>volume_up</mat-icon>
             </button>
+            } @else if (loadingStates.pronunciation && isRequestMode) {
+            <div class="skeleton-circle skeleton-pronunciation-btn"></div>
             }
           </h2>
-          @if (hasTargetSyllables) {
+          }
+
+          <!-- Pronunciation - Progressive Loading -->
+          @if (loadingStates.syllables && isRequestMode) {
+          <div class="skeleton-line skeleton-pronunciation"></div>
+          } @else if (hasTargetSyllables) {
           <div class="pronunciation">
             ({{ word.target_syllables.join("-") }}) @if
             (word.target_phonetic_guide) {
@@ -61,6 +124,10 @@
       <!-- Header Content Section -->
       <div class="header-content">
         <div class="content-left">
+          <!-- Language/POS - Progressive Loading -->
+          @if (loadingStates.languageInfo && isRequestMode) {
+          <div class="skeleton-line skeleton-language-info"></div>
+          } @else {
           <!-- Part of Speech Tags -->
           <div class="pos-tags">
             <div class="language-flags">
@@ -72,16 +139,34 @@
                 getLanguageFlag(word.target_language)
               }}</span>
             </div>
-            @if (word.target_pos) {
-            <div class="pos-tag">
+
+            <!-- Source POS - Progressive Loading -->
+            @if (loadingStates.sourcePos && isRequestMode) {
+            <div class="skeleton-line skeleton-pos-tag"></div>
+            } @else if (word.source_pos) {
+            <div class="pos-tag source-pos">
+              {{ word.source_pos }}
+            </div>
+            }
+
+            <!-- Target POS - Progressive Loading -->
+            @if (loadingStates.targetPos && isRequestMode) {
+            <div class="skeleton-line skeleton-pos-tag"></div>
+            } @else if (word.target_pos) {
+            <div class="pos-tag target-pos">
               {{ word.target_pos }}
             </div>
             }
           </div>
+          }
         </div>
 
-        <!-- Media Section -->
-        @if (hasMedia && word.media?.src?.large) {
+        <!-- Media Section - Progressive Loading -->
+        @if (loadingStates.media && isRequestMode) {
+        <div class="media-section">
+          <div class="skeleton-media"></div>
+        </div>
+        } @else if (hasMedia && word.media?.src?.large) {
         <div class="media-section">
           <img
             [src]="getS3Url(word.media?.src?.large)"
@@ -92,6 +177,28 @@
         }
       </div>
 
+      <!-- Progressive Processing Stages -->
+      @if (isRequestMode) {
+      <div class="processing-stages-compact">
+        <div class="stages-progress-bar">
+          @for (stage of processingStages; track stage.id) { @if
+          (getVisibleStages().includes(stage)) {
+          <div
+            class="stage-pill"
+            [class.completed]="stage.status === 'completed'"
+            [class.pending]="stage.status === 'pending'"
+            [title]="stage.name | translate"
+          >
+            <mat-icon class="stage-icon">{{
+              stage.status === "completed" ? "check_circle" : stage.icon
+            }}</mat-icon>
+            <span class="stage-name">{{ stage.name | translate }}</span>
+          </div>
+          } }
+        </div>
+      </div>
+      }
+
       <!-- Tabs Section -->
       <mat-tab-group class="content-tabs">
         <!-- Definitions Tab -->
@@ -99,16 +206,37 @@
           <ng-template mat-tab-label>
             <mat-icon>description</mat-icon>
             {{ "wordCard.definition" | translate }}
+            @if (loadingStates.definition && isRequestMode) {
+            <mat-spinner diameter="16" strokeWidth="2"></mat-spinner>
+            }
           </ng-template>
 
           <div class="tab-content">
-            @if (word.target_additional_info) {
-            <div class="usage-hint">
+            @if (loadingStates.definition && isRequestMode) {
+            <!-- Definition Loading Skeleton -->
+            <div class="definitions">
+              <div class="skeleton-item">
+                <div class="skeleton-line skeleton-definition-long"></div>
+                <div class="skeleton-line skeleton-definition-medium"></div>
+                <div class="skeleton-line skeleton-definition-short"></div>
+              </div>
+            </div>
+            } @else { @if (word.source_additional_info) {
+            <div class="usage-hint source-hint">
               <div class="hint-icon-wrapper">
-                <mat-icon class="hint-icon">info</mat-icon>
+                <mat-icon class="hint-icon">info_outline</mat-icon>
               </div>
               <div class="hint-text">
-                {{ word.target_additional_info }}
+                <sup>1</sup> {{ word.source_additional_info }}
+              </div>
+            </div>
+            } @if (word.target_additional_info) {
+            <div class="usage-hint">
+              <div class="hint-icon-wrapper">
+                <mat-icon class="hint-icon">info_outline</mat-icon>
+              </div>
+              <div class="hint-text">
+                <sup>2</sup> {{ word.target_additional_info }}
               </div>
             </div>
             } @if (word.source_definition) {
@@ -128,7 +256,7 @@
               </p>
               }
             </div>
-            }
+            } }
           </div>
         </mat-tab>
 
@@ -137,10 +265,26 @@
           <ng-template mat-tab-label>
             <mat-icon>compare_arrows</mat-icon>
             {{ "wordCard.synonyms" | translate }}
+            @if (loadingStates.synonyms && isRequestMode) {
+            <mat-spinner diameter="16" strokeWidth="2"></mat-spinner>
+            }
           </ng-template>
 
           <div class="tab-content">
-            @if (hasSynonyms) {
+            @if (loadingStates.synonyms && isRequestMode) {
+            <!-- Synonyms Loading Skeleton -->
+            <div class="synonyms-list">
+              @for (item of [1,2,3]; track item) {
+              <div class="synonym-item skeleton-item">
+                <div class="synonym-header">
+                  <div class="skeleton-circle skeleton-number"></div>
+                  <div class="skeleton-line skeleton-synonym-word"></div>
+                </div>
+                <div class="skeleton-line skeleton-synonym-explanation"></div>
+              </div>
+              }
+            </div>
+            } @else if (hasSynonyms) {
             <div class="synonyms-list">
               @for (synonym of word.synonyms; track $index) {
               <div class="synonym-item">
@@ -152,6 +296,8 @@
               </div>
               }
             </div>
+            } @else {
+            <p class="no-content">{{ "wordCard.noSynonyms" | translate }}</p>
             }
           </div>
         </mat-tab>
@@ -161,10 +307,29 @@
           <ng-template mat-tab-label>
             <mat-icon>format_quote</mat-icon>
             {{ "wordCard.examples" | translate }}
+            @if (loadingStates.examples && isRequestMode) {
+            <mat-spinner diameter="16" strokeWidth="2"></mat-spinner>
+            }
           </ng-template>
 
           <div class="tab-content">
-            @if (hasExamples) {
+            @if (loadingStates.examples && isRequestMode) {
+            <!-- Examples Loading Skeleton -->
+            <div class="examples-list">
+              @for (item of [1,2,3]; track item) {
+              <div class="example-item skeleton-item">
+                <div class="example-text">
+                  <div class="skeleton-line skeleton-example-source"></div>
+                  <div class="skeleton-line skeleton-example-target"></div>
+                </div>
+                <div class="example-context">
+                  <div class="skeleton-circle skeleton-context-icon"></div>
+                  <div class="skeleton-line skeleton-context-text"></div>
+                </div>
+              </div>
+              }
+            </div>
+            } @else if (hasExamples) {
             <div class="examples-list">
               @for (example of word.examples; track $index) {
               <div class="example-item">
@@ -181,19 +346,42 @@
               </div>
               }
             </div>
+            } @else {
+            <p class="no-content">{{ "wordCard.noExamples" | translate }}</p>
             }
           </div>
         </mat-tab>
 
-        <!-- Conjugation Tab (if applicable) -->
-        @if (hasConjugationTable) {
+        <!-- Conjugation Tab (conditionally shown) -->
+        @if (shouldShowConjugationTab()) {
         <mat-tab>
           <ng-template mat-tab-label>
             <mat-icon>table_chart</mat-icon>
             {{ "wordCard.conjugation" | translate }}
+            @if (loadingStates.conjugation && isRequestMode) {
+            <mat-spinner diameter="16" strokeWidth="2"></mat-spinner>
+            }
           </ng-template>
 
           <div class="tab-content">
+            @if (loadingStates.conjugation && isRequestMode) {
+            <!-- Conjugation Loading Skeleton -->
+            <div class="conjugation-skeleton">
+              <div class="skeleton-item">
+                <div class="skeleton-line skeleton-conjugation-title"></div>
+                <div class="conjugation-table-skeleton">
+                  @for (row of [1,2,3,4,5,6]; track row) {
+                  <div class="skeleton-table-row">
+                    <div class="skeleton-line skeleton-pronoun"></div>
+                    <div class="skeleton-line skeleton-verb-form"></div>
+                    <div class="skeleton-line skeleton-verb-form"></div>
+                    <div class="skeleton-line skeleton-verb-form"></div>
+                  </div>
+                  }
+                </div>
+              </div>
+            </div>
+            } @else {
             <div class="conjugation-table">
               <!-- Non-personal forms -->
               @if (hasFormasNoPersonales) {
@@ -314,6 +502,7 @@
                 }
               </div>
             </div>
+            }
           </div>
         </mat-tab>
         }

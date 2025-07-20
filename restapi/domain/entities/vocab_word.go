@@ -9,8 +9,10 @@ type VocabWord struct {
 	SourceWord       string              `json:"source_word"`
 	SourceLanguage   string              `json:"source_language"`
 	SourceDefinition []string            `json:"source_definition"`
+	SourceArticle    string              `json:"source_article"`
 	TargetWord       string              `json:"target_word"`
 	TargetLanguage   string              `json:"target_language"`
+	TargetArticle    string              `json:"target_article"`
 	Examples         []map[string]string `json:"examples"`
 	Synonyms         []map[string]string `json:"synonyms"`
 	Media            map[string]any      `json:"media"`

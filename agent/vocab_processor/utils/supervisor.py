@@ -9,7 +9,7 @@ from vocab_processor.constants import LLMVariant
 from vocab_processor.schemas.media_model import SearchQueryResult
 from vocab_processor.tools.base_tool import SystemMessages, create_llm_response
 from vocab_processor.tools.classification_tool import WordClassification
-from vocab_processor.tools.conjugation_tool import ConjugationResult
+from vocab_processor.tools.conjugation_tool import ConjugationResponse
 from vocab_processor.tools.examples_tool import Examples
 from vocab_processor.tools.syllables_tool import SyllableBreakdown
 from vocab_processor.tools.synonyms_tool import Synonyms
@@ -111,7 +111,7 @@ class VocabSupervisor:
             "examples": Examples,
             "synonyms": Synonyms,
             "syllables": SyllableBreakdown,
-            "conjugation": ConjugationResult,
+            "conjugation": ConjugationResponse,
             "media": SearchQueryResult,
         }
 

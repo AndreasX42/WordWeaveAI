@@ -18,7 +18,7 @@
     "brand": {
       "title": "WordWeave",
       "tagline": "Ihr intelligenter Sprachlernbegleiter",
-      "description": "Entdecken, lernen und meistern Sie neue Wörter mit Leichtigkeit"
+      "description": "Entdecken, lernen und meistere neue Wörter mit Leichtigkeit"
     },
     "quickLinks": {
       "title": "Schnellzugriff",
@@ -244,13 +244,37 @@
     "selectLanguage": "Sprache wählen",
     "inputPlaceholder": "Wort eingeben",
     "button": "Suchen",
-    "noResults": "Keine Ergebnisse gefunden"
+    "noResults": "Keine Ergebnisse gefunden",
+    "wordAlreadyExists": "Wort existiert bereits",
+    "requestWord": {
+      "button": "Wort anfordern",
+      "requesting": "Wird angefordert...",
+      "success": "Wortanfrage erfolgreich gesendet!",
+      "error": "Fehler beim Senden der Anfrage. Bitte erneut versuchen.",
+      "validation": {
+        "sourceWordRequired": "Bitte gib ein Wort zum Übersetzen ein",
+        "targetLanguageRequired": "Bitte gib eine Zielsprache ein",
+        "wordFormat": "Bitte gib ein gültiges Wort ein"
+      },
+      "dialog": {
+        "title": "Wort anfordern",
+        "sourceWord": "Quellwort",
+        "sourceWordPlaceholder": "Zu übersetzendes Wort eingeben",
+        "sourceWordHint": "Grundform mit Modifikatoren wie Artikel, Präpositionen verwenden (z.B., 'laufen', 'der Baum', 'la casa', 'the cat')",
+        "sourceLanguage": "Quellsprache (Optional)",
+        "autoDetect": "Automatisch erkennen",
+        "targetLanguage": "Zielsprache",
+        "submit": "Anfrage senden",
+        "existingResults": "Dieses Wort existiert bereits:"
+      }
+    }
   },
   "wordCard": {
     "loading": "Wort wird geladen...",
-    "errorTitle": "Wort nicht gefunden",
+    "creatingWord": "Wort wird erstellt",
+    "errorTitle": "Fehler",
     "notFound": "Das gesuchte Wort konnte nicht gefunden werden.",
-    "loadError": "Fehler beim Laden. Bitte erneut versuchen.",
+    "loadError": "Das Wort konnte nicht geladen werden. Bitte versuchen Sie es später erneut.",
     "addToList": "Zur Liste hinzufügen",
     "dictionary": "Wörterbuch",
     "examples": "Beispiele",
@@ -259,6 +283,8 @@
     "synonyms": "Synonyme",
     "definition": "Definition",
     "noExamples": "Keine Beispiele für dieses Wort verfügbar.",
+    "noSynonyms": "Keine Synonyme für dieses Wort verfügbar.",
+    "wordAlreadyExists": "Wort existiert bereits! Weiterleitung zum vorhandenen Eintrag.",
     "clickToPlay": "Klicken zum Abspielen",
     "createdBy": "Erstellt von",
     "pos": {
@@ -298,6 +324,15 @@
         "vosotros_vosotras": "ihr",
         "ellos_ellas_ustedes": "sie/Sie"
       }
+    },
+    "progress": {
+      "translation": "Übersetzung",
+      "syllables": "Silben",
+      "pronunciation": "Aussprache",
+      "synonyms": "Synonyme",
+      "examples": "Beispiele",
+      "media": "Medien",
+      "conjugation": "Konjugation"
     }
   }
 }

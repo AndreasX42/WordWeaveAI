@@ -82,7 +82,8 @@ Part of speech: {part_of_speech_values}
 - Spanish: el/la/los/las for nouns
 
 **Quality Requirements:**
-- Extract base word correctly, removing any articles, prefixes, temporal and possessive modifiers, and any other prefixes or suffixes
+- Extract base word correctly from the source word, removing any articles, prefixes, temporal and possessive modifiers, and any other prefixes or suffixes
+- If the source word is German and vocals are given like "ue, ae, oe", change them to "ä, ä, ö"
 - Provide 1-3 clear and natural dictionary-style definitions in {source_language} that are distinct and common
 - **IMPORTANT:** Note informal/slang usage and other very important or special context, meaning, and regional usage of '{source_word}' in {source_language} in 'source_additional_info'. If there is no highly important context, leave it empty
 - Definitions should be written in {source_language}
@@ -271,6 +272,9 @@ Possible languages: {possible_source_languages}
 1. If source_language is "unknown": You MUST detect which language the word belongs to from the possible source languages and set source_language to that detected language
 2. If source_language is provided (not "unknown"): Validate the word against that specific language only
 
+**CRITICAL GERMAN VOCALS/UMLAUTS RULE:**
+In the German language it is perfectly fine and allowed to use vocals/umlauts like "ue", "ae", or "oe" instead of "ü", "ä", or "ö" in the word.
+
 **Task:**
 1. If source_language is "unknown": detect correct language
 2. If provided: validate against that language only
@@ -278,6 +282,8 @@ Possible languages: {possible_source_languages}
 4. Consider multiple parts of speech
 5. For invalid words: provide suggestions and clear message
 6. **ALWAYS set source_language to valid language (never "unknown")**
+
+**CRITICAL GERMAN RULES**: In the German language it is perfectly fine to use vocals/umlauts like "ue", "ae", or "oe" instead of "ü", "ä", or "ö" in the word.
 
 **Instructions:**
 - Keep the input exactly as provided by the user
@@ -287,7 +293,8 @@ Possible languages: {possible_source_languages}
 - ONLY provide suggestions for invalid words
 
 **Quality Requirements:**
-- **LANGUAGE DETECTION REQUIREMENT:** You MUST always return a valid language (English, Spanish, or German) – never "unknown"
+- **LANGUAGE DETECTION REQUIREMENT:** You MUST always return a valid language (English, Spanish, or German) – never "unknown"  
+- **GERMAN UMLAUT RULE:** Vocals/Umlauts in German are allowed to be written with "ue", "ae", or "oe" instead of the umlauts "ü", "ä", or "ö"
 - Proper language detection when needed
 - Accept regional/dialectal variants
 - Clear error messages in detected language

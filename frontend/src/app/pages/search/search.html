@@ -109,12 +109,19 @@
 
             <button
               type="button"
-              class="search-btn"
-              (click)="search()"
-              [disabled]="!searchControl.value || loading"
-              aria-label="Search"
+              class="request-btn"
+              (click)="openRequestDialog()"
+              [disabled]="
+                !searchControl.value || requestingWord || wordAlreadyExists
+              "
+              aria-label="Request Word"
+              [matTooltip]="
+                wordAlreadyExists
+                  ? ('Word already exists' | translate)
+                  : ('Request Word' | translate)
+              "
             >
-              <mat-icon>search</mat-icon>
+              <mat-icon>add_circle</mat-icon>
             </button>
           </div>
 
@@ -152,7 +159,7 @@
                         getLanguageFlag(word.source_language)
                       }}</span>
                       <ng-container *ngIf="word.source_pos">
-                        <span class="pos">{{ word.source_pos }}</span>
+                        <span class="pos">{{ getDisplayPos(word) }}</span>
                         <span
                           class="word"
                           [innerHTML]="
@@ -178,8 +185,10 @@
               </ng-container>
               <ng-template #noResults>
                 <div class="no-results">
-                  <mat-icon>search_off</mat-icon>
-                  <span>{{ "search.noResults" | translate }}</span>
+                  <div class="no-results-header">
+                    <mat-icon>search_off</mat-icon>
+                    <span>{{ "search.noResults" | translate }}</span>
+                  </div>
                 </div>
               </ng-template>
             </ng-template>

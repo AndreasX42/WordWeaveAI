@@ -1,7 +1,7 @@
 // CSS Custom Properties for theming
 :root {
-  --footer-text-light: #222b45;
-  --footer-text-dark: #e3e8f0;
+  --footer-text-light: var(--mat-text-primary-color);
+  --footer-text-dark: rgba(255, 255, 255, 0.87);
   --footer-link-light: #1976d2;
   --footer-link-dark: #90caf9;
   --footer-border-light: #e0e3e8;
@@ -21,9 +21,6 @@
   transition: color 0.3s ease;
   border-radius: 0;
   box-shadow: none;
-
-  // Debug: Add a visible background to see the footer position
-  // background: rgba(255, 0, 0, 0.1) !important;
 
   // Dark mode support
   body.dark-mode & {

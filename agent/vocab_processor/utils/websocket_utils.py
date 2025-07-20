@@ -313,7 +313,11 @@ class WebSocketNotifier:
     ):
         """Notify ALL subscribers that a ddb hit occurred for this word pair."""
         message = self._create_vocab_message(
-            "ddb_hit", source_word, target_language, "exists", result=ddb_data
+            "word_exists_redirect",
+            source_word,
+            target_language,
+            "redirect",
+            word_data=ddb_data,
         )
         self._broadcast_to_vocab_word_subscribers(source_word, target_language, message)
         # Close connections after cache hit (processing is complete)
@@ -323,18 +327,24 @@ class WebSocketNotifier:
         self, source_word: str, target_language: str, validation_result: Any
     ):
         """Notify ALL subscribers that word validation failed."""
+        # Convert validation_result to dict if it's a Pydantic model
+        if hasattr(validation_result, "model_dump"):
+            result_dict = validation_result.model_dump()
+        elif hasattr(validation_result, "__dict__"):
+            result_dict = validation_result.__dict__
+        else:
+            result_dict = validation_result
+
         message = self._create_vocab_message(
             "validation_failed",
             source_word,
             target_language,
             "invalid",
             validation_result={
-                "is_valid": validation_result.get("is_valid", False),
-                "validation_issue": validation_result.get("validation_issue"),
-                "source_language": validation_result.get("source_language"),
-                "validation_suggestions": validation_result.get(
-                    "validation_suggestions", []
-                ),
+                "is_valid": result_dict.get("is_valid", False),
+                "validation_issue": result_dict.get("validation_issue"),
+                "source_language": result_dict.get("source_language"),
+                "validation_suggestions": result_dict.get("validation_suggestions", []),
             },
         )
         self._broadcast_to_vocab_word_subscribers(source_word, target_language, message)

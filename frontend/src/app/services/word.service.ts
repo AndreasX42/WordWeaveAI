@@ -16,7 +16,7 @@ interface SearchRequestBody {
 })
 export class WordService {
   private http = inject(HttpClient);
-  private apiUrl = `${Configs.BASE_URL}/vocabs`;
+  private apiUrl = `${Configs.BASE_URL}${Configs.WORDS_BASE_URL}`;
 
   private static readonly CACHE_MS = 15000;
 
@@ -127,9 +127,9 @@ export class WordService {
     forceRefresh = false
   ): Observable<VocabularyWord | null> {
     const key = `${pk}|${sk}`;
-    const url = `${Configs.BASE_URL}/vocab?pk=${encodeURIComponent(
-      pk
-    )}&sk=${encodeURIComponent(sk)}`;
+    const url = `${Configs.BASE_URL}${
+      Configs.WORDS_BASE_URL
+    }?pk=${encodeURIComponent(pk)}&sk=${encodeURIComponent(sk)}`;
 
     return this.getFromCacheOrFetch(
       key,
@@ -153,9 +153,11 @@ export class WordService {
     forceRefresh = false
   ): Observable<VocabularyWord | null> {
     const key = `${pk}|${sk}|${mediaRef}`;
-    const url = `${Configs.BASE_URL}/vocab?pk=${encodeURIComponent(
-      pk
-    )}&sk=${encodeURIComponent(sk)}&media_ref=${encodeURIComponent(mediaRef)}`;
+    const url = `${Configs.BASE_URL}${
+      Configs.WORDS_BASE_URL
+    }?pk=${encodeURIComponent(pk)}&sk=${encodeURIComponent(
+      sk
+    )}&media_ref=${encodeURIComponent(mediaRef)}`;
 
     return this.getFromCacheOrFetch(
       key,

@@ -28,4 +28,11 @@ export class Configs {
 
   // storage
   static readonly S3_BASE_URL = 'test-s3-url';
+
+  // word endpoints
+  static readonly WORDS_BASE_URL = '/vocabs';
+  static readonly WORD_REQUESTS_URL = `${Configs.WORDS_BASE_URL}/request`;
+
+  static readonly WEBSOCKET_URL =
+    'wss://mcjihxssd4.execute-api.us-east-1.amazonaws.com/prod/';
 }

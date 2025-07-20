@@ -83,7 +83,7 @@ async def fetch_photos(query: str | list[str], per_page: int = 3) -> list[PhotoO
                     )
 
             data = await response.json()
-            photos_data = data.get("photos", [])
+            photos_data: list[dict] = data.get("photos", [])
 
             # Clean up photo data structure
             for photo in photos_data:

@@ -141,11 +141,17 @@ async def check_word_exists(
     )
 
     try:
-        # First, try to read the existing item
+        # First, try to read the existing item (only needed attributes)
         response = await asyncio.to_thread(
             get_vocab_table().query,
             KeyConditionExpression="PK = :pk AND SK = :sk",
             ExpressionAttributeValues={":pk": pk, ":sk": sk},
+            ProjectionExpression="PK, SK, #pos, #source, media_ref, #status",
+            ExpressionAttributeNames={
+                "#pos": "POS",
+                "#source": "source",
+                "#status": "status",
+            },
         )
 
         items = response.get("Items", [])
@@ -165,6 +171,7 @@ async def check_word_exists(
                 return {"exists": True, "existing_item": existing_item}
 
         # Item doesn't exist - try to create a placeholder to claim it
+        ttl_timestamp = int((datetime.now(timezone.utc).timestamp()) + 600)
         placeholder_item = {
             "PK": pk,
             "SK": sk,
@@ -175,6 +182,7 @@ async def check_word_exists(
             "source_pos": normalized_pos,
             "created_at": datetime.now(timezone.utc).isoformat(),
             "schema_version": 1,
+            "ttl": ttl_timestamp,  # Auto-expire in 10 minutes
         }
 
         try:

@@ -150,6 +150,7 @@ public class DataStack extends Stack {
 						.build())
 				.billingMode(software.amazon.awscdk.services.dynamodb.BillingMode.PAY_PER_REQUEST)
 				.encryption(software.amazon.awscdk.services.dynamodb.TableEncryption.AWS_MANAGED)
+				.timeToLiveAttribute("ttl")
 				.pointInTimeRecoverySpecification(
 						software.amazon.awscdk.services.dynamodb.PointInTimeRecoverySpecification
 								.builder()

@@ -243,13 +243,36 @@
     "selectLanguage": "Select Language",
     "inputPlaceholder": "Enter a word to search",
     "button": "Search",
-    "noResults": "No results found"
+    "noResults": "No results found",
+    "wordAlreadyExists": "Word already exists",
+    "requestWord": {
+      "button": "Request Word",
+      "requesting": "Requesting...",
+      "success": "Word request submitted successfully!",
+      "error": "Failed to submit word request. Please try again.",
+      "dialog": {
+        "title": "Request Word",
+        "sourceWord": "Source Word",
+        "sourceWordPlaceholder": "Enter word to translate",
+        "sourceWordHint": "Use base form with modifiers like articles, prepositions (e.g., 'to run', 'the cat', 'la casa', 'der Baum')",
+        "sourceLanguage": "Source Language (Optional)",
+        "autoDetect": "Auto-detect",
+        "targetLanguage": "Target Language",
+        "submit": "Submit Request",
+        "existingResults": "This word already exists:"
+      },
+      "validation": {
+        "sourceWordRequired": "Please enter a word to translate",
+        "targetLanguageRequired": "Please select a target language",
+        "wordFormat": "Please enter a valid word"
+      }
+    }
   },
   "wordCard": {
     "loading": "Loading word...",
-    "errorTitle": "Word Not Found",
-    "notFound": "The requested word could not be found.",
-    "loadError": "Error loading word. Please try again.",
+    "creatingWord": "Creating word",
+    "errorTitle": "Error",
+    "loadError": "Could not load the word. Please try again later.",
     "addToList": "Add to list",
     "dictionary": "Dictionary",
     "examples": "Examples",
@@ -258,6 +281,8 @@
     "synonyms": "Synonyms",
     "definition": "Definition",
     "noExamples": "No examples available for this word.",
+    "noSynonyms": "No synonyms available for this word.",
+    "wordAlreadyExists": "Word already exists! Redirecting to existing entry.",
     "clickToPlay": "Click to play pronunciation",
     "createdBy": "Created by",
     "pos": {
@@ -297,6 +322,28 @@
         "vosotros_vosotras": "you all (informal)",
         "ellos_ellas_ustedes": "they/you all (formal)"
       }
+    },
+    "progress": {
+      "translation": "Translation",
+      "syllables": "Syllables",
+      "pronunciation": "Pronunciation",
+      "synonyms": "Synonyms",
+      "examples": "Examples",
+      "media": "Media",
+      "conjugation": "Conjugation"
+    },
+    "stages": {
+      "validation": "Validation",
+      "classification": "Classification",
+      "definition": "Definition",
+      "translation": "Translation",
+      "media": "Media",
+      "examples": "Examples",
+      "synonyms": "Synonyms",
+      "syllables": "Syllables",
+      "pronunciation": "Audio",
+      "conjugation": "Conjugation",
+      "finalQuality": "Quality"
     }
   }
 }

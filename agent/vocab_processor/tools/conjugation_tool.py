@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional
 
 from langchain_core.tools import tool
 from pydantic import BaseModel
@@ -12,10 +12,6 @@ from vocab_processor.tools.base_tool import (
     create_llm_response,
     create_tool_error_response,
 )
-
-ConjugationModels = Union[
-    EnglishVerbConjugation, GermanVerbConjugation, SpanishVerbConjugation
-]
 
 
 class ConjugationResponse(BaseModel):

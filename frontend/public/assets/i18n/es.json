@@ -243,13 +243,36 @@
     "selectLanguage": "Seleccionar idioma",
     "inputPlaceholder": "Ingresa una palabra",
     "button": "Buscar",
-    "noResults": "No se encontraron resultados"
+    "noResults": "No se encontraron resultados",
+    "wordAlreadyExists": "La palabra ya existe",
+    "requestWord": {
+      "button": "Solicitar Palabra",
+      "requesting": "Solicitando...",
+      "success": "¡Solicitud de palabra enviada con éxito!",
+      "error": "Error al enviar solicitud. Intenta de nuevo.",
+      "dialog": {
+        "title": "Solicitar Palabra",
+        "sourceWord": "Palabra de Origen",
+        "sourceWordPlaceholder": "Ingresa palabra a traducir",
+        "sourceWordHint": "Usa forma base con modificadores como artículos, preposiciones (ej., 'correr', 'la casa', 'the cat', 'der Baum')",
+        "sourceLanguage": "Idioma de Origen (Opcional)",
+        "autoDetect": "Detección automática",
+        "targetLanguage": "Idioma de Destino",
+        "submit": "Enviar Solicitud",
+        "existingResults": "Esta palabra ya existe:"
+      },
+      "validation": {
+        "sourceWordRequired": "Por favor ingresa una palabra a traducir",
+        "targetLanguageRequired": "Por favor selecciona un idioma de destino",
+        "wordFormat": "Por favor ingresa una palabra válida"
+      }
+    }
   },
   "wordCard": {
     "loading": "Cargando palabra...",
-    "errorTitle": "Palabra no encontrada",
-    "notFound": "No se pudo encontrar la palabra solicitada.",
-    "loadError": "Error al cargar. Por favor intenta de nuevo.",
+    "creatingWord": "Creando palabra",
+    "errorTitle": "Error",
+    "loadError": "No se pudo cargar la palabra. Por favor, inténtelo de nuevo más tarde.",
     "addToList": "Agregar a lista",
     "dictionary": "Diccionario",
     "examples": "Ejemplos",
@@ -258,6 +281,8 @@
     "synonyms": "Sinónimos",
     "definition": "Definición",
     "noExamples": "No hay ejemplos disponibles para esta palabra.",
+    "noSynonyms": "No hay sinónimos disponibles para esta palabra.",
+    "wordAlreadyExists": "¡La palabra ya existe! Redirigiendo a la entrada existente.",
     "clickToPlay": "Clic para escuchar",
     "createdBy": "Creado por",
     "pos": {
@@ -297,6 +322,15 @@
         "vosotros_vosotras": "vosotros/vosotras",
         "ellos_ellas_ustedes": "ellos/ellas/ustedes"
       }
+    },
+    "progress": {
+      "translation": "Traducción",
+      "syllables": "Sílabas",
+      "pronunciation": "Pronunciación",
+      "synonyms": "Sinónimos",
+      "examples": "Ejemplos",
+      "media": "Medios",
+      "conjugation": "Conjugación"
     }
   }
 }
