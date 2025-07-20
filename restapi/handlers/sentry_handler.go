@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/AndreasX42/restapi/domain/entities"
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
 )
@@ -181,9 +182,13 @@ func (h *SentryHandler) handleEnhancedError(hub *sentry.Hub, data map[string]any
 		scope.SetExtra("server_timestamp", time.Now().UTC())
 
 		// Get user information from JWT if available (will override frontend user if set)
-		if userID, exists := c.Get("user_id"); exists {
+		if user, exists := c.Get("principal"); exists {
+			user, ok := user.(*entities.User)
+			if !ok {
+				return
+			}
 			scope.SetUser(sentry.User{
-				ID: userID.(string),
+				ID: user.ID,
 			})
 		}
 
@@ -270,9 +275,13 @@ func (h *SentryHandler) handleSimpleLog(hub *sentry.Hub, data map[string]any, c 
 		}
 
 		// Get user information if available (from JWT claims)
-		if userID, exists := c.Get("user_id"); exists {
+		if user, exists := c.Get("principal"); exists {
+			user, ok := user.(*entities.User)
+			if !ok {
+				return
+			}
 			scope.SetUser(sentry.User{
-				ID: userID.(string),
+				ID: user.ID,
 			})
 		}
 

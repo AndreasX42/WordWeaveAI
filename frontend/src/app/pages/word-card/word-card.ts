@@ -524,7 +524,9 @@ export class WordCard implements OnInit, OnDestroy {
         break;
       case 'redirect':
         console.log('🔄 Word already exists - redirecting:', notification);
-        this.handleWordExistsRedirect(notification.word_data);
+        if (notification.word_data) {
+          this.handleWordExistsRedirect(notification.word_data);
+        }
         break;
       case 'failed':
         console.log('❌ Word creation failed:', notification);
@@ -537,9 +539,17 @@ export class WordCard implements OnInit, OnDestroy {
         // Set validation error details for UI display
         if (notification.word_data) {
           this.validationError = {
-            issue: notification.word_data.validation_issue,
-            detectedLanguage: notification.word_data.source_language,
-            suggestions: notification.word_data.validation_suggestions || [],
+            issue: notification.word_data['validation_issue'] as
+              | string
+              | undefined,
+            detectedLanguage: notification.word_data['source_language'] as
+              | string
+              | undefined,
+            suggestions:
+              (notification.word_data['validation_suggestions'] as {
+                word: string;
+                language: string;
+              }[]) || [],
           };
           // Set a simple error message since detailed info is in validationError
           this.error = 'Word validation failed';

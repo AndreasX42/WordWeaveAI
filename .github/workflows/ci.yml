@@ -141,6 +141,10 @@ jobs:
         working-directory: ./restapi
         run: go mod download
 
+      - name: Build Go application
+        working-directory: ./restapi
+        run: go build -v ./...
+
       - name: Run unit tests
         working-directory: ./restapi
         run: make test-unit

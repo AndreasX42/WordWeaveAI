@@ -101,7 +101,6 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 		// Search and vocab routes
 		api.POST("/search", container.SearchHandler.SearchVocabulary)
 		api.GET("/vocabs", container.SearchHandler.GetVocabularyByPkSk)
-		api.POST("/vocabs/request")
 		api.GET("/vocabs/:sourceLanguage/:targetLanguage/:pos/:word", container.SearchHandler.GetVocabularyByParams)
 
 		// JWT routes
@@ -123,6 +122,9 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 			userRoutes := authenticated.Group("/users")
 			userRoutes.DELETE("/delete", container.UserHandler.Delete)
 			userRoutes.PUT("/update", container.UserHandler.Update)
+
+			// Vocabulary request routes (authenticated)
+			authenticated.POST("/vocabs/request", container.VocabRequestHandler.RequestVocab)
 
 			// Logging routes
 			// authenticated.POST("/log", container.SentryHandler.LogEvent)

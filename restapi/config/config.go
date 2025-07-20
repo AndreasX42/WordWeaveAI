@@ -16,6 +16,7 @@ import (
 	"github.com/AndreasX42/restapi/utils"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ses"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/guregu/dynamo/v2"
 )
 
@@ -33,10 +34,12 @@ type Container struct {
 	HealthHandler        *handlers.HealthHandler
 	SearchHandler        *handlers.SearchHandler
 	VocabListHandler     *handlers.VocabListHandler
+	VocabRequestHandler  *handlers.VocabRequestHandler
 	OAuthHandler         *handlers.OAuthHandler
 	SentryHandler        *handlers.SentryHandler
 	DynamoDB             *dynamo.DB
 	SESClient            *ses.Client
+	SQSClient            *sqs.Client
 	GoogleOAuthConfig    *GoogleOAuthConfig
 	SentryConfig         *SentryConfig
 }
@@ -120,6 +123,9 @@ func (c *Container) initAWS() {
 	// Initialize SES with explicit TLS enforcement
 	c.SESClient = ses.NewFromConfig(cfg)
 
+	// Initialize SQS client
+	c.SQSClient = sqs.NewFromConfig(cfg)
+
 	log.Println("AWS services initialized with TLS enforcement")
 }
 
@@ -157,6 +163,7 @@ func (c *Container) initHandlers() {
 	c.HealthHandler = handlers.NewHealthHandler(c.DynamoDB)
 	c.SearchHandler = handlers.NewSearchHandler(c.VocabService)
 	c.VocabListHandler = handlers.NewVocabListHandler(c.VocabListService)
+	c.VocabRequestHandler = handlers.NewVocabRequestHandler(c.SQSClient)
 	c.OAuthHandler = handlers.NewOAuthHandler(c.UserService, c.GoogleOAuthConfig.Config)
 	c.SentryHandler = handlers.NewSentryHandler(c.SentryConfig.Client)
 }

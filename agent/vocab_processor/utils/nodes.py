@@ -498,13 +498,13 @@ async def node_get_conjugation(state: VocabState) -> VocabState:
     logger.debug(
         "conjugation_result",
         word=state.target_word,
-        conjugation=result.get("conjugation", None),
+        conjugation=result.get("result", None),
         quality_approved=result.get("conjugation_quality_approved", False),
         quality_score=result.get("conjugation_quality_score", 0.0),
     )
 
     return {
-        "conjugation": result.get("conjugation", None),
+        "conjugation": result.get("result", None),
         "conjugation_quality_approved": result.get(
             "conjugation_quality_approved", False
         ),

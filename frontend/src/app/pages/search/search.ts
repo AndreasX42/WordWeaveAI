@@ -371,7 +371,7 @@ export class SearchComponent implements OnInit, OnDestroy {
     switch (notification.status) {
       case 'completed':
         this.messageService.showSuccessMessage(
-          `Word "${notification.word_data?.source_word}" has been created and is now available!`
+          `Word "${notification.word_data?.['source_word']}" has been created and is now available!`
         );
         // Optionally refresh search results
         if (this.searchControl.value?.trim()) {
@@ -385,7 +385,7 @@ export class SearchComponent implements OnInit, OnDestroy {
         break;
       case 'processing':
         this.messageService.showInfoMessage(
-          `Creating word "${notification.word_data?.source_word}"...`
+          `Creating word "${notification.word_data?.['source_word']}"...`
         );
         break;
     }

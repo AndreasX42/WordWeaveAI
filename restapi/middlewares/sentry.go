@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/AndreasX42/restapi/config"
+	"github.com/AndreasX42/restapi/domain/entities"
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
 )
@@ -31,9 +32,13 @@ func SentryMiddleware(sentryConfig *config.SentryConfig) gin.HandlerFunc {
 		hub.Scope().SetTag("method", c.Request.Method)
 
 		// Get user information if available (from JWT claims)
-		if userID, exists := c.Get("user_id"); exists {
+		if user, exists := c.Get("principal"); exists {
+			user, ok := user.(*entities.User)
+			if !ok {
+				return
+			}
 			hub.Scope().SetUser(sentry.User{
-				ID: fmt.Sprintf("%v", userID),
+				ID: user.ID,
 			})
 		}
 
