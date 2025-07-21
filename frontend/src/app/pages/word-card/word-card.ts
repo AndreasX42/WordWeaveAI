@@ -37,12 +37,13 @@ import {
 import { getLanguageConfig, LanguageConfig } from './conjugation.config';
 import { Configs } from '../../shared/config';
 import { Subscription } from 'rxjs';
+import { Location } from '@angular/common';
 
 interface ProcessingStage {
   id: string;
   name: string;
   icon: string;
-  status: 'pending' | 'completed' | 'failed';
+  status: 'pending' | 'active' | 'completed' | 'failed';
   category: 'sequential' | 'parallel' | 'final';
   order: number;
   description: string;
@@ -57,14 +58,17 @@ interface WordRequestData {
 interface WordNotificationData {
   source_word?: string;
   source_article?: string | null;
+  source_additional_info?: string;
   target_word?: string;
   target_article?: string | null;
+  target_additional_info?: string;
   source_definition?: string[];
   source_language?: string;
   target_pos?: string;
   target_part_of_speech?: string;
   target_syllables?: string[];
   target_phonetic_guide?: string;
+  target_plural_form?: string | null;
   synonyms?: Synonym[];
   examples?: Example[];
   conjugation_table?: ConjugationTable | string;
@@ -117,6 +121,7 @@ export class WordCard implements OnInit, OnDestroy {
   route = inject(ActivatedRoute);
   router = inject(Router);
   cdr = inject(ChangeDetectorRef);
+  private location = inject(Location);
 
   word: VocabularyWord | null = null;
   loading = true;
@@ -478,6 +483,9 @@ export class WordCard implements OnInit, OnDestroy {
       targetPos: true,
     };
 
+    // Initialize processing stages and activate the first stage
+    this.initializeProcessingStages();
+
     this.langConfig = getLanguageConfig(this.word);
     this.loading = true; // Keep loading state for skeleton
     console.log(
@@ -643,12 +651,18 @@ export class WordCard implements OnInit, OnDestroy {
     if (Object.prototype.hasOwnProperty.call(data, 'source_article')) {
       this.word.source_article = data.source_article;
     }
+    if (Object.prototype.hasOwnProperty.call(data, 'source_additional_info')) {
+      this.word.source_additional_info = data.source_additional_info;
+    }
     if (Object.prototype.hasOwnProperty.call(data, 'target_word')) {
       this.word.target_word = data.target_word || '';
       this.loadingStates.targetWord = false;
     }
     if (Object.prototype.hasOwnProperty.call(data, 'target_article')) {
       this.word.target_article = data.target_article;
+    }
+    if (Object.prototype.hasOwnProperty.call(data, 'target_additional_info')) {
+      this.word.target_additional_info = data.target_additional_info;
     }
     if (Object.prototype.hasOwnProperty.call(data, 'source_definition')) {
       this.word.source_definition = data.source_definition || [];
@@ -674,6 +688,9 @@ export class WordCard implements OnInit, OnDestroy {
     if (Object.prototype.hasOwnProperty.call(data, 'target_phonetic_guide')) {
       this.word.target_phonetic_guide = data.target_phonetic_guide || '';
       this.loadingStates.pronunciation = false;
+    }
+    if (Object.prototype.hasOwnProperty.call(data, 'target_plural_form')) {
+      this.word.target_plural_form = data.target_plural_form;
     }
     if (Object.prototype.hasOwnProperty.call(data, 'synonyms')) {
       this.word.synonyms = data.synonyms || [];
@@ -778,7 +795,9 @@ export class WordCard implements OnInit, OnDestroy {
     console.log('🔄 Updating stages from WebSocket data:', data);
 
     // Sequential stages - based on quality approvals or data presence
-    this.updateStageStatus('validation', data.validation_quality_approved);
+    if (data.validation_quality_approved) {
+      this.updateStageStatus('validation', true);
+    }
 
     // Classification stage completion also resolves definition loading
     if (data.classification_quality_approved) {
@@ -790,9 +809,16 @@ export class WordCard implements OnInit, OnDestroy {
       );
     }
 
-    this.updateStageStatus('translation', data.translation_quality_approved);
+    if (data.translation_quality_approved) {
+      this.updateStageStatus('translation', true);
+    }
 
-    // Parallel stages
+    // Parallel stages - activate them when translation is done
+    if (data.translation_quality_approved) {
+      this.activateParallelStages();
+    }
+
+    // Update parallel stages based on quality approvals
     this.updateStageStatus('media', data.media_quality_approved);
     this.updateStageStatus('examples', data.examples_quality_approved);
     this.updateStageStatus('synonyms', data.synonyms_quality_approved);
@@ -834,14 +860,51 @@ export class WordCard implements OnInit, OnDestroy {
       if (stage && stage.status !== 'completed') {
         stage.status = 'completed';
         console.log(`✅ Stage '${stageId}' marked as completed`);
+        // Activate next sequential stage if this was a sequential stage
+        this.activateNextSequentialStage(stageId);
       }
     }
+  }
+
+  private activateNextSequentialStage(completedStageId: string): void {
+    const completedStage = this.processingStages.find(
+      (s) => s.id === completedStageId
+    );
+    if (!completedStage || completedStage.category !== 'sequential') return;
+
+    // Find the next sequential stage
+    const nextSequentialStage = this.processingStages.find(
+      (s) => s.category === 'sequential' && s.order === completedStage.order + 1
+    );
+
+    if (nextSequentialStage && nextSequentialStage.status === 'pending') {
+      nextSequentialStage.status = 'active';
+      console.log(`🔄 Stage '${nextSequentialStage.id}' activated`);
+    } else if (completedStage.order === 3) {
+      // After translation (order 3), activate all parallel stages
+      this.activateParallelStages();
+    }
+  }
+
+  private activateParallelStages(): void {
+    this.processingStages.forEach((stage) => {
+      if (stage.category === 'parallel' && stage.status === 'pending') {
+        stage.status = 'active';
+        console.log(`🔄 Parallel stage '${stage.id}' activated`);
+      }
+    });
   }
 
   private initializeProcessingStages(): void {
     this.processingStages.forEach((stage) => {
       stage.status = 'pending';
     });
+    // Activate the first stage (validation) when starting
+    const firstStage = this.processingStages.find((s) => s.order === 1);
+    if (firstStage) {
+      firstStage.status = 'active';
+      console.log(`🔄 First stage '${firstStage.id}' activated`);
+    }
   }
 
   private setAllStagesCompleted(): void {
@@ -917,17 +980,37 @@ export class WordCard implements OnInit, OnDestroy {
     const pos = this.route.snapshot.paramMap.get('pos');
 
     if (sourceLanguage && targetLanguage && word) {
+      // Decode the word parameter to handle special characters like ß
+      const decodedWord = decodeURIComponent(word).toLowerCase().trim();
+
       // With POS - construct PK/SK and fetch directly
-      const pk = `SRC#${sourceLanguage}#${word.toLowerCase().trim()}`;
+      const pk = `SRC#${sourceLanguage}#${decodedWord}`;
       let sk = `TGT#${targetLanguage}`;
       if (pos && pos !== 'pending') {
         sk += `#POS#${pos.toLowerCase().trim()}`;
       }
+
       this.loadWordByPkSk(pk, sk);
     } else {
       this.error =
         'Invalid parameters: missing source language, target language, or word';
       this.loading = false;
+    }
+  }
+
+  // Fix URL when it shows "pending" instead of correct POS after DDB hit
+  private fixPendingUrlIfNeeded(word: VocabularyWord): void {
+    const currentUrl = this.location.path();
+    if (currentUrl.includes('/pending/')) {
+      // Extract POS from SK: "TGT#es#POS#noun" -> "noun"
+      const skParts = word.sk.split('#');
+      const posIndex = skParts.findIndex((part) => part === 'POS');
+      if (posIndex !== -1 && posIndex + 1 < skParts.length) {
+        const correctPos = skParts[posIndex + 1];
+        const newUrl = currentUrl.replace('/pending/', `/${correctPos}/`);
+        this.location.replaceState(newUrl);
+        console.log('🔄 URL updated from pending to correct POS:', correctPos);
+      }
     }
   }
 
@@ -940,6 +1023,7 @@ export class WordCard implements OnInit, OnDestroy {
           this.word = data;
           this.langConfig = getLanguageConfig(this.word);
           this.setAllLoadingStates(false); // Word is fully loaded
+          this.fixPendingUrlIfNeeded(data); // Fix URL if it shows "pending"
         } else {
           this.error = this.translationService.translate('wordCard.notFound');
         }
@@ -962,7 +1046,8 @@ export class WordCard implements OnInit, OnDestroy {
         if (data) {
           this.word = data;
           this.langConfig = getLanguageConfig(this.word);
-          this.setAllLoadingStates(false); // Word is fully loaded
+          this.setAllLoadingStates(false);
+          this.fixPendingUrlIfNeeded(data); // Fix URL if it shows "pending"
         } else {
           this.error = this.translationService.translate('wordCard.notFound');
         }

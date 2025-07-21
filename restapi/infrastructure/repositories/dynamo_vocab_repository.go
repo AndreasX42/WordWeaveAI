@@ -36,31 +36,32 @@ type DynamoVocabRepository struct {
 
 // VocabRecord represents the DynamoDB storage format for vocabulary entries
 type VocabRecord struct {
-	PK               string              `dynamo:"PK,hash"`
-	SK               string              `dynamo:"SK,range"`
-	LKP              string              `dynamo:"LKP" index:"ReverseLookupIndex,hash"`
-	SrcLang          string              `dynamo:"SRC_LANG" index:"ReverseLookupIndex,range"`
-	ConjugationTable interface{}         `dynamo:"conjugation_table"`
-	CreatedAt        string              `dynamo:"created_at"`
-	CreatedBy        string              `dynamo:"created_by"`
-	EnglishWord      string              `dynamo:"english_word" index:"EnglishMediaLookupIndex,hash"`
-	Examples         []map[string]string `dynamo:"examples"`
-	MediaRef         string              `dynamo:"media_ref"`
-	Pronunciations   map[string]string   `dynamo:"pronunciations"`
-	PhoneticGuide    string              `dynamo:"target_phonetic_guide"`
-	SourceDefinition []string            `dynamo:"source_definition"`
-	SourceLanguage   string              `dynamo:"source_language"`
-	SourcePos        string              `dynamo:"source_pos"`
-	SourceWord       string              `dynamo:"source_word"`
-	SourceArticle    string              `dynamo:"source_article"`
-	Syllables        []string            `dynamo:"target_syllables"`
-	Synonyms         []map[string]string `dynamo:"synonyms"`
-	TargetLanguage   string              `dynamo:"target_language"`
-	TargetPos        string              `dynamo:"target_pos"`
-	TargetWord       string              `dynamo:"target_word"`
-	TargetArticle    string              `dynamo:"target_article"`
-	SourceAddInfo    string              `dynamo:"source_additional_info"`
-	TargetAddInfo    string              `dynamo:"target_additional_info"`
+	PK               string      `dynamo:"PK,hash"`
+	SK               string      `dynamo:"SK,range"`
+	LKP              string      `dynamo:"LKP" index:"ReverseLookupIndex,hash"`
+	SrcLang          string      `dynamo:"SRC_LANG" index:"ReverseLookupIndex,range"`
+	ConjugationTable interface{} `dynamo:"conjugation_table"`
+	CreatedAt        string      `dynamo:"created_at"`
+	CreatedBy        string      `dynamo:"created_by"`
+	EnglishWord      string      `dynamo:"english_word" index:"EnglishMediaLookupIndex,hash"`
+	Examples         interface{} `dynamo:"examples"` // Can be JSON string or []map[string]string
+	MediaRef         string      `dynamo:"media_ref"`
+	Pronunciations   interface{} `dynamo:"pronunciations"` // Can be JSON string or map[string]string
+	PhoneticGuide    string      `dynamo:"target_phonetic_guide"`
+	SourceDefinition []string    `dynamo:"source_definition"`
+	SourceLanguage   string      `dynamo:"source_language"`
+	SourcePos        string      `dynamo:"source_pos"`
+	SourceWord       string      `dynamo:"source_word"`
+	SourceArticle    string      `dynamo:"source_article"`
+	Syllables        []string    `dynamo:"target_syllables"`
+	Synonyms         interface{} `dynamo:"synonyms"` // Can be string (JSON) or []map[string]string
+	TargetLanguage   string      `dynamo:"target_language"`
+	TargetPos        string      `dynamo:"target_pos"`
+	TargetWord       string      `dynamo:"target_word"`
+	TargetArticle    string      `dynamo:"target_article"`
+	SourceAddInfo    string      `dynamo:"source_additional_info"`
+	TargetAddInfo    string      `dynamo:"target_additional_info"`
+	TargetPluralForm string      `dynamo:"target_plural_form"`
 }
 
 // NewDynamoVocabRepository creates a new DynamoDB vocabulary repository
@@ -68,6 +69,140 @@ func NewDynamoVocabRepository(table dynamo.Table) repositories.VocabRepository {
 	return &DynamoVocabRepository{
 		table: table,
 	}
+}
+
+// parseSynonyms parses both JSON string format and native array format to []map[string]string
+func parseSynonyms(synonymsData interface{}) []map[string]string {
+	if synonymsData == nil {
+		return []map[string]string{}
+	}
+
+	// Handle JSON string format (from Python agent)
+	if synonymsStr, ok := synonymsData.(string); ok {
+		var synonymsJSON []map[string]interface{}
+		if err := json.Unmarshal([]byte(synonymsStr), &synonymsJSON); err != nil {
+			return []map[string]string{}
+		}
+
+		result := make([]map[string]string, 0)
+
+		// Convert synonyms
+		for _, syn := range synonymsJSON {
+			synMap := make(map[string]string)
+			for k, v := range syn {
+				synMap[k] = fmt.Sprintf("%v", v)
+			}
+			result = append(result, synMap)
+		}
+
+		return result
+	}
+
+	// Handle native array format (legacy or direct assignment)
+	if synonymsArray, ok := synonymsData.([]map[string]string); ok {
+		return synonymsArray
+	}
+
+	// Handle interface{} slice format that might come from DynamoDB
+	if synonymsInterface, ok := synonymsData.([]interface{}); ok {
+		result := make([]map[string]string, 0, len(synonymsInterface))
+		for _, item := range synonymsInterface {
+			if itemMap, ok := item.(map[string]interface{}); ok {
+				synMap := make(map[string]string)
+				for k, v := range itemMap {
+					synMap[k] = fmt.Sprintf("%v", v)
+				}
+				result = append(result, synMap)
+			}
+		}
+		return result
+	}
+
+	return []map[string]string{}
+}
+
+// parseExamples parses examples from JSON string or native format
+func parseExamples(examplesData interface{}) []map[string]string {
+	if examplesData == nil {
+		return []map[string]string{}
+	}
+
+	// Handle JSON string format
+	if examplesStr, ok := examplesData.(string); ok {
+		var examples []map[string]interface{}
+		if err := json.Unmarshal([]byte(examplesStr), &examples); err != nil {
+			return []map[string]string{}
+		}
+
+		result := make([]map[string]string, 0, len(examples))
+		for _, ex := range examples {
+			exMap := make(map[string]string)
+			for k, v := range ex {
+				exMap[k] = fmt.Sprintf("%v", v)
+			}
+			result = append(result, exMap)
+		}
+		return result
+	}
+
+	// Handle native format
+	if examplesArray, ok := examplesData.([]map[string]string); ok {
+		return examplesArray
+	}
+
+	// Handle interface{} slice
+	if examplesInterface, ok := examplesData.([]interface{}); ok {
+		result := make([]map[string]string, 0, len(examplesInterface))
+		for _, item := range examplesInterface {
+			if itemMap, ok := item.(map[string]interface{}); ok {
+				exMap := make(map[string]string)
+				for k, v := range itemMap {
+					exMap[k] = fmt.Sprintf("%v", v)
+				}
+				result = append(result, exMap)
+			}
+		}
+		return result
+	}
+
+	return []map[string]string{}
+}
+
+// parsePronunciations parses pronunciations from JSON string or native format
+func parsePronunciations(pronunciationsData interface{}) map[string]string {
+	if pronunciationsData == nil {
+		return map[string]string{}
+	}
+
+	// Handle JSON string format
+	if pronunciationsStr, ok := pronunciationsData.(string); ok {
+		var pronunciations map[string]interface{}
+		if err := json.Unmarshal([]byte(pronunciationsStr), &pronunciations); err != nil {
+			return map[string]string{}
+		}
+
+		result := make(map[string]string)
+		for k, v := range pronunciations {
+			result[k] = fmt.Sprintf("%v", v)
+		}
+		return result
+	}
+
+	// Handle native format
+	if pronunciationsMap, ok := pronunciationsData.(map[string]string); ok {
+		return pronunciationsMap
+	}
+
+	// Handle interface{} map
+	if pronunciationsInterface, ok := pronunciationsData.(map[string]interface{}); ok {
+		result := make(map[string]string)
+		for k, v := range pronunciationsInterface {
+			result[k] = fmt.Sprintf("%v", v)
+		}
+		return result
+	}
+
+	return map[string]string{}
 }
 
 // toVocabRecord converts domain entity to DynamoDB record
@@ -101,6 +236,7 @@ func (r *DynamoVocabRepository) toVocabRecord(vocab *entities.VocabWord) VocabRe
 		TargetPos:        vocab.TargetPos,
 		SourceAddInfo:    vocab.SourceAddInfo,
 		TargetAddInfo:    vocab.TargetAddInfo,
+		TargetPluralForm: vocab.TargetPluralForm,
 	}
 }
 
@@ -118,10 +254,10 @@ func (r *DynamoVocabRepository) toEntity(record VocabRecord) *entities.VocabWord
 		TargetWord:       record.TargetWord,
 		TargetLanguage:   record.TargetLanguage,
 		TargetArticle:    record.TargetArticle,
-		Examples:         record.Examples,
-		Synonyms:         record.Synonyms,
+		Examples:         parseExamples(record.Examples),
+		Synonyms:         parseSynonyms(record.Synonyms),
 		MediaRef:         record.MediaRef,
-		Pronunciations:   record.Pronunciations,
+		Pronunciations:   parsePronunciations(record.Pronunciations),
 		PhoneticGuide:    record.PhoneticGuide,
 		EnglishWord:      record.EnglishWord,
 		ConjugationTable: convertToString(record.ConjugationTable),
@@ -132,6 +268,7 @@ func (r *DynamoVocabRepository) toEntity(record VocabRecord) *entities.VocabWord
 		TargetPos:        record.TargetPos,
 		SourceAddInfo:    record.SourceAddInfo,
 		TargetAddInfo:    record.TargetAddInfo,
+		TargetPluralForm: record.TargetPluralForm,
 	}
 }
 

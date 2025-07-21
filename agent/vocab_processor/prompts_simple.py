@@ -162,23 +162,22 @@ SYNONYMS_PROMPT_TEMPLATE = PromptTemplate(
 
 **Analysis and Instructions:**
 1. First, determine if common synonyms for '{target_word}' exist in {target_language}
-2. If no common synonyms exist, you must add a note in {source_language} to briefly explain why no direct synonym exists (max 500 characters)
-3. If possible, provide at least 1 to a maximum of 3 of the most commonly used words or concepts
-4. For each synonym, the explanation must be in {source_language} and clarify the nuances and differences compared to '{target_word}'. Make it clear and concise (maximum 3 sentences, no more than 100 words)
+2. If possible, provide at least 1 to a maximum of 3 of the most commonly used words or concepts
+3. If there are no good synonyms, just return an empty list
+3. For each synonym, the explanation must be in {source_language} and clarify the nuances and differences compared to '{target_word}'. Make it clear and concise (maximum 3 sentences, no more than 100 words)
 
 **Task:**
 1. Determine if common synonyms exist
-2. If no synonyms: explain briefly in {source_language}
-3. Provide 1-3 most common synonyms
-4. Explain nuances/differences in {source_language} (max 100 words each)
+2. Provide 1-3 most common synonyms (empty list if none exist)
+3. Explain nuances/differences in {source_language} (max 100 words each)
 
 **Quality Requirements:**
 - Start with most common synonyms in {target_language}
 - If no common synonyms, try to provide synonyms that are very close in meaning
 - Clear explanations of differences in {source_language}
-- If no synonyms exist, return empty list with explanation
+- If no good synonyms exist, return empty list
 - Focus on closest related concepts, not meta-commentary
-- If synonyms are uncommon but valid, note this in explanation
+- If synonyms are uncommon but valid, mention this in the synonym's explanation
 - Explanations must concisely clarify subtle differences in meaning and usage and include special context, meaning, and regional usage, but must be concise (max 300 characters each)
 """
 )

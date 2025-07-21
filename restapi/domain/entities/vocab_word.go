@@ -28,6 +28,7 @@ type VocabWord struct {
 	TargetPos        string              `json:"target_pos"`
 	SourceAddInfo    string              `json:"source_additional_info"`
 	TargetAddInfo    string              `json:"target_additional_info"`
+	TargetPluralForm string              `json:"target_plural_form"`
 }
 
 // VocabKey represents a vocabulary table key pair

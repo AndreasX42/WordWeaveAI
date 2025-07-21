@@ -18,6 +18,7 @@ export interface VocabularyWord {
   target_syllables: string[];
   target_phonetic_guide: string;
   target_additional_info?: string | null;
+  target_plural_form?: string | null;
 
   // Additional fields
   english_word?: string;
@@ -45,8 +46,8 @@ export interface SearchResponse {
 }
 
 export interface Synonym {
-  synonym: string;
-  explanation: string;
+  synonym?: string;
+  explanation?: string;
 }
 
 export interface Example {
@@ -65,7 +66,7 @@ export type ConjugationTable = Record<string, Mood | NonPersonalForms>;
 
 export interface Pronunciation {
   audio: string;
-  syllables: string;
+  syllables?: string;
 }
 
 export interface MediaSource {

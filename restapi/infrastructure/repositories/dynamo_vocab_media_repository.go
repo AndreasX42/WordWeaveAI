@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -18,15 +19,47 @@ type DynamoVocabMediaRepository struct {
 
 // VocabMediaRecord represents the DynamoDB storage format for media entries
 type VocabMediaRecord struct {
-	PK            string         `dynamo:"PK,hash"`
-	Media         map[string]any `dynamo:"media,omitempty"`
-	SearchTerm    string         `dynamo:"search_term,omitempty"`
-	MediaRef      string         `dynamo:"media_ref,omitempty"`
-	UsageCount    int            `dynamo:"usage_count,omitempty"`
-	LastUsed      string         `dynamo:"last_used,omitempty"`
-	CreatedAt     string         `dynamo:"created_at,omitempty"`
-	ItemType      string         `dynamo:"item_type"`
-	SchemaVersion int            `dynamo:"schema_version"`
+	PK            string      `dynamo:"PK,hash"`
+	Media         interface{} `dynamo:"media,omitempty"`
+	SearchTerm    string      `dynamo:"search_term,omitempty"`
+	MediaRef      string      `dynamo:"media_ref,omitempty"`
+	UsageCount    int         `dynamo:"usage_count,omitempty"`
+	LastUsed      string      `dynamo:"last_used,omitempty"`
+	CreatedAt     string      `dynamo:"created_at,omitempty"`
+	ItemType      string      `dynamo:"item_type"`
+	SchemaVersion int         `dynamo:"schema_version"`
+}
+
+// parseMedia parses both JSON string format and native map format to map[string]any
+func parseMedia(mediaData interface{}) map[string]any {
+	if mediaData == nil {
+		return map[string]any{}
+	}
+
+	// Handle JSON string format (from Python agent)
+	if mediaStr, ok := mediaData.(string); ok {
+		var mediaMap map[string]any
+		if err := json.Unmarshal([]byte(mediaStr), &mediaMap); err != nil {
+			return map[string]any{}
+		}
+		return mediaMap
+	}
+
+	// Handle native map format
+	if mediaMap, ok := mediaData.(map[string]any); ok {
+		return mediaMap
+	}
+
+	// Handle map[string]interface{} format that might come from DynamoDB
+	if mediaInterface, ok := mediaData.(map[string]interface{}); ok {
+		result := make(map[string]any)
+		for k, v := range mediaInterface {
+			result[k] = v
+		}
+		return result
+	}
+
+	return map[string]any{}
 }
 
 // NewDynamoVocabMediaRepository creates a new DynamoDB vocabulary media repository
@@ -48,7 +81,7 @@ func (r *DynamoVocabMediaRepository) GetMediaByRef(ctx context.Context, mediaRef
 		return nil, fmt.Errorf("failed to get media: %w", err)
 	}
 
-	return record.Media, nil
+	return parseMedia(record.Media), nil
 }
 
 // GetMediaBySearchTerms finds media by searching through multiple search terms

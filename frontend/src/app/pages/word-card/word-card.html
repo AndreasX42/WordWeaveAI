@@ -104,14 +104,27 @@
           <!-- Pronunciation - Progressive Loading -->
           @if (loadingStates.syllables && isRequestMode) {
           <div class="skeleton-line skeleton-pronunciation"></div>
+          <div class="skeleton-line skeleton-plural"></div>
           } @else if (hasTargetSyllables) {
           <div class="pronunciation">
-            ({{ word.target_syllables.join("-") }}) @if
+            ({{ word.target_syllables.join("·") }}) @if
             (word.target_phonetic_guide) {
             <span class="phonetic-guide">
               [{{ word.target_phonetic_guide }}]
             </span>
+            } @if (word.target_plural_form) {
+            <div class="plural-form">
+              <span class="plural-label">Pl.:</span>
+              <span class="plural-word">{{ word.target_plural_form }}</span>
+            </div>
             }
+          </div>
+          } @else if (word.target_plural_form) {
+          <div class="pronunciation">
+            <div class="plural-form">
+              <span class="plural-label">Pl.:</span>
+              <span class="plural-word">{{ word.target_plural_form }}</span>
+            </div>
           </div>
           }
         </div>
@@ -186,6 +199,7 @@
           <div
             class="stage-pill"
             [class.completed]="stage.status === 'completed'"
+            [class.active]="stage.status === 'active'"
             [class.pending]="stage.status === 'pending'"
             [title]="stage.name | translate"
           >

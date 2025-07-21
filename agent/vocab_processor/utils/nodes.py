@@ -308,6 +308,7 @@ async def node_get_translation(state: VocabState) -> VocabState:
         "target_part_of_speech": result.get("target_part_of_speech"),
         "target_article": result.get("target_article"),
         "target_additional_info": result.get("target_additional_info"),
+        "target_plural_form": result.get("target_plural_form"),
         "english_word": result.get("english_word"),
         "translation_quality_approved": result.get(
             "translation_quality_approved", False

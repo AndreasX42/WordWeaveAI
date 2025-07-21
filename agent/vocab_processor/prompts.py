@@ -151,9 +151,8 @@ SYNONYMS_PROMPT_TEMPLATE = PromptTemplate(
 
 **Analysis and Instructions:**
 1.  First, determine if common synonyms for '{target_word}' exist in {target_language}.
-2.  If no common synonyms exist, you must add a note in the source language '{source_language}' to very briefly explain why no direct synonym exists.
-3.  If possible, provide at least 1 to a maximum 3 of the most commonly words or concepts.
-4.  For each synonym, the explanation has to be in the source language {source_language} and clarify the nuances and differences of the synonym compared to '{target_word}'. Make it clear and concise, should be maximum 3 sentences and no more than 100 words.
+2.  If possible, provide at least 1 to a maximum 3 of the most commonly words or concepts.
+3.  For each synonym, the explanation has to be in the source language {source_language} and clarify the nuances and differences of the synonym compared to '{target_word}'. Make it clear and concise, should be maximum 3 sentences and no more than 100 words.
 
 **Input Word:** '{target_word}'
 """,

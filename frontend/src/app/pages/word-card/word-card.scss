@@ -104,6 +104,26 @@
   line-height: 1.2;
 }
 
+.plural-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  color: var(--mat-text-secondary-color);
+  font-size: 0.9rem;
+}
+
+.plural-label {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--mat-text-secondary-color);
+}
+
+.plural-word {
+  color: var(--mat-text-secondary-color);
+  font-weight: 500;
+}
+
 .add-to-list-button {
   position: absolute;
   top: 1rem;
@@ -1430,6 +1450,12 @@
   margin-top: 0.5rem;
 }
 
+.skeleton-line.skeleton-plural {
+  width: 35%;
+  height: 0.9rem;
+  margin-top: 0.5rem;
+}
+
 .skeleton-line.skeleton-language-info {
   width: 60%;
   height: 24px;
@@ -1815,7 +1841,7 @@
       letter-spacing: 0.025em;
     }
 
-    // Modern pending state
+    // Pending state - no hover effects
     &.pending {
       border-color: rgba(226, 232, 240, 0.8);
       background: linear-gradient(145deg, #f8fafc, #f1f5f9);
@@ -1827,15 +1853,30 @@
       .stage-name {
         color: #64748b;
       }
+    }
 
-      &:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    // Active state with pulsing animation
+    &.active {
+      border-color: rgba(59, 130, 246, 0.4);
+      background: linear-gradient(
+        145deg,
+        rgba(59, 130, 246, 0.1),
+        rgba(37, 99, 235, 0.05)
+      );
+      animation: pulse-active 2s ease-in-out infinite;
+
+      .stage-icon {
+        color: #3b82f6;
+        animation: pulse-icon 2s ease-in-out infinite;
+      }
+
+      .stage-name {
+        color: #1d4ed8;
+        font-weight: 600;
       }
     }
 
-    // Modern completed state with gradient
+    // Completed state - simple greenish success, no hover effects
     &.completed {
       border-color: rgba(34, 197, 94, 0.3);
       background: linear-gradient(
@@ -1843,155 +1884,38 @@
         rgba(34, 197, 94, 0.1),
         rgba(22, 163, 74, 0.05)
       );
-      transform: translateY(-2px);
-
-      // Modern success shadow
-      box-shadow: 0 10px 15px -3px rgba(34, 197, 94, 0.1),
-        0 4px 6px -2px rgba(34, 197, 94, 0.05), 0 0 0 1px rgba(34, 197, 94, 0.1);
 
       .stage-icon {
         color: #22c55e;
-        filter: drop-shadow(0 0 4px rgba(34, 197, 94, 0.3));
       }
 
       .stage-name {
         color: #16a34a;
         font-weight: 600;
       }
-
-      // Subtle animated background shine
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(
-          90deg,
-          transparent,
-          rgba(255, 255, 255, 0.3),
-          transparent
-        );
-        transition: left 0.5s ease;
-        z-index: 1;
-      }
-
-      &:hover::before {
-        left: 100%;
-      }
-
-      &:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 20px 25px -5px rgba(34, 197, 94, 0.1),
-          0 10px 10px -5px rgba(34, 197, 94, 0.04),
-          0 0 0 1px rgba(34, 197, 94, 0.15);
-      }
-    }
-
-    // Enhanced hover effects
-    &:hover {
-      cursor: pointer;
-      border-color: rgba(99, 102, 241, 0.3);
-    }
-
-    // Focus states for accessibility
-    &:focus-visible {
-      outline: 2px solid #6366f1;
-      outline-offset: 2px;
     }
   }
 }
 
-// Dark theme - ACTUALLY GRAY THIS TIME
-.dark-theme {
-  .processing-stages-compact {
-    background: linear-gradient(
-      145deg,
-      rgba(55, 65, 81, 0.95),
-      rgba(31, 41, 55, 0.9)
-    ) !important;
-    border-color: rgba(107, 114, 128, 0.3) !important;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4),
-      0 2px 4px -1px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.02) !important;
+// Pulsing animations
+@keyframes pulse-active {
+  0%,
+  100% {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  }
+  50% {
+    box-shadow: 0 4px 8px 0 rgba(59, 130, 246, 0.2),
+      0 2px 4px 0 rgba(59, 130, 246, 0.1);
+  }
+}
 
-    .stage-pill {
-      background: linear-gradient(
-        145deg,
-        rgba(75, 85, 99, 0.8),
-        rgba(55, 65, 81, 0.9)
-      ) !important;
-      border-color: rgba(107, 114, 128, 0.5) !important;
-      min-height: 26px !important;
-      padding: 4px 10px !important;
-      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px 0 rgba(0, 0, 0, 0.3) !important;
-
-      &.pending {
-        background: linear-gradient(
-          145deg,
-          rgba(107, 114, 128, 0.6),
-          rgba(75, 85, 99, 0.8)
-        ) !important;
-        border-color: rgba(156, 163, 175, 0.4) !important;
-
-        .stage-icon {
-          color: #d1d5db !important;
-        }
-
-        .stage-name {
-          color: #e5e7eb !important;
-        }
-
-        &:hover {
-          border-color: rgba(156, 163, 175, 0.6) !important;
-          background: linear-gradient(
-            145deg,
-            rgba(107, 114, 128, 0.7),
-            rgba(75, 85, 99, 0.9)
-          ) !important;
-          box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.4),
-            0 1px 2px -1px rgba(0, 0, 0, 0.3) !important;
-        }
-      }
-
-      &.completed {
-        background: linear-gradient(
-          145deg,
-          rgba(34, 197, 94, 0.15),
-          rgba(22, 163, 74, 0.1)
-        ) !important;
-        border-color: rgba(34, 197, 94, 0.4) !important;
-
-        box-shadow: 0 4px 6px -2px rgba(34, 197, 94, 0.2),
-          0 2px 4px -1px rgba(34, 197, 94, 0.1),
-          0 0 0 1px rgba(34, 197, 94, 0.2) !important;
-
-        .stage-icon {
-          color: #4ade80 !important;
-          filter: drop-shadow(0 0 4px rgba(34, 197, 94, 0.4));
-        }
-
-        .stage-name {
-          color: #22c55e !important;
-        }
-
-        &:hover {
-          background: linear-gradient(
-            145deg,
-            rgba(34, 197, 94, 0.2),
-            rgba(22, 163, 74, 0.15)
-          ) !important;
-          box-shadow: 0 6px 8px -2px rgba(34, 197, 94, 0.25),
-            0 4px 6px -1px rgba(34, 197, 94, 0.12),
-            0 0 0 1px rgba(34, 197, 94, 0.3) !important;
-        }
-      }
-
-      &:hover {
-        border-color: rgba(156, 163, 175, 0.5) !important;
-        transform: translateY(-1px);
-      }
-    }
+@keyframes pulse-icon {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
   }
 }
 
@@ -2108,5 +2032,97 @@
       background-color: rgba(25, 118, 210, 0.15);
       color: #64b5f6;
     }
+  }
+}
+
+// Dark theme support
+.dark-theme {
+  .processing-stages-compact {
+    background: linear-gradient(
+      145deg,
+      rgba(55, 65, 81, 0.95),
+      rgba(31, 41, 55, 0.9)
+    ) !important;
+    border-color: rgba(107, 114, 128, 0.3) !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4),
+      0 2px 4px -1px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.02) !important;
+
+    .stage-pill {
+      background: linear-gradient(
+        145deg,
+        rgba(75, 85, 99, 0.8),
+        rgba(55, 65, 81, 0.9)
+      ) !important;
+      border-color: rgba(107, 114, 128, 0.5) !important;
+      min-height: 26px !important;
+      padding: 4px 10px !important;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px 0 rgba(0, 0, 0, 0.3) !important;
+
+      &.pending {
+        background: linear-gradient(
+          145deg,
+          rgba(107, 114, 128, 0.6),
+          rgba(75, 85, 99, 0.8)
+        ) !important;
+        border-color: rgba(156, 163, 175, 0.4) !important;
+
+        .stage-icon {
+          color: #d1d5db !important;
+        }
+
+        .stage-name {
+          color: #e5e7eb !important;
+        }
+      }
+
+      &.active {
+        border-color: rgba(59, 130, 246, 0.5) !important;
+        background: linear-gradient(
+          145deg,
+          rgba(59, 130, 246, 0.2),
+          rgba(37, 99, 235, 0.1)
+        ) !important;
+        animation: pulse-active-dark 2s ease-in-out infinite !important;
+
+        .stage-icon {
+          color: #60a5fa !important;
+          animation: pulse-icon 2s ease-in-out infinite !important;
+        }
+
+        .stage-name {
+          color: #93c5fd !important;
+          font-weight: 600 !important;
+        }
+      }
+
+      &.completed {
+        background: linear-gradient(
+          145deg,
+          rgba(34, 197, 94, 0.15),
+          rgba(22, 163, 74, 0.1)
+        ) !important;
+        border-color: rgba(34, 197, 94, 0.4) !important;
+
+        .stage-icon {
+          color: #4ade80 !important;
+        }
+
+        .stage-name {
+          color: #22c55e !important;
+        }
+      }
+    }
+  }
+}
+
+// Dark theme pulsing animation
+@keyframes pulse-active-dark {
+  0%,
+  100% {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 8px 0 rgba(59, 130, 246, 0.3),
+      0 2px 4px 0 rgba(59, 130, 246, 0.2);
   }
 }

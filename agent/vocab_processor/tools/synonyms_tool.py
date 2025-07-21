@@ -24,11 +24,6 @@ class Synonym(BaseModel):
 class Synonyms(BaseModel):
     """List of synonyms in the target language."""
 
-    note: Optional[str] = Field(
-        None,
-        max_length=500,
-        description="Concise note in the source language about the synonyms, for example, if no direct synonym exists.",
-    )
     synonyms: list[Synonym] = Field(
         ...,
         description="List of synonyms of the target word in the target language",

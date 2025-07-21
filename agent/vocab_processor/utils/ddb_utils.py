@@ -497,6 +497,7 @@ async def store_result(result: dict[str, Any], req: VocabProcessRequestDto):
         "target_language": lang_code(tgt_lang),
         "target_pos": getattr(result.get("target_part_of_speech"), "value", None),
         "target_article": result.get("target_article"),
+        "target_plural_form": result.get("target_plural_form"),
         # Additional fields
         "source_additional_info": result.get("source_additional_info"),
         "target_additional_info": result.get("target_additional_info"),
@@ -505,7 +506,7 @@ async def store_result(result: dict[str, Any], req: VocabProcessRequestDto):
         "synonyms": to_ddb(result.get("synonyms")),
         "examples": to_ddb(result.get("examples")),
         "conjugation_table": to_ddb(result.get("conjugation")),
-        "pronunciations": result.get("pronunciations"),
+        "pronunciations": to_ddb(result.get("pronunciations")),
         # Store media reference instead of full media object
         "media_ref": result.get("media_ref"),  # Reference to media table
         # GSI-1: Reverse lookup
@@ -650,22 +651,31 @@ async def get_media_usage_statistics() -> dict[str, Any]:
 
 
 def to_ddb(value: Any):
-    """Recursively convert *value* to something DynamoDB can store."""
+    """Convert value to DynamoDB format - complex objects become JSON strings."""
     if value is None or isinstance(value, (bool, str)):
         return value
     if isinstance(value, (int, Decimal)):
         return Decimal(value)
     if isinstance(value, float):
         return Decimal(str(value)).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
-    if isinstance(value, list):
-        return [to_ddb(v) for v in value]
-    if isinstance(value, dict):
-        return {k: to_ddb(v) for k, v in value.items() if v is not None}
 
-    # Handle objects with model_dump (Pydantic), __dict__, or value (Enum)
-    for attr in ("model_dump", "__dict__", "value"):
-        if hasattr(value, attr):
-            obj_value = getattr(value, attr)
-            return to_ddb(obj_value() if callable(obj_value) else obj_value)
+    # Convert all complex objects (lists, dicts, Pydantic models) to JSON strings
+    import json
+
+    # Handle Pydantic models
+    if hasattr(value, "model_dump"):
+        return json.dumps(value.model_dump())
+
+    # Handle objects with __dict__
+    if hasattr(value, "__dict__"):
+        return json.dumps(value.__dict__)
+
+    # Handle enums
+    if hasattr(value, "value"):
+        return json.dumps(value.value)
+
+    # Handle lists and dicts directly
+    if isinstance(value, (list, dict)):
+        return json.dumps(value)
 
     return str(value)
