@@ -24,7 +24,7 @@ async def test_get_conjugation_not_conjugatable():
     )
 
     # Assert
-    assert "not a verb" in response.result.conjugation
+    assert "not a verb" in response.result
 
 
 @pytest.mark.anyio
@@ -51,7 +51,7 @@ async def test_get_conjugation_with_exception(mock_create_llm_response):
 
     # Assert
     assert isinstance(response, ConjugationResponse)
-    assert "Error creating conjugation" in response.result.conjugation
+    assert "Error creating conjugation" in response.result
     assert response.prompt == ""
 
 
@@ -122,6 +122,6 @@ async def test_get_conjugation_success(mock_create_llm_response):
 
     # Assert
     assert isinstance(response, ConjugationResponse)
-    assert response.result.conjugation == mock_conjugation
+    assert response.result == mock_conjugation.model_dump_json(indent=2)
     assert response.prompt != ""
     mock_create_llm_response.assert_called_once()

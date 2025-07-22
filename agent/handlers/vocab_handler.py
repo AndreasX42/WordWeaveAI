@@ -121,13 +121,16 @@ async def _evaluate_final_state(
     # Check if word already exists
     if result.get("word_exists") is True:
         logger.info(
-            "word_already_exists",
+            "word_already_exists_detected_in_final_state",
             word=result.get("source_word", req.source_word),
             target_lang=req.target_language,
             source_lang=req.source_language,
+            existing_item=result.get("existing_item"),
         )
 
         ddb_result = _build_ddb_hit_response(result, req)
+        logger.info("calling_send_ddb_hit", ddb_result_keys=list(ddb_result.keys()))
+
         notifier.send_ddb_hit(
             result.get("source_word", req.source_word), req.target_language, ddb_result
         )
@@ -136,6 +139,7 @@ async def _evaluate_final_state(
 
     # Normal processing completed successfully
     if result.get("processing_complete") or _is_processing_complete(result):
+        logger.info("normal_processing_completed")
         await store_result(result, req)
         notifier.send_processing_completed(req.source_word, req.target_language, result)
         return result
@@ -162,22 +166,35 @@ def _build_validation_result(result: dict[str, Any]) -> dict[str, Any]:
 def _build_ddb_hit_response(
     result: dict[str, Any], req: VocabProcessRequestDto
 ) -> dict[str, Any]:
-    """Build DDB hit response object with minimal data for redirection."""
+    """Build DDB hit response object with complete data for frontend redirect."""
     existing_item = result.get("existing_item", {})
 
-    # Extract only the essential data needed for efficient redirect
+    # Build complete redirect data that frontend can process
     redirect_data = {
         "word_exists": True,
-        "pk": existing_item.get("PK", ""),
-        "sk": existing_item.get("SK", ""),
-        "media_ref": existing_item.get("media_ref"),  # For efficient media loading
+        # Use DynamoDB standard uppercase keys
+        "PK": existing_item.get("PK", ""),
+        "SK": existing_item.get("SK", ""),
+        "media_ref": existing_item.get("media_ref"),
+        # Include essential fields that frontend needs for link construction
+        "source_word": req.source_word,
+        "source_language": req.source_language,
+        "target_language": req.target_language,
+        # Include existing_item structure as fallback
+        "existing_item": {
+            "PK": existing_item.get("PK", ""),
+            "SK": existing_item.get("SK", ""),
+            "media_ref": existing_item.get("media_ref"),
+        },
     }
 
     logger.info(
         "ddb_hit_redirect_data",
-        pk=redirect_data["pk"],
-        sk=redirect_data["sk"],
+        pk=redirect_data["PK"],
+        sk=redirect_data["SK"],
         media_ref=redirect_data["media_ref"],
+        source_word=redirect_data["source_word"],
+        target_language=redirect_data["target_language"],
     )
 
     return redirect_data

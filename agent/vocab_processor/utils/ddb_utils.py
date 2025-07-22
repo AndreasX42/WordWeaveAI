@@ -334,6 +334,17 @@ async def get_existing_media_for_search_words(
             media_item = media_response.get("Item")
             if media_item and media_item.get("media"):
                 media = media_item["media"]  # type: ignore
+
+                import json
+
+                # Parse JSON string back to dict if needed
+                if isinstance(media, str):
+                    try:
+                        media = json.loads(media)
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Failed to parse media JSON: {str(e)}")
+                        return None  # Skip this item and return None
+
                 media_copy = dict(media)
                 media_copy["matched_word"] = search_term
                 media_copy["media_ref"] = media_ref
@@ -412,10 +423,11 @@ async def store_media_references(
             await asyncio.to_thread(
                 media_table.update_item,
                 Key={"PK": f"SEARCH#{normalized_word}"},
-                UpdateExpression="SET media_ref = :ref, search_term = :term, last_used = :now, item_type = :type ADD usage_count :inc",
+                UpdateExpression="SET media_ref = :ref, search_term = :term, created_at = :created_at, last_used = :now, item_type = :type ADD usage_count :inc",
                 ExpressionAttributeValues={
                     ":ref": media_ref,
                     ":term": normalized_word,
+                    ":created_at": datetime.now(tz=timezone.utc).isoformat(),
                     ":now": datetime.now(timezone.utc).isoformat(),
                     ":type": "search_term",
                     ":inc": 1,

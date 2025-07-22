@@ -59,14 +59,15 @@
     "edit": "Editar",
     "delete": "Eliminar",
     "close": "Cerrar",
-    "back": "Volver"
+    "back": "Volver",
+    "backToSearch": "Volver a la búsqueda"
   },
   "messages": {
     "unknownError": "Algo falló. Por favor, inténtalo de nuevo.",
     "loginCredentialsIncorrect": "Usuario o contraseña inválidos. Revisa y prueba otra vez.",
     "networkError": "Error de red. Verifica tu conexión e inténtalo de nuevo.",
     "serverError": "Error del servidor. Inténtalo más tarde.",
-    "loginFirst": "Debes iniciar sesión para acceder.",
+    "loginFirst": "Debes iniciar sesión para continuar.",
     "sessionExpired": "Tu sesión expiró. Inicia sesión otra vez."
   },
   "health": {
@@ -272,6 +273,7 @@
     "loading": "Cargando palabra...",
     "creatingWord": "Creando palabra",
     "errorTitle": "Error",
+    "notFound": "No se pudo encontrar la palabra que buscaba.",
     "loadError": "No se pudo cargar la palabra. Por favor, inténtelo de nuevo más tarde.",
     "addToList": "Agregar a lista",
     "dictionary": "Diccionario",
@@ -331,6 +333,24 @@
       "examples": "Ejemplos",
       "media": "Medios",
       "conjugation": "Conjugación"
+    },
+    "validationError": {
+      "title": "Problema con la palabra solicitada",
+      "detectedLanguage": "Idioma Detectado",
+      "suggestions": "Sugerencias"
+    },
+    "stages": {
+      "validation": "Validación",
+      "classification": "Clasificación",
+      "definition": "Definición",
+      "translation": "Traducción",
+      "media": "Medios",
+      "examples": "Ejemplos",
+      "synonyms": "Sinónimos",
+      "syllables": "Sílabas",
+      "pronunciation": "Audio",
+      "conjugation": "Conjugación",
+      "finalQuality": "Calidad"
     }
   }
 }

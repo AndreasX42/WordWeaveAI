@@ -8,9 +8,10 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 
-	"github.com/AndreasX42/restapi/domain/entities"
+	"github.com/AndreasX42/restapi/domain/repositories"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/gin-gonic/gin"
@@ -33,13 +34,15 @@ type VocabSQSMessage struct {
 
 // VocabRequestHandler handles vocabulary request operations
 type VocabRequestHandler struct {
-	sqsClient *sqs.Client
+	sqsClient      *sqs.Client
+	userRepository repositories.UserRepository
 }
 
 // NewVocabRequestHandler creates a new vocabulary request handler
-func NewVocabRequestHandler(sqsClient *sqs.Client) *VocabRequestHandler {
+func NewVocabRequestHandler(sqsClient *sqs.Client, userRepository repositories.UserRepository) *VocabRequestHandler {
 	return &VocabRequestHandler{
-		sqsClient: sqsClient,
+		sqsClient:      sqsClient,
+		userRepository: userRepository,
 	}
 }
 
@@ -55,8 +58,8 @@ func (h *VocabRequestHandler) RequestVocab(c *gin.Context) {
 	}
 
 	// Extract user ID from JWT principal
-	user, exists := c.Get("principal")
-	if !exists {
+	user, err := GetPrincipal(c)
+	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "Authentication required",
 		})
@@ -64,7 +67,7 @@ func (h *VocabRequestHandler) RequestVocab(c *gin.Context) {
 	}
 
 	// Clean and validate the source word
-	request.SourceWord = strings.TrimSpace(strings.ToLower(request.SourceWord))
+	request.SourceWord = strings.TrimSpace(request.SourceWord)
 	if request.SourceWord == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Source word cannot be empty",
@@ -77,7 +80,7 @@ func (h *VocabRequestHandler) RequestVocab(c *gin.Context) {
 		SourceWord:     request.SourceWord,
 		SourceLanguage: request.SourceLanguage,
 		TargetLanguage: request.TargetLanguage,
-		UserID:         user.(*entities.User).ID,
+		UserID:         user.ID,
 	}
 
 	// Convert message to JSON
@@ -93,6 +96,8 @@ func (h *VocabRequestHandler) RequestVocab(c *gin.Context) {
 	// Generate deduplication ID: {srcword}-{srclang}-{tgtlang}
 	// Sanitize for SQS requirements (alphanumeric and punctuation only)
 	sanitizeForSQS := func(s string) string {
+		maxLength := 50
+
 		// Replace spaces with underscores
 		s = strings.ReplaceAll(s, " ", "_")
 		// Remove any characters that are not alphanumeric, underscore, or hyphen
@@ -102,8 +107,8 @@ func (h *VocabRequestHandler) RequestVocab(c *gin.Context) {
 		if len(s) == 0 {
 			s = "default"
 		}
-		if len(s) > 100 { // Leave room for language codes and separators
-			s = s[:100]
+		if len(s) > maxLength { // Leave room for language codes and separators
+			s = s[:maxLength]
 		}
 		return s
 	}
@@ -115,7 +120,7 @@ func (h *VocabRequestHandler) RequestVocab(c *gin.Context) {
 
 	// Log the request for monitoring
 	log.Printf("Processing vocabulary request: %s (%s -> %s) for user %s",
-		request.SourceWord, request.SourceLanguage, request.TargetLanguage, user.(*entities.User).ID)
+		request.SourceWord, request.SourceLanguage, request.TargetLanguage, user.ID)
 
 	// Get SQS queue URL from environment
 	queueURL := os.Getenv("SQS_VOCAB_REQUEST_QUEUE_URL")
@@ -126,12 +131,37 @@ func (h *VocabRequestHandler) RequestVocab(c *gin.Context) {
 		return
 	}
 
+	// increment the request count for the user
+	user.RequestCount++
+	if err := h.userRepository.Update(c.Request.Context(), user); err != nil {
+		log.Printf("Error updating user request count: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to update user data",
+		})
+		return
+	}
+
+	// Check if the user has reached the maximum number of requests
+	maxRequestsFreeTier, err := strconv.Atoi(os.Getenv("MAX_VOCAB_REQUESTS_FREE_TIER"))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to parse MAX_VOCAB_REQUESTS_FREE_TIER",
+		})
+		return
+	}
+	if user.RequestCount > maxRequestsFreeTier {
+		c.JSON(http.StatusTooManyRequests, gin.H{
+			"details": fmt.Sprintf("You have reached the maximum number of %d requests", maxRequestsFreeTier),
+		})
+		return
+	}
+
 	// Send message to SQS FIFO queue
 	_, err = h.sqsClient.SendMessage(context.Background(), &sqs.SendMessageInput{
 		QueueUrl:               &queueURL,
 		MessageBody:            aws.String(string(messageBody)),
 		MessageDeduplicationId: aws.String(deduplicationID),
-		MessageGroupId:         aws.String("word-requests"), // Trivial message group
+		MessageGroupId:         aws.String("vocab-requests"), // Trivial message group
 	})
 
 	if err != nil {
@@ -143,7 +173,7 @@ func (h *VocabRequestHandler) RequestVocab(c *gin.Context) {
 	}
 
 	log.Printf("Vocabulary request published to SQS: %s -> %s (User: %s)",
-		request.SourceWord, request.TargetLanguage, user.(*entities.User).ID)
+		request.SourceWord, request.TargetLanguage, user.ID)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":    "Vocabulary request submitted successfully",

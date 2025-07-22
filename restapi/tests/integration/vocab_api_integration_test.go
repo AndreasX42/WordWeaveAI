@@ -138,8 +138,14 @@ func setupVocabTestServer(t *testing.T) (*gin.Engine, string) {
 	vocabService := services.NewVocabService(vocabRepo, nil) // Pass nil for media repository in tests
 	vocabListService := services.NewVocabListService(vocabListRepo, vocabRepo)
 
+	// Create JWT middleware for testing
+	authMiddleware, err := middlewares.JWTMiddleware(userService)
+	if err != nil {
+		t.Fatalf("Failed to setup JWT middleware: %v", err)
+	}
+
 	// Create handlers
-	userHandler := handlers.NewUserHandler(userService)
+	userHandler := handlers.NewUserHandler(userService, authMiddleware)
 	searchHandler := handlers.NewSearchHandler(vocabService)
 	vocabListHandler := handlers.NewVocabListHandler(vocabListService)
 
@@ -152,10 +158,6 @@ func setupVocabTestServer(t *testing.T) (*gin.Engine, string) {
 	router.POST("/users/confirm-email", userHandler.ConfirmEmail)
 
 	// JWT routes
-	authMiddleware, err := middlewares.JWTMiddleware(userService)
-	if err != nil {
-		t.Fatalf("Failed to setup JWT middleware: %v", err)
-	}
 	router.POST("/auth/login", authMiddleware.LoginHandler)
 
 	// Authenticated routes

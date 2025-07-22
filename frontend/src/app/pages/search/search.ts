@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatOptionModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCardModule } from '@angular/material/card';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
@@ -42,6 +43,10 @@ import {
 } from 'rxjs/operators';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ChangeDetectorRef } from '@angular/core';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { map } from 'rxjs/operators';
+import { Observable } from 'rxjs';
+import { ActivatedRoute, Params } from '@angular/router';
 
 @Component({
   selector: 'app-search',
@@ -54,6 +59,7 @@ import { ChangeDetectorRef } from '@angular/core';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatOptionModule,
     MatProgressSpinnerModule,
     MatCardModule,
     MatSnackBarModule,
@@ -74,6 +80,8 @@ export class SearchComponent implements OnInit, OnDestroy {
   dialog = inject(MatDialog);
   router = inject(Router);
   cdr = inject(ChangeDetectorRef);
+  breakpointObserver = inject(BreakpointObserver);
+  route = inject(ActivatedRoute);
 
   searchControl = new FormControl<string>('', { nonNullable: true });
   sourceLanguageControl = new FormControl<string>('', { nonNullable: true });
@@ -102,12 +110,49 @@ export class SearchComponent implements OnInit, OnDestroy {
   private noResultsTimer: ReturnType<typeof setTimeout> | null = null;
   private subscriptions = new Subscription();
 
+  isHandset$: Observable<boolean> = this.breakpointObserver
+    .observe(Breakpoints.Handset)
+    .pipe(map((result) => result.matches));
+
   constructor() {
     this.loadLanguagePreferences();
     this.searchResults = [];
   }
 
   ngOnInit(): void {
+    this.route.queryParams.subscribe((params: Params) => {
+      const query = params['query'];
+      const source = params['source'];
+      const target = params['target'];
+      const autosearch = params['autosearch'];
+
+      if (query) {
+        this.searchControl.setValue(query);
+      }
+
+      if (source) {
+        const sourceLang = this.translationService.languages.find(
+          (lang) => lang.name === source || lang.code === source
+        );
+        if (sourceLang) {
+          this.sourceLanguageControl.setValue(sourceLang.code);
+        }
+      }
+
+      if (target) {
+        const targetLang = this.translationService.languages.find(
+          (lang) => lang.name === target || lang.code === target
+        );
+        if (targetLang) {
+          this.targetLanguageControl.setValue(targetLang.code);
+        }
+      }
+
+      if (autosearch === 'true' && query) {
+        this.search();
+      }
+    });
+
     // Debounced search stream for automatic search (typing)
     const debouncedSearchTrigger = combineLatest([
       this.searchControl.valueChanges.pipe(

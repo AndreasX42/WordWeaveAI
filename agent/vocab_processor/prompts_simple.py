@@ -76,6 +76,10 @@ Part of speech: {part_of_speech_values}
 2. Provide 1-3 clear, natural dictionary definitions in {source_language}
 3. Note any important context (slang, regional usage, etc.) in {source_language}
 
+**CRITICAL LANGUAGE RULES:**
+- If the source word is German and vocals are given like "ue", "ae", or "oe", change them to "ä", "ä", or "ö"
+- Take into account the proper capitalisation of the source word in the language {source_language} when setting 'source_word', for example nouns in German are always capitalised
+
 **Articles:**
 - English: null (no articles needed)
 - German: der/die/das for nouns
@@ -83,7 +87,6 @@ Part of speech: {part_of_speech_values}
 
 **Quality Requirements:**
 - Extract base word correctly from the source word, removing any articles, prefixes, temporal and possessive modifiers, and any other prefixes or suffixes
-- If the source word is German and vocals are given like "ue, ae, oe", change them to "ä, ä, ö"
 - Provide 1-3 clear and natural dictionary-style definitions in {source_language} that are distinct and common
 - **IMPORTANT:** Note informal/slang usage and other very important or special context, meaning, and regional usage of '{source_word}' in {source_language} in 'source_additional_info'. If there is no highly important context, leave it empty
 - Definitions should be written in {source_language}
@@ -98,9 +101,11 @@ Source part of speech: {source_part_of_speech}
 **Task:**
 1. Provide the most common, natural translation
 2. Use base form only (no articles/modifiers in target_word)
-3. For nouns: provide correct article and plural form
-4. Maintain tone/register (formal/informal/slang)
-5. Add contextual notes in target_additional_info
+3. For nouns: provide correct article according to **Articles**
+4. For nouns: provide the correct plural form of 'target_word' in the language {target_language} in 'target_plural_form' including the correct article
+5. Maintain tone/register (formal/informal/slang)
+6. Add contextual notes in target_additional_info
+
 
 **Part of Speech:**
 - English: Use "noun" (no grammatical gender)
@@ -130,7 +135,7 @@ Source part of speech: {source_part_of_speech}
 - Fill 'target_additional_info' with key contextual or regional notes (in {source_language}):
   - e.g., if usage is slang, informal, country-specific, or contextually bound
   - Leave empty if no relevant context
-- For nouns: include plural form in 'target_plural_form' with article (e.g., "casa" → "las casas")
+- For nouns: include plural form of translated target word in the target language in 'target_plural_form' with article (e.g., "casa" → "las casas")
 - Base form only in target_word field
 """
 )
@@ -215,16 +220,19 @@ SYLLABLES_PROMPT_TEMPLATE = PromptTemplate(
 CONJUGATION_PROMPT_TEMPLATE = PromptTemplate(
     full_prompt="""Create conjugation table for {target_language} verb '{target_word}'.
 
+**Expected Tenses for {target_language}:**
+{expected_tenses}
+
 **Task:**
 1. Include all essential forms for learners
 2. Follow standard conjugation patterns
 3. Output valid JSON matching expected schema
 
 **Quality Requirements:**
-- Natural, standard conjugation patterns
-- All forms grammatically correct
-- Include required tenses/persons for {target_language}
-- Valid JSON structure
+- Follow natural, standard conjugation patterns for {target_language}
+- All forms are grammatically correct and commonly used
+- Include all required tenses and persons for {target_language}
+- JSON structure matches the expected schema exactly
 """
 )
 

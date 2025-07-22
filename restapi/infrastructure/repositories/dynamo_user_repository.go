@@ -30,6 +30,7 @@ type UserRecord struct {
 	GoogleID     string `dynamo:"google_id" index:"GoogleIDIndex,hash"`
 	IsOAuthUser  bool   `dynamo:"is_oauth_user"`
 	ProfileImage string `dynamo:"profile_image"`
+	RequestCount int    `dynamo:"request_count"`
 }
 
 // NewDynamoUserRepository creates a new DynamoDB user repository
@@ -54,6 +55,7 @@ func (r *DynamoUserRepository) toUserRecord(user *entities.User) UserRecord {
 		GoogleID:         user.GoogleID,
 		IsOAuthUser:      user.IsOAuthUser,
 		ProfileImage:     user.ProfileImage,
+		RequestCount:     user.RequestCount,
 	}
 }
 
@@ -72,6 +74,7 @@ func (r *DynamoUserRepository) toEntity(record UserRecord) *entities.User {
 		GoogleID:         record.GoogleID,
 		IsOAuthUser:      record.IsOAuthUser,
 		ProfileImage:     record.ProfileImage,
+		RequestCount:     record.RequestCount,
 	}
 }
 

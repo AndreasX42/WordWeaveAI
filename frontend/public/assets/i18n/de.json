@@ -59,7 +59,8 @@
     "edit": "Bearbeiten",
     "delete": "Löschen",
     "close": "Schließen",
-    "back": "Zurück"
+    "back": "Zurück",
+    "backToSearch": "Zurück zur Suche"
   },
   "messages": {
     "unknownError": "Da ist etwas schiefgelaufen. Bitte versuche es erneut.",
@@ -333,6 +334,24 @@
       "examples": "Beispiele",
       "media": "Medien",
       "conjugation": "Konjugation"
+    },
+    "validationError": {
+      "title": "Problem mit dem angeforderten Wort",
+      "detectedLanguage": "Erkannte Sprache",
+      "suggestions": "Vorschläge"
+    },
+    "stages": {
+      "validation": "Validierung",
+      "classification": "Klassifizierung",
+      "definition": "Definition",
+      "translation": "Übersetzung",
+      "media": "Medien",
+      "examples": "Beispiele",
+      "synonyms": "Synonyme",
+      "syllables": "Silben",
+      "pronunciation": "Audio",
+      "conjugation": "Konjugation",
+      "finalQuality": "Qualität"
     }
   }
 }

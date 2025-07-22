@@ -143,25 +143,20 @@ export class AuthInterceptor implements HttpInterceptor {
       this.refreshTokenSubject.next(null);
 
       return from(this.authService.refreshToken()).pipe(
-        switchMap((success) => {
+        switchMap((newToken) => {
           this.isRefreshing = false;
 
-          if (success) {
-            const newToken = this.authService.getAuthToken();
+          if (newToken) {
             this.refreshTokenSubject.next(newToken);
 
-            // Retry the original request with the new token
             const newRequest = request.clone({
               setHeaders: {
                 Authorization: `Bearer ${newToken}`,
               },
             });
-
             return next.handle(newRequest);
           } else {
-            // Refresh failed, logout and redirect
             this.handleSessionExpired();
-            // Create a more specific error that won't trigger additional user messages
             const sessionError = new Error('Session expired') as Error & {
               handledByInterceptor?: boolean;
             };

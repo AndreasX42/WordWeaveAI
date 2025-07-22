@@ -19,6 +19,8 @@ type User struct {
 	GoogleID     string // Google OAuth ID
 	IsOAuthUser  bool   // Whether user registered via OAuth
 	ProfileImage string // Profile image URL from OAuth provider
+	// Vocab stats
+	RequestCount int
 }
 
 // NewUser creates a new user with validation
@@ -47,6 +49,7 @@ func NewUser(id, username, email, passwordHash, confirmationCode string) (*User,
 		IsAdmin:          false,
 		CreatedAt:        time.Now().UTC(),
 		IsOAuthUser:      false,
+		RequestCount:     0,
 	}, nil
 }
 
@@ -62,7 +65,7 @@ func NewOAuthUser(id, username, email, googleID, profileImage string) (*User, er
 		return nil, errors.New("email cannot be empty")
 	}
 	if googleID == "" {
-		return nil, errors.New("Google ID cannot be empty")
+		return nil, errors.New("google ID cannot be empty")
 	}
 
 	return &User{
@@ -78,6 +81,7 @@ func NewOAuthUser(id, username, email, googleID, profileImage string) (*User, er
 		GoogleID:         googleID,
 		IsOAuthUser:      true,
 		ProfileImage:     profileImage,
+		RequestCount:     0,
 	}, nil
 }
 

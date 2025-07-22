@@ -26,13 +26,23 @@
       <mat-icon>search</mat-icon>
     </button>
 
-    <!-- Notifications button -->
+    <!-- Notifications -->
     <button
       mat-icon-button
-      class="header-button"
-      [matTooltip]="'header.notifications' | translate"
+      [matMenuTriggerFor]="notificationMenu"
+      class="header-button notification-btn"
+      (menuOpened)="onNotificationClick()"
     >
-      <mat-icon>notifications</mat-icon>
+      <span
+        [matBadge]="notificationService.unseenCount()"
+        [matBadgeHidden]="!notificationService.hasUnseen()"
+        matBadgeColor="warn"
+        matBadgeSize="small"
+        matBadgePosition="above after"
+        [matBadgeOverlap]="true"
+      >
+        <mat-icon>notifications</mat-icon>
+      </span>
     </button>
 
     <!-- User profile dropdown -->
@@ -156,6 +166,81 @@
         <mat-icon class="check-icon">check</mat-icon>
         }
       </button>
+      }
+    </mat-menu>
+
+    <!-- Notification dropdown menu -->
+    <mat-menu #notificationMenu="matMenu" class="notification-menu">
+      <!-- Header -->
+      <div
+        class="notification-header"
+        (click)="$event.stopPropagation()"
+        (keydown.enter)="$event.stopPropagation()"
+        (keydown.space)="$event.stopPropagation()"
+        tabindex="0"
+      >
+        <h3>Notifications</h3>
+        <button
+          class="clear-all-btn"
+          (click)="clearAllNotifications()"
+          [disabled]="notificationService.notifications().length === 0"
+        >
+          Clear All
+        </button>
+      </div>
+
+      <!-- Empty State -->
+      @if (notificationService.notifications().length === 0) {
+      <div class="no-notifications">
+        <mat-icon>notifications_none</mat-icon>
+        <p>No notifications yet</p>
+      </div>
+      }
+
+      <!-- Notification List -->
+      @if (notificationService.notifications().length > 0) {
+      <div class="notification-list">
+        @for (notification of notificationService.notifications(); track
+        notification.id) {
+        <div
+          class="notification-item"
+          [class.unseen]="!notification.seen"
+          (click)="onNotificationItemClick(notification)"
+          (keydown.enter)="onNotificationItemClick(notification)"
+          (keydown.space)="onNotificationItemClick(notification)"
+          tabindex="0"
+          role="button"
+        >
+          <!-- Status Icon -->
+          <div class="notification-icon" [class]="notification.status">
+            @if (notification.status === 'processing') {
+            <mat-spinner diameter="16" strokeWidth="2"></mat-spinner>
+            } @else {
+            <mat-icon>{{ notification.icon }}</mat-icon>
+            }
+          </div>
+
+          <!-- Content -->
+          <div class="notification-content">
+            <div class="notification-title">{{ notification.title }}</div>
+            <div class="notification-message">{{ notification.message }}</div>
+            <div class="notification-time">
+              {{ getNotificationTimeAgo(notification.timestamp) }}
+            </div>
+
+            @if (notification.status === 'processing' && notification.progress
+            !== undefined) {
+            <div class="notification-progress">
+              <div
+                class="progress-fill"
+                [style.width.%]="notification.progress"
+              ></div>
+            </div>
+            }
+          </div>
+        </div>
+        }
+      </div>
       }
     </mat-menu>
   </div>

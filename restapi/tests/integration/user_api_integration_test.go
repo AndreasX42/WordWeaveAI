@@ -495,7 +495,14 @@ func setupIntegrationTestServer(t *testing.T) *gin.Engine {
 	userRepo := NewTestDynamoUserRepository(dynamoClient)
 	testEmailService = mocks.NewMockEmailService().(*mocks.MockEmailService)
 	userService := services.NewUserService(userRepo, testEmailService)
-	userHandler := handlers.NewUserHandler(userService)
+
+	// Create JWT middleware for testing
+	authMiddleware, err := middlewares.JWTMiddleware(userService)
+	if err != nil {
+		t.Fatalf("Failed to setup JWT middleware: %v", err)
+	}
+
+	userHandler := handlers.NewUserHandler(userService, authMiddleware)
 
 	// Setup Gin router
 	router := gin.New()

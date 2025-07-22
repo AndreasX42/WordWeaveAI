@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, get_args
 
 from langchain_core.tools import tool
 from pydantic import BaseModel
@@ -12,6 +12,43 @@ from vocab_processor.tools.base_tool import (
     create_llm_response,
     create_tool_error_response,
 )
+
+
+def _get_expected_tenses_for_language(target_language: Language) -> str:
+    """Extract expected tenses from schema modules and format for prompt."""
+
+    if target_language == Language.ENGLISH:
+        import vocab_processor.schemas.english_conj_model as eng
+
+        tenses = {
+            "Non Personal Forms": list(get_args(eng.NonPersonalForms)),
+            "Indicative": list(get_args(eng.IndicativeTenses)),
+            "Subjunctive": list(get_args(eng.SubjunctiveTenses)),
+        }
+    elif target_language == Language.GERMAN:
+        import vocab_processor.schemas.german_conj_model as ger
+
+        tenses = {
+            "Non Personal Forms": list(get_args(ger.NonPersonalForms)),
+            "Indikativ": list(get_args(ger.IndicativeTenses)),
+            "Konjunktiv": list(get_args(ger.SubjunctiveTenses)),
+        }
+    elif target_language == Language.SPANISH:
+        import vocab_processor.schemas.spanish_conj_model as spa
+
+        tenses = {
+            "Non Personal Forms": list(get_args(spa.NonPersonalForms)),
+            "Indicative": list(get_args(spa.IndicativeTenses)),
+            "Subjunctive": list(get_args(spa.SubjunctiveTenses)),
+        }
+    else:
+        return ""
+
+    tenses_text = f"\n**Expected Tenses for {target_language.value}:**\n"
+    for category, tense_list in tenses.items():
+        tenses_text += f"- {category}: {', '.join(tense_list)}\n"
+
+    return tenses_text
 
 
 class ConjugationResponse(BaseModel):
@@ -52,6 +89,7 @@ async def get_conjugation(
             suggestions=suggestions,
             target_language=target_language.value,
             target_word=target_word,
+            expected_tenses=_get_expected_tenses_for_language(target_language),
         )
 
         result = await create_llm_response(

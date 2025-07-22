@@ -192,12 +192,12 @@ export class AuthService {
     }
   }
 
-  async refreshToken(): Promise<boolean> {
+  async refreshToken(): Promise<string | null> {
     try {
       const currentToken = this.getAuthToken();
 
       if (!currentToken) {
-        throw new Error('No authentication token available for refresh');
+        return null;
       }
 
       const response = await firstValueFrom(
@@ -213,23 +213,14 @@ export class AuthService {
       );
 
       if (!response || !response.token) {
-        throw new Error('Invalid token refresh response from server');
+        return null;
       }
 
-      // Update the stored token
       localStorage.setItem(this.TOKEN_KEY, response.token);
-      return true;
+      return response.token;
     } catch (error) {
       console.error('Token refresh failed:', error);
-      // For token refresh, we want to fail silently in some cases (handled by interceptor)
-      // But still throw for unexpected errors
-      if (
-        error instanceof Error &&
-        error.message.includes('No authentication token')
-      ) {
-        return false;
-      }
-      throw error;
+      return null;
     }
   }
 

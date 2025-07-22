@@ -59,7 +59,8 @@
     "edit": "Edit",
     "delete": "Delete",
     "close": "Close",
-    "back": "Back"
+    "back": "Back",
+    "backToSearch": "Back to Search"
   },
   "messages": {
     "unknownError": "Something went wrong. Please try again.",
@@ -266,12 +267,15 @@
         "targetLanguageRequired": "Please select a target language",
         "wordFormat": "Please enter a valid word"
       }
-    }
+    },
+    "suggestions": "Suggestions",
+    "detectedLanguage": "Detected Language"
   },
   "wordCard": {
     "loading": "Loading word...",
     "creatingWord": "Creating word",
     "errorTitle": "Error",
+    "notFound": "The word you were looking for could not be found.",
     "loadError": "Could not load the word. Please try again later.",
     "addToList": "Add to list",
     "dictionary": "Dictionary",
@@ -344,6 +348,11 @@
       "pronunciation": "Audio",
       "conjugation": "Conjugation",
       "finalQuality": "Quality"
+    },
+    "validationError": {
+      "title": "Issue with Requested Word",
+      "detectedLanguage": "Detected Language",
+      "suggestions": "Suggestions"
     }
   }
 }

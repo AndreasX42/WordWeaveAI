@@ -14,6 +14,7 @@ import (
 	infraRepos "github.com/AndreasX42/restapi/infrastructure/repositories"
 	infraServices "github.com/AndreasX42/restapi/infrastructure/services"
 	"github.com/AndreasX42/restapi/utils"
+	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ses"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
@@ -159,13 +160,18 @@ func (c *Container) initServices() {
 }
 
 func (c *Container) initHandlers() {
-	c.UserHandler = handlers.NewUserHandler(c.UserService)
 	c.HealthHandler = handlers.NewHealthHandler(c.DynamoDB)
 	c.SearchHandler = handlers.NewSearchHandler(c.VocabService)
 	c.VocabListHandler = handlers.NewVocabListHandler(c.VocabListService)
-	c.VocabRequestHandler = handlers.NewVocabRequestHandler(c.SQSClient)
+	c.VocabRequestHandler = handlers.NewVocabRequestHandler(c.SQSClient, c.UserRepository)
 	c.OAuthHandler = handlers.NewOAuthHandler(c.UserService, c.GoogleOAuthConfig.Config)
 	c.SentryHandler = handlers.NewSentryHandler(c.SentryConfig.Client)
+	// UserHandler will be set later in main.go after JWT middleware is created
+}
+
+// SetUserHandler sets the user handler after JWT middleware is available
+func (c *Container) SetUserHandler(authMiddleware *jwt.GinJWTMiddleware) {
+	c.UserHandler = handlers.NewUserHandler(c.UserService, authMiddleware)
 }
 
 func (c *Container) createTables() {

@@ -82,6 +82,9 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 		log.Fatal("JWT Error: " + err.Error())
 	}
 
+	// Set handlers that need JWT middleware
+	container.SetUserHandler(authMiddleware)
+
 	// Create API route group
 	api := server.Group("/api")
 	{
@@ -106,7 +109,7 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 		// JWT routes
 		api.POST("/auth/login", authMiddleware.LoginHandler)
 		api.POST("/auth/logout", authMiddleware.LogoutHandler)
-		api.POST("/auth/refresh", createRefreshHandler(authMiddleware, container))
+		api.POST("/auth/refresh", authMiddleware.RefreshHandler)
 
 		// Logging routes
 		api.POST("/log", container.SentryHandler.LogEvent)

@@ -6,16 +6,19 @@ import (
 
 	"github.com/AndreasX42/restapi/domain/services"
 	"github.com/AndreasX42/restapi/utils"
+	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 )
 
 type UserHandler struct {
-	userService *services.UserService
+	userService    *services.UserService
+	authMiddleware *jwt.GinJWTMiddleware
 }
 
-func NewUserHandler(userService *services.UserService) *UserHandler {
+func NewUserHandler(userService *services.UserService, authMiddleware *jwt.GinJWTMiddleware) *UserHandler {
 	return &UserHandler{
-		userService: userService,
+		userService:    userService,
+		authMiddleware: authMiddleware,
 	}
 }
 
@@ -123,8 +126,11 @@ func (h *UserHandler) GetCurrentUser(c *gin.Context) {
 		return
 	}
 
-	// Generate a fresh JWT token (like login endpoint)
-	jwtToken, err := utils.GenerateJWT(user.ID, user.Username)
+	// Set user in context for gin-jwt
+	c.Set("user", user)
+
+	// Generate JWT token using gin-jwt's token generator
+	jwtToken, expire, err := h.authMiddleware.TokenGenerator(user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not generate token"})
 		return
@@ -140,7 +146,8 @@ func (h *UserHandler) GetCurrentUser(c *gin.Context) {
 			"profileImage":   user.ProfileImage,
 			"createdAt":      user.CreatedAt.Format(time.RFC3339),
 		},
-		"token": jwtToken,
+		"token":  jwtToken,
+		"expire": expire.Format(time.RFC3339),
 	})
 }
 

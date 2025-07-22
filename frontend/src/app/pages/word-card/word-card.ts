@@ -23,6 +23,7 @@ import {
   WordRequestNotification,
 } from '../../services/word-request.service';
 import { MessageService } from '../../services/message.service';
+import { NotificationService } from '../../services/notification.service';
 import {
   VocabularyWord,
   ConjugationTable,
@@ -53,6 +54,7 @@ interface WordRequestData {
   sourceWord: string;
   sourceLanguage?: string;
   targetLanguage: string;
+  requestId?: string;
 }
 
 interface WordNotificationData {
@@ -118,6 +120,7 @@ export class WordCard implements OnInit, OnDestroy {
   wordService = inject(WordService);
   wordRequestService = inject(WordRequestService);
   messageService = inject(MessageService);
+  notificationService = inject(NotificationService);
   route = inject(ActivatedRoute);
   router = inject(Router);
   cdr = inject(ChangeDetectorRef);
@@ -439,6 +442,17 @@ export class WordCard implements OnInit, OnDestroy {
         this.handleWordRequestNotification(notification);
       })
     );
+
+    // If this is a reconnection (from notification click), reconnect to WebSocket
+    if (requestData.requestId && requestData.requestId !== 'new') {
+      console.log('🔄 Reconnecting to existing request via notification');
+      this.wordRequestService.reconnectToRequest(
+        requestData.sourceWord,
+        requestData.sourceLanguage || 'auto',
+        requestData.targetLanguage,
+        requestData.requestId
+      );
+    }
   }
 
   private createSkeletonWord(requestData: WordRequestData): void {
@@ -488,16 +502,6 @@ export class WordCard implements OnInit, OnDestroy {
 
     this.langConfig = getLanguageConfig(this.word);
     this.loading = true; // Keep loading state for skeleton
-    console.log(
-      '🎯 Skeleton word created for:',
-      requestData.sourceWord,
-      '→',
-      requestData.targetLanguage
-    );
-    console.log(
-      '📊 Progressive loading states initialized:',
-      this.loadingStates
-    );
   }
 
   private handleWordRequestNotification(
@@ -507,6 +511,18 @@ export class WordCard implements OnInit, OnDestroy {
     console.log('🔔 Word Request WebSocket Notification:', notification);
 
     if (!this.isRequestMode || !this.word) return;
+
+    // Check for DDB hit redirect - explicit redirect status OR word_exists flag in processing
+    const isRedirectNotification =
+      notification.status === 'redirect' ||
+      (notification.word_data &&
+        notification.word_data['word_exists'] === true);
+
+    if (isRedirectNotification && notification.word_data) {
+      console.log('🔄 Processing redirect notification:', notification);
+      this.handleWordExistsRedirect(notification.word_data);
+      return; // Stop further processing to ensure redirect happens
+    }
 
     switch (notification.status) {
       case 'processing':
@@ -521,7 +537,6 @@ export class WordCard implements OnInit, OnDestroy {
         }
         break;
       case 'completed':
-        console.log('✅ Word creation completed:', notification);
         if (notification.word_data) {
           console.log('📋 Final word data received:', notification.word_data);
           this.updateWordFromNotification(notification.word_data, true); // Mark as final update
@@ -531,7 +546,7 @@ export class WordCard implements OnInit, OnDestroy {
         this.loading = false; // Turn off loading only on completion
         break;
       case 'redirect':
-        console.log('🔄 Word already exists - redirecting:', notification);
+        // This case remains as a fallback for explicit redirect messages
         if (notification.word_data) {
           this.handleWordExistsRedirect(notification.word_data);
         }
@@ -542,8 +557,6 @@ export class WordCard implements OnInit, OnDestroy {
         this.loading = false;
         break;
       case 'invalid':
-        console.log('⚠️ Word validation failed:', notification);
-
         // Set validation error details for UI display
         if (notification.word_data) {
           this.validationError = {
@@ -561,10 +574,6 @@ export class WordCard implements OnInit, OnDestroy {
           };
           // Set a simple error message since detailed info is in validationError
           this.error = 'Word validation failed';
-          console.log(
-            '🔍 Validation details set for UI display:',
-            this.validationError
-          );
         } else {
           // Fallback if no detailed validation data
           this.error =
@@ -575,11 +584,6 @@ export class WordCard implements OnInit, OnDestroy {
         this.loading = false;
         break;
       default:
-        console.log(
-          '❓ Unknown notification status:',
-          notification.status,
-          notification
-        );
     }
   }
 
@@ -589,31 +593,42 @@ export class WordCard implements OnInit, OnDestroy {
       pk?: string;
       sk?: string;
       media_ref?: string;
+      existing_item?: {
+        PK: string;
+        SK: string;
+        media_ref?: string;
+      };
     }
   ): void {
-    console.log('🚀 Handling word exists redirect with data:', wordData);
-
     if (!wordData.word_exists) {
-      console.error('❌ Invalid redirect data - word_exists not true');
       return;
     }
 
-    const pk = wordData.pk;
-    const sk = wordData.sk;
-    const mediaRef = wordData.media_ref;
+    // Extract DDB data using standard uppercase keys
+    const dataAsRecord = wordData as Record<string, unknown>;
+    let pk = (dataAsRecord['PK'] as string) || '';
+    let sk = (dataAsRecord['SK'] as string) || '';
+    let mediaRef = (wordData.media_ref as string) || '';
+
+    // Fallback to existing_item structure if main data is missing
+    if ((!pk || !sk) && wordData.existing_item) {
+      const existingItem = wordData.existing_item as Record<string, unknown>;
+      pk = pk || (existingItem['PK'] as string) || '';
+      sk = sk || (existingItem['SK'] as string) || '';
+      mediaRef = mediaRef || (existingItem['media_ref'] as string) || '';
+    }
+
+    console.log('🔍 Extracted redirect data:', { pk, sk, mediaRef, wordData });
 
     if (!pk || !sk) {
-      console.error('❌ Missing essential redirect data:', {
-        pk,
-        sk,
-        mediaRef,
-      });
-      this.error = 'Invalid redirect data received';
+      console.error('Invalid redirect data received:', { pk, sk, wordData });
+      this.error = 'Word exists but redirect data is incomplete';
       this.loading = false;
       return;
     }
 
-    console.log('📱 Loading existing word using efficient redirect');
+    // Update header notification to reflect redirect status
+    this.updateHeaderNotificationToRedirect(pk, sk, mediaRef);
 
     // Show snackbar message
     this.messageService.showInfoMessage(
@@ -626,14 +641,99 @@ export class WordCard implements OnInit, OnDestroy {
 
     // Use efficient media loading if available, otherwise regular loading
     if (mediaRef) {
-      console.log('🎯 Using efficient API call with media reference');
       this.loadWordByPkSkWithMedia(pk, sk, mediaRef);
     } else {
-      console.log('📄 Using standard API call without media reference');
       this.loadWordByPkSk(pk, sk);
     }
 
     // The loadWordByPkSk methods will handle URL updating based on the loaded word data
+  }
+
+  /**
+   * Update the header notification to show redirect status when word-card detects redirect
+   */
+  private updateHeaderNotificationToRedirect(
+    pk: string,
+    sk: string,
+    mediaRef: string
+  ): void {
+    if (!this.word) return;
+
+    // Extract language info for notification
+    const sourceLanguage = this.word.source_language || 'en';
+    const targetLanguage = this.word.target_language || 'es';
+    const sourceWord = this.word.source_word;
+
+    // Generate the notification ID (same format as word-request service)
+    const cleanedWord = sourceWord.replace(/\s+/g, '_').toLowerCase();
+    const srcLang = this.getLanguageCode(sourceLanguage);
+    const tgtLang = this.getLanguageCode(targetLanguage);
+    const notificationId = `word-request-${cleanedWord}-${srcLang}-${tgtLang}`;
+
+    // Generate proper link for the word
+    const link = this.generateWordLink(pk, sk, sourceWord);
+
+    console.log('🔄 Updating header notification to redirect status:', {
+      notificationId,
+      sourceWord,
+      link,
+      pk,
+      sk,
+      mediaRef,
+    });
+
+    // Force update the notification to redirect status
+    this.notificationService.addOrUpdateNotification(
+      {
+        id: notificationId,
+        title: 'Found',
+        message: `"${sourceWord}" already exists in our database`,
+        status: 'redirect',
+        sourceWord,
+        targetLanguage: targetLanguage as string,
+        requestId: notificationId, // Use notification ID as request ID fallback
+        link,
+        pk,
+        sk,
+        mediaRef,
+      },
+      true
+    ); // Force override
+  }
+
+  private getLanguageCode(language: string): string {
+    const langMap: Record<string, string> = {
+      English: 'en',
+      Spanish: 'es',
+      German: 'de',
+      en: 'en',
+      es: 'es',
+      de: 'de',
+    };
+    return langMap[language] || language.toLowerCase().slice(0, 2);
+  }
+
+  private generateWordLink(pk: string, sk: string, sourceWord: string): string {
+    const pkParts = pk.split('#');
+    const skParts = sk.split('#');
+
+    if (pkParts.length >= 3 && skParts.length >= 2) {
+      const sourceLang = pkParts[1];
+      const targetLang = skParts[1];
+
+      // Extract POS if available
+      let pos = 'pending';
+      const posIndex = skParts.findIndex((part) => part === 'POS');
+      if (posIndex !== -1 && posIndex + 1 < skParts.length) {
+        pos = skParts[posIndex + 1];
+      }
+
+      // Encode word for URL
+      const encodedWord = encodeURIComponent(sourceWord);
+      return `/words/${sourceLang}/${targetLang}/${pos}/${encodedWord}`;
+    }
+
+    return '';
   }
 
   private updateWordFromNotification(
@@ -987,7 +1087,9 @@ export class WordCard implements OnInit, OnDestroy {
       const pk = `SRC#${sourceLanguage}#${decodedWord}`;
       let sk = `TGT#${targetLanguage}`;
       if (pos && pos !== 'pending') {
-        sk += `#POS#${pos.toLowerCase().trim()}`;
+        // Normalize POS to match backend logic (feminine noun -> noun, etc.)
+        const normalizedPos = this.normalizePOS(pos.trim());
+        sk += `#POS#${normalizedPos}`;
       }
 
       this.loadWordByPkSk(pk, sk);
@@ -998,7 +1100,6 @@ export class WordCard implements OnInit, OnDestroy {
     }
   }
 
-  // Fix URL when it shows "pending" instead of correct POS after DDB hit
   private fixPendingUrlIfNeeded(word: VocabularyWord): void {
     const currentUrl = this.location.path();
     if (currentUrl.includes('/pending/')) {
@@ -1152,6 +1253,19 @@ export class WordCard implements OnInit, OnDestroy {
     this.router.navigate(['/search']);
   }
 
+  searchSuggestion(suggestion: { word: string; language: string }): void {
+    if (!this.word) return;
+
+    this.router.navigate(['/search'], {
+      queryParams: {
+        query: suggestion.word,
+        source: suggestion.language,
+        target: this.word.target_language,
+        autosearch: 'true',
+      },
+    });
+  }
+
   isArray(value: unknown): value is unknown[] {
     return Array.isArray(value);
   }
@@ -1226,5 +1340,26 @@ export class WordCard implements OnInit, OnDestroy {
     const cleanKey = key.startsWith('/') ? key.slice(1) : key;
 
     return `${Configs.S3_BASE_URL}${cleanKey}`;
+  }
+
+  /**
+   * Normalize POS for database compatibility (feminine/masculine/neuter noun -> noun)
+   */
+  private normalizePOS(pos: string): string {
+    if (!pos) return 'pending';
+    const posLower = pos.toLowerCase();
+    return posLower.includes('noun') ? 'noun' : posLower;
+  }
+
+  // Returns only the first block of a UUID, or the value as is if not a UUID
+  getDisplayCreatedBy(createdBy: string | undefined): string {
+    if (!createdBy) return '';
+    // UUID v4: 8-4-4-4-12
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(createdBy)) {
+      return createdBy.split('-')[0];
+    }
+    return createdBy;
   }
 }
