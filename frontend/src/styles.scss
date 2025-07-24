@@ -469,3 +469,44 @@ body.dark-theme {
     }
   }
 }
+
+/* Skeleton Loading Animation Styles */
+@keyframes skeleton-pulse {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.skeleton-line,
+.skeleton-button,
+.skeleton-circle,
+.skeleton-arrow,
+.skeleton-tag,
+.skeleton-tab {
+  background: linear-gradient(
+    90deg,
+    rgba(190, 190, 190, 0.2) 25%,
+    rgba(129, 129, 129, 0.24) 37%,
+    rgba(190, 190, 190, 0.2) 63%
+  );
+  background-size: 400px 100%;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+body.dark-theme .skeleton-line,
+body.dark-theme .skeleton-button,
+body.dark-theme .skeleton-circle,
+body.dark-theme .skeleton-arrow,
+body.dark-theme .skeleton-tag,
+body.dark-theme .skeleton-tab {
+  background: linear-gradient(
+    90deg,
+    rgba(66, 66, 66, 0.3) 25%,
+    rgba(99, 99, 99, 0.4) 37%,
+    rgba(66, 66, 66, 0.3) 63%
+  );
+}

@@ -1,0 +1,73 @@
+.pos-tags {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.language-flags {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  background-color: rgba(25, 118, 210, 0.08);
+  border-radius: 16px;
+  height: 24px;
+  font-weight: 500;
+}
+
+.language-flag {
+  font-size: 1.125rem;
+  line-height: 1;
+  margin-top: -1px;
+}
+
+.arrow-icon {
+  font-size: 0.9rem;
+  width: 0.9rem;
+  height: 0.9rem;
+  opacity: 0.7;
+  margin-top: 1px;
+}
+
+.pos-tag {
+  color: #1976d2;
+  font-size: 0.9rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 16px;
+  background-color: rgba(25, 118, 210, 0.08);
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  font-weight: 500;
+  letter-spacing: 0.25px;
+  white-space: nowrap;
+}
+
+.skeleton-language-info {
+  width: 60%;
+  height: 24px;
+  border-radius: 16px;
+}
+
+.skeleton-pos-tag {
+  width: 80px !important;
+  height: 28px !important;
+  border-radius: 14px !important;
+  margin: 2px 4px;
+}
+
+:host-context(.dark-theme) {
+  .language-flags {
+    background-color: rgba(100, 181, 246, 0.1);
+  }
+
+  .arrow-icon {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .pos-tag {
+    background-color: rgba(25, 118, 210, 0.15);
+    color: #64b5f6;
+  }
+}

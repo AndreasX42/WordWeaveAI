@@ -1,0 +1,9 @@
+<div class="error-container">
+  <mat-icon>error_outline</mat-icon>
+  <h2>{{ "wordCard.errorTitle" | translate }}</h2>
+  <p>{{ error }}</p>
+
+  <button mat-flat-button color="primary" (click)="goBack()">
+    {{ "common.back" | translate }}
+  </button>
+</div>

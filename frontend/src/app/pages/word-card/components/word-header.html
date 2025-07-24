@@ -1,0 +1,65 @@
+<div class="word-header">
+  <div class="word-title-section">
+    <h1 class="source-word">
+      @if (word.source_article) {
+      <span class="article">{{ word.source_article }}</span>
+      } @if (word.source_language === 'en' && word.source_pos &&
+      word.source_pos.toLowerCase().includes('verb')) {
+      <span class="article">to</span>
+      }{{ word.source_word }}@if (word.source_additional_info) {<sup>1</sup>}
+    </h1>
+
+    <!-- Target Word - Progressive Loading -->
+    @if (loadingStates.targetWord && isRequestMode) {
+    <div class="skeleton-line skeleton-target-word"></div>
+    } @else {
+    <h2 class="target-word">
+      @if (word.target_article) {
+      <span class="article">{{ word.target_article }}</span>
+      } @if (word.target_language === 'en' && word.target_pos &&
+      word.target_pos.toLowerCase().includes('verb')) {
+      <span class="article">to</span>
+      }{{ word.target_word }}@if (word.target_additional_info) {<sup>2</sup>}
+      @if (hasValidPronunciation && !loadingStates.pronunciation) {
+      <button
+        mat-icon-button
+        (click)="playCombinedAudio.emit()"
+        class="pronunciation-button"
+      >
+        <mat-icon>volume_up</mat-icon>
+      </button>
+      } @else if (loadingStates.pronunciation && isRequestMode) {
+      <div class="skeleton-circle skeleton-pronunciation-btn"></div>
+      }
+    </h2>
+    }
+
+    <!-- Pronunciation - Progressive Loading -->
+    @if (loadingStates.syllables && isRequestMode) {
+    <div class="skeleton-line skeleton-pronunciation"></div>
+    <div class="skeleton-line skeleton-plural"></div>
+    } @else if (hasTargetSyllables) {
+    <div class="pronunciation">
+      ({{ word.target_syllables.join("·") }}) @if (word.target_phonetic_guide) {
+      <span class="phonetic-guide"> [{{ word.target_phonetic_guide }}] </span>
+      } @if (word.target_plural_form) {
+      <div class="plural-form">
+        <span class="plural-label">Pl.:</span>
+        <span class="plural-word">{{ word.target_plural_form }}</span>
+      </div>
+      }
+    </div>
+    } @else if (word.target_plural_form) {
+    <div class="pronunciation">
+      <div class="plural-form">
+        <span class="plural-label">Pl.:</span>
+        <span class="plural-word">{{ word.target_plural_form }}</span>
+      </div>
+    </div>
+    }
+  </div>
+  <button mat-stroked-button class="add-to-list-button">
+    <mat-icon>playlist_add</mat-icon>
+    {{ "wordCard.addToList" | translate }}
+  </button>
+</div>

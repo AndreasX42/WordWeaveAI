@@ -1,0 +1,300 @@
+::ng-deep {
+  .mat-mdc-dialog-surface {
+    background-color: var(--card-background, #ffffff) !important;
+    color: var(--text-primary, #333333) !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 4px 20px rgba(0, 0, 0, 0.08),
+      0 2px 8px rgba(0, 0, 0, 0.05) !important;
+    border-radius: 16px !important;
+    border: 1px solid var(--border-color, rgba(0, 0, 0, 0.06)) !important;
+  }
+
+  .mat-mdc-dialog-title {
+    color: var(--text-primary, #333333) !important;
+    font-size: 24px !important;
+    font-weight: 600 !important;
+    margin-bottom: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+
+    mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+      color: #1976d2;
+    }
+  }
+}
+
+// --- Component Layout ---
+
+mat-dialog-content {
+  padding: 24px 24px 16px 24px !important;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 280px;
+  width: 100%;
+}
+
+.validation-section {
+  margin-top: 16px;
+}
+
+.validation-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(244, 67, 54, 0.1);
+  border-radius: 4px;
+
+  &:not(:last-child) {
+    margin-bottom: 8px;
+  }
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: #f44336;
+  }
+  span {
+    font-size: 14px;
+    color: #d32f2f;
+  }
+}
+
+.existing-results {
+  margin-top: 16px;
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 193, 7, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: #f57c00;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .warning-content {
+    flex: 1;
+  }
+  .warning-title {
+    font-weight: 500;
+    color: #f57c00;
+    margin: 0 0 8px 0;
+    font-size: 14px;
+  }
+  .existing-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .existing-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #666;
+    .flag {
+      font-size: 14px;
+    }
+    .word {
+      font-weight: 500;
+    }
+    .arrow {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      color: #999;
+    }
+  }
+}
+
+// --- Action Buttons ---
+
+mat-dialog-actions {
+  padding: 8px 24px 24px 24px !important;
+
+  .mat-mdc-button {
+    height: 48px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 12px;
+    text-transform: none;
+    letter-spacing: 0.25px;
+    transition: all 0.3s ease;
+    padding: 0 24px;
+  }
+
+  .mat-mdc-raised-button:not(:disabled) {
+    background-color: var(--card-background, #ffffff) !important;
+    color: var(--text-primary, #333333) !important;
+    border: 1px solid var(--border-color, #dadce0) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    &:hover {
+      background-color: var(--surface-color, #f8f9fa) !important;
+      border-color: var(--border-color, #c6c6c6) !important;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+      transform: translateY(-1px);
+    }
+    &:active {
+      transform: translateY(0);
+    }
+  }
+
+  .mat-mdc-raised-button:disabled {
+    background-color: #f5f5f5 !important;
+    color: #999999 !important;
+    border: 1px solid #e0e0e0 !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+  }
+}
+
+// --- Dark Theme Overrides ---
+
+:host-context(body.dark-theme) {
+  // Override dialog container styles for dark mode
+  ::ng-deep .mat-mdc-dialog-surface {
+    background-color: var(--card-background) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: 0 12px 45px rgba(0, 0, 0, 0.4), 0 6px 25px rgba(0, 0, 0, 0.25),
+      0 3px 12px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  /*
+    The following form field styles are a direct and complete copy from search.scss
+    to ensure 100% visual consistency between the search page and this dialog.
+    This fixes all label color and visibility issues.
+  */
+  ::ng-deep .mat-mdc-form-field {
+    .mat-mdc-text-field-wrapper {
+      background-color: rgba(255, 255, 255, 0.05) !important;
+    }
+    .mat-mdc-form-field-flex {
+      color: var(--text-primary) !important;
+    }
+    .mat-mdc-input-element {
+      color: var(--text-primary) !important;
+      caret-color: var(--text-primary) !important;
+    }
+    .mat-mdc-form-field-label {
+      color: var(--text-secondary) !important;
+    }
+    .mat-mdc-form-field-label.mdc-floating-label--float-above {
+      color: var(--primary-light) !important;
+    }
+    .mdc-floating-label {
+      color: var(--text-secondary) !important;
+    }
+    &.mat-focused .mdc-floating-label {
+      color: var(--primary-light) !important;
+    }
+    .mat-mdc-select-value {
+      color: var(--text-primary) !important;
+    }
+    .mat-mdc-select-arrow {
+      color: var(--text-secondary) !important;
+    }
+    .mat-mdc-form-field-subscript-wrapper {
+      color: var(--text-secondary) !important;
+    }
+    .mat-mdc-form-field-outline {
+      color: var(--border-color) !important;
+    }
+    &.mat-focused .mat-mdc-form-field-outline {
+      color: var(--primary-light) !important;
+    }
+  }
+
+  // Override select panel for dark mode
+  ::ng-deep .mat-mdc-select-panel {
+    background: var(--card-background) !important;
+    .mat-mdc-option {
+      color: var(--text-primary) !important;
+      &:hover:not(.mdc-list-item--disabled) {
+        background: rgba(255, 255, 255, 0.08) !important;
+      }
+      &.mat-mdc-option-active {
+        background: rgba(255, 255, 255, 0.12) !important;
+      }
+    }
+  }
+
+  // Override button styles for dark mode
+  mat-dialog-actions {
+    .mat-mdc-raised-button:not(:disabled) {
+      background-color: var(--card-background, #2d3748) !important;
+      color: var(--text-primary, #ffffff) !important;
+      border: 1px solid var(--border-color, #4a5568) !important;
+      &:hover {
+        background-color: var(--surface-color, #374151) !important;
+        border-color: var(--border-color, #4a5568) !important;
+      }
+    }
+    .mat-mdc-raised-button:disabled {
+      background-color: #404040 !important;
+      color: #aaaaaa !important;
+      border: 1px solid #666666 !important;
+    }
+  }
+
+  // Override validation/warning styles for dark mode
+  .validation-error {
+    background: rgba(244, 67, 54, 0.15);
+    span {
+      color: #ff8a80;
+    }
+  }
+  .existing-results {
+    background: rgba(255, 193, 7, 0.15);
+    border-color: rgba(255, 193, 7, 0.4);
+    .warning-title {
+      color: #ffb74d;
+    }
+    .existing-item {
+      color: #b0b0b0;
+    }
+  }
+}
+
+// --- Responsive Overrides ---
+
+@media (max-width: 480px) {
+  mat-dialog-content {
+    padding: 16px 16px 12px 16px !important;
+  }
+  .form-section {
+    gap: 16px;
+    min-width: 250px;
+  }
+  mat-dialog-actions {
+    padding: 8px 16px 16px 16px !important;
+    .mat-mdc-button {
+      height: 44px;
+      font-size: 14px;
+      padding: 0 16px;
+    }
+  }
+  .existing-results {
+    padding: 10px;
+    .warning-title {
+      font-size: 13px;
+    }
+    .existing-item {
+      font-size: 12px;
+    }
+  }
+}

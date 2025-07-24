@@ -1,0 +1,35 @@
+<!-- Language/POS - Progressive Loading -->
+@if (loadingStates.languageInfo && isRequestMode) {
+<div class="skeleton-line skeleton-language-info"></div>
+} @else {
+<!-- Part of Speech Tags -->
+<div class="pos-tags">
+  <div class="language-flags">
+    <span class="language-flag">{{
+      getLanguageFlag(word.source_language)
+    }}</span>
+    <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+    <span class="language-flag">{{
+      getLanguageFlag(word.target_language)
+    }}</span>
+  </div>
+
+  <!-- Source POS - Progressive Loading -->
+  @if (loadingStates.sourcePos && isRequestMode) {
+  <div class="skeleton-line skeleton-pos-tag"></div>
+  } @else if (word.source_pos) {
+  <div class="pos-tag source-pos">
+    {{ word.source_pos }}
+  </div>
+  }
+
+  <!-- Target POS - Progressive Loading -->
+  @if (loadingStates.targetPos && isRequestMode) {
+  <div class="skeleton-line skeleton-pos-tag"></div>
+  } @else if (word.target_pos) {
+  <div class="pos-tag target-pos">
+    {{ word.target_pos }}
+  </div>
+  }
+</div>
+}

@@ -1,0 +1,41 @@
+<div class="invalid-request-card" *ngIf="validationError">
+  <mat-icon class="error-icon">error_outline</mat-icon>
+  <h2 class="headline">
+    {{ "wordCard.validationError.title" | translate }}
+  </h2>
+
+  @if (validationError.issue) {
+  <p class="error-message">{{ validationError.issue }}</p>
+  } @if (validationError.detectedLanguage) {
+  <div class="detected-language">
+    <strong
+      >{{ "wordCard.validationError.detectedLanguage" | translate }}:</strong
+    >
+    {{ validationError.detectedLanguage }}
+  </div>
+  } @if (validationError.suggestions && validationError.suggestions.length > 0)
+  {
+  <div class="suggestions">
+    <h3 class="suggestions-title">
+      {{ "wordCard.validationError.suggestions" | translate }}:
+    </h3>
+    <div class="suggestion-chips">
+      @for (suggestion of validationError.suggestions; track $index) {
+      <button
+        class="suggestion-chip"
+        (click)="searchSuggestion.emit(suggestion)"
+      >
+        {{ suggestion.word }} ({{ suggestion.language }})
+      </button>
+      }
+    </div>
+  </div>
+  }
+
+  <div class="card-actions">
+    <button class="secondary-action-btn" (click)="goBack.emit()">
+      <mat-icon>arrow_back</mat-icon>
+      <span>{{ "common.backToSearch" | translate }}</span>
+    </button>
+  </div>
+</div>

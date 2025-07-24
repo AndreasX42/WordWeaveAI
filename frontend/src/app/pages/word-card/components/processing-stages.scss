@@ -1,0 +1,275 @@
+.processing-stages-compact {
+  margin: 20px 0;
+  padding: 16px;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.9),
+    rgba(248, 250, 252, 0.8)
+  );
+  border-radius: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+
+  .stages-progress-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-start;
+    align-items: center;
+  }
+
+  .stage-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    background: linear-gradient(145deg, #ffffff, #f8fafc);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.85rem;
+    font-weight: 500;
+    min-height: 26px;
+    position: relative;
+    overflow: hidden;
+
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+
+    .stage-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      color: #64748b;
+      transition: all 0.3s ease;
+      z-index: 2;
+    }
+
+    .stage-name {
+      font-weight: 500;
+      color: #475569;
+      white-space: nowrap;
+      transition: all 0.3s ease;
+      z-index: 2;
+      letter-spacing: 0.025em;
+    }
+
+    &.pending {
+      border-color: rgba(226, 232, 240, 0.8);
+      background: linear-gradient(145deg, #f8fafc, #f1f5f9);
+
+      .stage-icon {
+        color: #94a3b8;
+      }
+
+      .stage-name {
+        color: #64748b;
+      }
+    }
+
+    &.active {
+      border-color: rgba(59, 130, 246, 0.4);
+      background: linear-gradient(
+        145deg,
+        rgba(59, 130, 246, 0.1),
+        rgba(37, 99, 235, 0.05)
+      );
+      animation: pulse-active 2s ease-in-out infinite;
+
+      .stage-icon {
+        color: #3b82f6;
+        animation: pulse-icon 2s ease-in-out infinite;
+      }
+
+      .stage-name {
+        color: #1d4ed8;
+        font-weight: 600;
+      }
+    }
+
+    &.completed {
+      border-color: rgba(34, 197, 94, 0.3);
+      background: linear-gradient(
+        145deg,
+        rgba(34, 197, 94, 0.1),
+        rgba(22, 163, 74, 0.05)
+      );
+
+      .stage-icon {
+        color: #22c55e;
+      }
+
+      .stage-name {
+        color: #16a34a;
+        font-weight: 600;
+      }
+    }
+  }
+}
+
+@keyframes pulse-active {
+  0%,
+  100% {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  }
+  50% {
+    box-shadow: 0 4px 8px 0 rgba(59, 130, 246, 0.2),
+      0 2px 4px 0 rgba(59, 130, 246, 0.1);
+  }
+}
+
+@keyframes pulse-icon {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@media (max-width: 768px) {
+  .processing-stages-compact {
+    margin: 16px 0;
+    padding: 16px;
+    border-radius: 12px;
+
+    .stages-progress-bar {
+      gap: 8px;
+    }
+
+    .stage-pill {
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      min-height: 32px;
+      border-radius: 10px;
+
+      .stage-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+      }
+
+      .stage-name {
+        display: none;
+      }
+
+      min-width: 44px;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .processing-stages-compact {
+    padding: 12px;
+
+    .stages-progress-bar {
+      gap: 6px;
+      justify-content: center;
+    }
+
+    .stage-pill {
+      padding: 4px 8px;
+      min-height: 28px;
+      min-width: 36px;
+      border-radius: 8px;
+
+      .stage-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+      }
+    }
+  }
+}
+
+:host-context(.dark-theme) {
+  .processing-stages-compact {
+    background: linear-gradient(
+      145deg,
+      rgba(55, 65, 81, 0.95),
+      rgba(31, 41, 55, 0.9)
+    ) !important;
+    border-color: rgba(107, 114, 128, 0.3) !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4),
+      0 2px 4px -1px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.02) !important;
+
+    .stage-pill {
+      background: linear-gradient(
+        145deg,
+        rgba(75, 85, 99, 0.8),
+        rgba(55, 65, 81, 0.9)
+      ) !important;
+      border-color: rgba(107, 114, 128, 0.5) !important;
+      min-height: 26px !important;
+      padding: 4px 10px !important;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px 0 rgba(0, 0, 0, 0.3) !important;
+
+      &.pending {
+        background: linear-gradient(
+          145deg,
+          rgba(107, 114, 128, 0.6),
+          rgba(75, 85, 99, 0.8)
+        ) !important;
+        border-color: rgba(156, 163, 175, 0.4) !important;
+
+        .stage-icon {
+          color: #d1d5db !important;
+        }
+
+        .stage-name {
+          color: #e5e7eb !important;
+        }
+      }
+
+      &.active {
+        border-color: rgba(59, 130, 246, 0.5) !important;
+        background: linear-gradient(
+          145deg,
+          rgba(59, 130, 246, 0.2),
+          rgba(37, 99, 235, 0.1)
+        ) !important;
+        animation: pulse-active-dark 2s ease-in-out infinite !important;
+
+        .stage-icon {
+          color: #60a5fa !important;
+          animation: pulse-icon 2s ease-in-out infinite !important;
+        }
+
+        .stage-name {
+          color: #93c5fd !important;
+          font-weight: 600 !important;
+        }
+      }
+
+      &.completed {
+        background: linear-gradient(
+          145deg,
+          rgba(34, 197, 94, 0.15),
+          rgba(22, 163, 74, 0.1)
+        ) !important;
+        border-color: rgba(34, 197, 94, 0.4) !important;
+
+        .stage-icon {
+          color: #4ade80 !important;
+        }
+
+        .stage-name {
+          color: #22c55e !important;
+        }
+      }
+    }
+  }
+}
+
+@keyframes pulse-active-dark {
+  0%,
+  100% {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 8px 0 rgba(59, 130, 246, 0.3),
+      0 2px 4px 0 rgba(59, 130, 246, 0.2);
+  }
+}

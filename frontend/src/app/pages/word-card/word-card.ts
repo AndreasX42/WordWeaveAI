@@ -4,6 +4,9 @@ import {
   OnInit,
   OnDestroy,
   ChangeDetectorRef,
+  ElementRef,
+  Renderer2,
+  effect,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -20,6 +23,7 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
 import { WordService } from '../../services/word.service';
 import {
   WordRequestService,
+  WordRequest,
   WordRequestNotification,
 } from '../../services/word-request.service';
 import { MessageService } from '../../services/message.service';
@@ -27,28 +31,27 @@ import { NotificationService } from '../../services/notification.service';
 import {
   VocabularyWord,
   ConjugationTable,
-  NonPersonalForms,
-  Mood,
-  Tense,
   Synonym,
   Example,
   Pronunciation,
   Media,
 } from '../../models/word.model';
+import { ValidationErrorInfo } from '@/models/error.model';
 import { getLanguageConfig, LanguageConfig } from './conjugation.config';
 import { Configs } from '../../shared/config';
 import { Subscription } from 'rxjs';
 import { Location } from '@angular/common';
-
-interface ProcessingStage {
-  id: string;
-  name: string;
-  icon: string;
-  status: 'pending' | 'active' | 'completed' | 'failed';
-  category: 'sequential' | 'parallel' | 'final';
-  order: number;
-  description: string;
-}
+import { LoadingStateComponent } from './components/loading-state';
+import { ErrorStateComponent } from './components/error-state';
+import { ValidationErrorStateComponent } from './components/validation-error-state';
+import { WordHeaderComponent } from './components/word-header';
+import { WordMediaComponent } from './components/word-media';
+import {
+  ProcessingStagesComponent,
+  ProcessingStage,
+} from './components/processing-stages';
+import { WordTabsComponent } from './components/word-tabs';
+import { WordDetailsComponent } from './components/word-details';
 
 interface WordRequestData {
   sourceWord: string;
@@ -110,6 +113,14 @@ interface WordNotificationData {
     MatDividerModule,
     MatProgressSpinnerModule,
     TranslatePipe,
+    LoadingStateComponent,
+    ErrorStateComponent,
+    ValidationErrorStateComponent,
+    WordHeaderComponent,
+    WordMediaComponent,
+    ProcessingStagesComponent,
+    WordTabsComponent,
+    WordDetailsComponent,
   ],
   templateUrl: './word-card.html',
   styleUrls: ['./word-card.scss'],
@@ -125,41 +136,42 @@ export class WordCard implements OnInit, OnDestroy {
   router = inject(Router);
   cdr = inject(ChangeDetectorRef);
   private location = inject(Location);
+  private elementRef = inject(ElementRef);
+  private renderer = inject(Renderer2);
 
   word: VocabularyWord | null = null;
   loading = true;
   error: string | null = null;
   langConfig: LanguageConfig = getLanguageConfig(null);
 
-  // Validation error details for better UI display
-  validationError: {
-    issue?: string;
-    detectedLanguage?: string;
-    suggestions?: { word: string; language: string }[];
-  } | null = null;
+  get hasValidPronunciation(): boolean {
+    return (
+      !!this.word?.target_pronunciations?.audio &&
+      this.word.target_pronunciations.audio.endsWith('.mp3')
+    );
+  }
+
+  validationError: ValidationErrorInfo | null = null;
   private playSyllablesNext = false;
   private audio: HTMLAudioElement | null = null;
   private subscriptions = new Subscription();
   isRequestMode = false;
 
-  // Progressive loading states for different sections
   loadingStates = {
     targetWord: true,
     syllables: true,
     pronunciation: true,
-    definition: true, // Definition loading state
+    definition: true,
     synonyms: true,
     examples: true,
     media: true,
     conjugation: true,
-    languageInfo: true, // Language flags
-    sourcePos: true, // Source part of speech
-    targetPos: true, // Target part of speech
+    languageInfo: true,
+    sourcePos: true,
+    targetPos: true,
   };
 
-  // Progressive Processing Stages
   processingStages: ProcessingStage[] = [
-    // Sequential Stages
     {
       id: 'validation',
       name: 'wordCard.stages.validation',
@@ -187,7 +199,6 @@ export class WordCard implements OnInit, OnDestroy {
       order: 3,
       description: 'wordCard.stages.translationDesc',
     },
-    // Parallel Stages
     {
       id: 'media',
       name: 'wordCard.stages.media',
@@ -242,7 +253,6 @@ export class WordCard implements OnInit, OnDestroy {
       order: 9,
       description: 'wordCard.stages.conjugationDesc',
     },
-    // Final Stage
     {
       id: 'final_quality',
       name: 'wordCard.stages.finalQuality',
@@ -253,15 +263,6 @@ export class WordCard implements OnInit, OnDestroy {
       description: 'wordCard.stages.finalQualityDesc',
     },
   ];
-
-  // Computed properties for performance optimization
-  get indicativeTenses() {
-    return this.getIndicativeTenses();
-  }
-
-  get subjunctiveTenses() {
-    return this.getSubjunctiveTenses();
-  }
 
   get hasTargetSyllables() {
     return !!(
@@ -285,22 +286,11 @@ export class WordCard implements OnInit, OnDestroy {
     return !!this.word?.conjugation_table;
   }
 
-  get hasIndicativo() {
-    const conjugationTable = this.getConjugationTable();
-    return !!conjugationTable?.[this.langConfig.moods.indicative];
-  }
-
-  get hasSubjuntivo() {
-    const conjugationTable = this.getConjugationTable();
-    return !!conjugationTable?.[this.langConfig.moods.subjunctive];
-  }
-
   get hasFormasNoPersonales() {
     const conjugationTable = this.getConjugationTable();
     return !!conjugationTable?.[this.langConfig.nonPersonalForms.key];
   }
 
-  // Helper method to get properly parsed conjugation table
   getConjugationTable(): ConjugationTable | null {
     if (!this.word?.conjugation_table) return null;
 
@@ -320,78 +310,32 @@ export class WordCard implements OnInit, OnDestroy {
     return null;
   }
 
-  // Helper methods to get correct mood names for each language
-  getIndicativeMoodName(): string {
-    return this.langConfig.moods.indicative;
-  }
-
-  getSubjunctiveMoodName(): string {
-    return this.langConfig.moods.subjunctive;
-  }
-
-  getNonPersonalFormsKey(): string {
-    return this.langConfig.nonPersonalForms.key;
-  }
-
-  // Get non-personal forms data dynamically based on language
-  getNonPersonalForms(): NonPersonalForms | null {
-    const key = this.getNonPersonalFormsKey();
-    const conjugationTable = this.getConjugationTable();
-    return (conjugationTable?.[key] as NonPersonalForms) || null;
-  }
-
-  // Get specific non-personal form values
-  getInfinitive(): string {
-    const forms = this.getNonPersonalForms();
-    const infinitiveKey = this.langConfig.nonPersonalForms.infinitive;
-    return forms?.[infinitiveKey] || '';
-  }
-
-  getParticiple(): string {
-    const forms = this.getNonPersonalForms();
-    const participleKey = this.langConfig.nonPersonalForms.participle;
-    return forms?.[participleKey] || '';
-  }
-
-  getGerund(): string {
-    const forms = this.getNonPersonalForms();
-    const gerundKey = this.langConfig.nonPersonalForms.gerund;
-    return forms?.[gerundKey] || '';
-  }
-
-  getLabel(key: string): string {
-    if (key in this.langConfig.labels) {
-      const labelKey = key as keyof LanguageConfig['labels'];
-      const labelValue = this.langConfig.labels[labelKey];
-      if (typeof labelValue === 'string') {
-        return labelValue;
-      }
-    }
-    if (key in this.langConfig.labels.tenses) {
-      return this.langConfig.labels.tenses[key];
-    }
-    return key;
-  }
-
   ngOnInit() {
-    // Clear any previous validation errors
     this.validationError = null;
 
-    // Get navigation state
-    const navigation = this.router.lastSuccessfulNavigation;
-    const routeState = navigation?.extras?.state;
+    const currentPath = this.location.path();
 
-    // Case 1: Word request state (from request dialog) - skeleton loading with WebSocket
-    if (routeState && routeState['isRequest']) {
-      this.handleWordRequest(routeState);
+    if (currentPath === '/words/request') {
+      this.handleRequestRoute();
       return;
     }
 
-    // Case 2: Full word object in state (from search) - fastest path
+    if (currentPath === '/words/error') {
+      this.handleErrorRoute();
+      return;
+    }
+
+    const navigation = this.router.lastSuccessfulNavigation;
+    const routeState = navigation?.extras?.state;
+
+    if (routeState && routeState['isRequest']) {
+      this.navigateToRequestRoute(routeState);
+      return;
+    }
+
     if (routeState && routeState['word']) {
       const wordFromState = routeState['word'] as VocabularyWord;
 
-      // If word has media_ref but no media, fetch complete word + media in one call
       if (wordFromState.media_ref && !wordFromState.media) {
         this.loadWordByPkSkWithMedia(
           wordFromState.pk,
@@ -401,26 +345,69 @@ export class WordCard implements OnInit, OnDestroy {
         return;
       }
 
-      // Use word immediately if it already has media or no media_ref
       this.word = wordFromState;
       this.langConfig = getLanguageConfig(this.word);
-      this.setAllLoadingStates(false); // Word is fully loaded
+      this.setAllLoadingStates(false);
       this.loading = false;
       return;
     }
 
-    // Case 3: PK/SK in state for optimized fetch (fallback)
     if (routeState && routeState['pk'] && routeState['sk']) {
       this.loadWordByPkSk(routeState['pk'], routeState['sk']);
       return;
     }
 
-    // Case 4: URL parameters - construct PK/SK and fetch
     this.handleUrlParameters();
   }
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
+  }
+
+  constructor() {
+    effect(() => {
+      if (this.themeService.isDarkMode()) {
+        this.renderer.addClass(this.elementRef.nativeElement, 'dark-theme');
+      } else {
+        this.renderer.removeClass(this.elementRef.nativeElement, 'dark-theme');
+      }
+    });
+  }
+
+  private navigateToRequestRoute(routeState: Record<string, unknown>): void {
+    this.router.navigate(['/words/request'], {
+      state: routeState,
+      replaceUrl: true,
+    });
+  }
+
+  private handleRequestRoute(): void {
+    const navigation = this.router.lastSuccessfulNavigation;
+    const routeState = navigation?.extras?.state;
+
+    if (routeState && routeState['isRequest']) {
+      this.handleWordRequest(routeState);
+    } else {
+      this.router.navigate(['/search']);
+    }
+  }
+
+  private handleErrorRoute(): void {
+    const navigation = this.router.lastSuccessfulNavigation;
+    const routeState = navigation?.extras?.state;
+
+    this.loading = false;
+
+    if (routeState && routeState['error']) {
+      this.error = routeState['error'] as string;
+    } else if (routeState && routeState['validationError']) {
+      this.validationError = routeState[
+        'validationError'
+      ] as ValidationErrorInfo;
+      this.error = 'Word validation failed';
+    } else {
+      this.error = 'An error occurred while processing your request';
+    }
   }
 
   private handleWordRequest(routeState: Record<string, unknown>): void {
@@ -433,30 +420,70 @@ export class WordCard implements OnInit, OnDestroy {
 
     this.isRequestMode = true;
 
-    // Create skeleton word object for immediate display
     this.createSkeletonWord(requestData);
 
-    // Subscribe to WebSocket notifications to update the word
     this.subscriptions.add(
       this.wordRequestService.notifications$.subscribe((notification) => {
         this.handleWordRequestNotification(notification);
       })
     );
 
-    // If this is a reconnection (from notification click), reconnect to WebSocket
     if (requestData.requestId && requestData.requestId !== 'new') {
-      console.log('🔄 Reconnecting to existing request via notification');
       this.wordRequestService.reconnectToRequest(
         requestData.sourceWord,
         requestData.sourceLanguage || 'auto',
         requestData.targetLanguage,
         requestData.requestId
       );
+    } else {
+      const request: WordRequest = {
+        source_word: requestData.sourceWord,
+        source_language: requestData.sourceLanguage,
+        target_language: requestData.targetLanguage,
+      };
+
+      this.wordRequestService.submitWordRequest(request).subscribe({
+        next: () => {
+          // empty
+        },
+        error: () => {
+          this.navigateToErrorUrl({
+            error: 'Failed to submit word request. Please try again.',
+          });
+        },
+      });
     }
   }
 
+  private navigateToWordUrl(): void {
+    if (!this.word) return;
+
+    const sourceLanguage = this.getLanguageCode(
+      this.word.source_language || 'en'
+    );
+    const targetLanguage = this.getLanguageCode(
+      this.word.target_language || 'es'
+    );
+    const sourceWord = encodeURIComponent(this.word.source_word);
+    const rawPos = this.word.source_pos || 'pending';
+    const normalizedPos = this.normalizePOS(rawPos);
+
+    const wordUrl = `/words/${sourceLanguage}/${targetLanguage}/${normalizedPos}/${sourceWord}`;
+
+    this.router.navigate([wordUrl], { replaceUrl: true });
+  }
+
+  private navigateToErrorUrl(errorData: {
+    error?: string;
+    validationError?: ValidationErrorInfo;
+  }): void {
+    this.router.navigate(['/words/error'], {
+      state: errorData,
+      replaceUrl: true,
+    });
+  }
+
   private createSkeletonWord(requestData: WordRequestData): void {
-    // Create a skeleton word object that will be filled by WebSocket updates
     this.word = {
       pk: `SRC#${requestData.sourceLanguage || 'auto'}#${
         requestData.sourceWord
@@ -464,9 +491,9 @@ export class WordCard implements OnInit, OnDestroy {
       sk: `TGT#${requestData.targetLanguage}`,
       source_word: requestData.sourceWord,
       source_language: requestData.sourceLanguage || '',
-      source_pos: 'pending', // Temporary POS
+      source_pos: 'pending',
       source_definition: [],
-      target_word: '', // Will be filled by WebSocket
+      target_word: '',
       target_language: requestData.targetLanguage,
       target_pos: '',
       target_syllables: [],
@@ -482,84 +509,71 @@ export class WordCard implements OnInit, OnDestroy {
       updated_at: new Date().toISOString(),
     };
 
-    // Reset progressive loading states for request mode
     this.loadingStates = {
       targetWord: true,
       syllables: true,
       pronunciation: true,
-      definition: true, // Definition loading state
+      definition: true,
       synonyms: true,
       examples: true,
       media: true,
       conjugation: true,
-      languageInfo: true, // Reset on new request
+      languageInfo: true,
       sourcePos: true,
       targetPos: true,
     };
 
-    // Initialize processing stages and activate the first stage
     this.initializeProcessingStages();
 
     this.langConfig = getLanguageConfig(this.word);
-    this.loading = true; // Keep loading state for skeleton
+    this.loading = true;
   }
 
   private handleWordRequestNotification(
     notification: WordRequestNotification
   ): void {
-    // Console log all WebSocket notifications as requested
-    console.log('🔔 Word Request WebSocket Notification:', notification);
-
     if (!this.isRequestMode || !this.word) return;
 
-    // Check for DDB hit redirect - explicit redirect status OR word_exists flag in processing
     const isRedirectNotification =
       notification.status === 'redirect' ||
       (notification.word_data &&
         notification.word_data['word_exists'] === true);
 
     if (isRedirectNotification && notification.word_data) {
-      console.log('🔄 Processing redirect notification:', notification);
       this.handleWordExistsRedirect(notification.word_data);
-      return; // Stop further processing to ensure redirect happens
+      return;
     }
 
     switch (notification.status) {
       case 'processing':
-        console.log('⏳ Processing notification:', notification);
         if (notification.word_data) {
-          console.log(
-            '📝 Updating word with partial data:',
-            notification.word_data
-          );
           this.updateWordFromNotification(notification.word_data);
           this.updateStageFromWebSocketData(notification.word_data);
         }
         break;
       case 'completed':
         if (notification.word_data) {
-          console.log('📋 Final word data received:', notification.word_data);
-          this.updateWordFromNotification(notification.word_data, true); // Mark as final update
+          this.updateWordFromNotification(notification.word_data, true);
           this.updateStageFromWebSocketData(notification.word_data);
-          this.setAllStagesCompleted(); // Ensure all visible stages are marked completed
+          this.setAllStagesCompleted();
+
+          this.navigateToWordUrl();
         }
-        this.loading = false; // Turn off loading only on completion
+        this.loading = false;
         break;
       case 'redirect':
-        // This case remains as a fallback for explicit redirect messages
         if (notification.word_data) {
           this.handleWordExistsRedirect(notification.word_data);
         }
         break;
       case 'failed':
-        console.log('❌ Word creation failed:', notification);
-        this.error = notification.message || 'Failed to create word';
-        this.loading = false;
+        this.navigateToErrorUrl({
+          error: notification.message || 'Failed to create word',
+        });
         break;
       case 'invalid':
-        // Set validation error details for UI display
         if (notification.word_data) {
-          this.validationError = {
+          const validationError = {
             issue: notification.word_data['validation_issue'] as
               | string
               | undefined,
@@ -572,16 +586,14 @@ export class WordCard implements OnInit, OnDestroy {
                 language: string;
               }[]) || [],
           };
-          // Set a simple error message since detailed info is in validationError
-          this.error = 'Word validation failed';
+          this.navigateToErrorUrl({ validationError });
         } else {
-          // Fallback if no detailed validation data
-          this.error =
+          const error =
             notification.error ||
             notification.message ||
             'Word validation failed';
+          this.navigateToErrorUrl({ error });
         }
-        this.loading = false;
         break;
       default:
     }
@@ -604,13 +616,11 @@ export class WordCard implements OnInit, OnDestroy {
       return;
     }
 
-    // Extract DDB data using standard uppercase keys
     const dataAsRecord = wordData as Record<string, unknown>;
     let pk = (dataAsRecord['PK'] as string) || '';
     let sk = (dataAsRecord['SK'] as string) || '';
     let mediaRef = (wordData.media_ref as string) || '';
 
-    // Fallback to existing_item structure if main data is missing
     if ((!pk || !sk) && wordData.existing_item) {
       const existingItem = wordData.existing_item as Record<string, unknown>;
       pk = pk || (existingItem['PK'] as string) || '';
@@ -618,40 +628,28 @@ export class WordCard implements OnInit, OnDestroy {
       mediaRef = mediaRef || (existingItem['media_ref'] as string) || '';
     }
 
-    console.log('🔍 Extracted redirect data:', { pk, sk, mediaRef, wordData });
-
     if (!pk || !sk) {
-      console.error('Invalid redirect data received:', { pk, sk, wordData });
       this.error = 'Word exists but redirect data is incomplete';
       this.loading = false;
       return;
     }
 
-    // Update header notification to reflect redirect status
     this.updateHeaderNotificationToRedirect(pk, sk, mediaRef);
 
-    // Show snackbar message
     this.messageService.showInfoMessage(
       this.translationService.translate('wordCard.wordAlreadyExists'),
       4000
     );
 
-    // Exit request mode and load the existing word
     this.isRequestMode = false;
 
-    // Use efficient media loading if available, otherwise regular loading
     if (mediaRef) {
-      this.loadWordByPkSkWithMedia(pk, sk, mediaRef);
+      this.loadWordByPkSkWithMedia(pk, sk, mediaRef, true);
     } else {
-      this.loadWordByPkSk(pk, sk);
+      this.loadWordByPkSk(pk, sk, true);
     }
-
-    // The loadWordByPkSk methods will handle URL updating based on the loaded word data
   }
 
-  /**
-   * Update the header notification to show redirect status when word-card detects redirect
-   */
   private updateHeaderNotificationToRedirect(
     pk: string,
     sk: string,
@@ -659,30 +657,17 @@ export class WordCard implements OnInit, OnDestroy {
   ): void {
     if (!this.word) return;
 
-    // Extract language info for notification
     const sourceLanguage = this.word.source_language || 'en';
     const targetLanguage = this.word.target_language || 'es';
     const sourceWord = this.word.source_word;
 
-    // Generate the notification ID (same format as word-request service)
     const cleanedWord = sourceWord.replace(/\s+/g, '_').toLowerCase();
     const srcLang = this.getLanguageCode(sourceLanguage);
     const tgtLang = this.getLanguageCode(targetLanguage);
     const notificationId = `word-request-${cleanedWord}-${srcLang}-${tgtLang}`;
 
-    // Generate proper link for the word
     const link = this.generateWordLink(pk, sk, sourceWord);
 
-    console.log('🔄 Updating header notification to redirect status:', {
-      notificationId,
-      sourceWord,
-      link,
-      pk,
-      sk,
-      mediaRef,
-    });
-
-    // Force update the notification to redirect status
     this.notificationService.addOrUpdateNotification(
       {
         id: notificationId,
@@ -691,14 +676,14 @@ export class WordCard implements OnInit, OnDestroy {
         status: 'redirect',
         sourceWord,
         targetLanguage: targetLanguage as string,
-        requestId: notificationId, // Use notification ID as request ID fallback
+        requestId: notificationId,
         link,
         pk,
         sk,
         mediaRef,
       },
       true
-    ); // Force override
+    );
   }
 
   private getLanguageCode(language: string): string {
@@ -721,14 +706,12 @@ export class WordCard implements OnInit, OnDestroy {
       const sourceLang = pkParts[1];
       const targetLang = skParts[1];
 
-      // Extract POS if available
       let pos = 'pending';
       const posIndex = skParts.findIndex((part) => part === 'POS');
       if (posIndex !== -1 && posIndex + 1 < skParts.length) {
         pos = skParts[posIndex + 1];
       }
 
-      // Encode word for URL
       const encodedWord = encodeURIComponent(sourceWord);
       return `/words/${sourceLang}/${targetLang}/${pos}/${encodedWord}`;
     }
@@ -742,9 +725,6 @@ export class WordCard implements OnInit, OnDestroy {
   ): void {
     if (!this.word) return;
 
-    console.log('🔄 Updating word from notification data:', data);
-
-    // Update word properties with incoming data
     if (Object.prototype.hasOwnProperty.call(data, 'source_word')) {
       this.word.source_word = data.source_word || '';
     }
@@ -767,11 +747,10 @@ export class WordCard implements OnInit, OnDestroy {
     if (Object.prototype.hasOwnProperty.call(data, 'source_definition')) {
       this.word.source_definition = data.source_definition || [];
       this.loadingStates.definition = false;
-      console.log('📖 Definition data received - resolving definition loading');
     }
     if (Object.prototype.hasOwnProperty.call(data, 'source_language')) {
       this.word.source_language = data.source_language || '';
-      this.loadingStates.languageInfo = false; // Language info is now available
+      this.loadingStates.languageInfo = false;
     }
     if (
       Object.prototype.hasOwnProperty.call(data, 'target_pos') ||
@@ -807,7 +786,6 @@ export class WordCard implements OnInit, OnDestroy {
       this.word.conjugation_table = data.conjugation_table || data.conjugation;
       this.loadingStates.conjugation = false;
     }
-    // Handle case where conjugation is not available (e.g., not a verb)
     if (
       Object.prototype.hasOwnProperty.call(data, 'conjugation_not_available') ||
       (Object.prototype.hasOwnProperty.call(data, 'conjugation_message') &&
@@ -819,7 +797,6 @@ export class WordCard implements OnInit, OnDestroy {
           data.conjugation.includes('no conjugation table')))
     ) {
       this.loadingStates.conjugation = false;
-      console.log('💼 Conjugation not available for non-verb:', data);
     }
     if (
       Object.prototype.hasOwnProperty.call(data, 'target_pronunciations') ||
@@ -834,12 +811,10 @@ export class WordCard implements OnInit, OnDestroy {
       this.loadingStates.media = false;
     }
 
-    // Update source definition if available
     if (Object.prototype.hasOwnProperty.call(data, 'source_definition')) {
       this.word.source_definition = data.source_definition || [];
     }
 
-    // Update part of speech information
     if (
       Object.prototype.hasOwnProperty.call(data, 'source_part_of_speech') ||
       Object.prototype.hasOwnProperty.call(data, 'source_pos')
@@ -857,7 +832,6 @@ export class WordCard implements OnInit, OnDestroy {
       this.loadingStates.targetPos = false;
     }
 
-    // Check for completed parallel tasks to update loading states
     if (
       Object.prototype.hasOwnProperty.call(data, 'completed_parallel_tasks') &&
       Array.isArray(data.completed_parallel_tasks)
@@ -881,61 +855,46 @@ export class WordCard implements OnInit, OnDestroy {
       }
     }
 
-    // On the final update, ensure all loading states are false
     if (isFinal) {
       this.setAllLoadingStates(false);
     }
 
-    // Update language config and trigger change detection
     this.langConfig = getLanguageConfig(this.word);
     this.cdr.detectChanges();
   }
 
   private updateStageFromWebSocketData(data: WordNotificationData): void {
-    console.log('🔄 Updating stages from WebSocket data:', data);
-
-    // Sequential stages - based on quality approvals or data presence
     if (data.validation_quality_approved) {
       this.updateStageStatus('validation', true);
     }
 
-    // Classification stage completion also resolves definition loading
     if (data.classification_quality_approved) {
       this.updateStageStatus('classification', true);
-      // Definition is obtained during classification, so resolve definition loading
       this.loadingStates.definition = false;
-      console.log(
-        '📖 Definition loading resolved after classification completion'
-      );
     }
 
     if (data.translation_quality_approved) {
       this.updateStageStatus('translation', true);
     }
 
-    // Parallel stages - activate them when translation is done
     if (data.translation_quality_approved) {
       this.activateParallelStages();
     }
 
-    // Update parallel stages based on quality approvals
     this.updateStageStatus('media', data.media_quality_approved);
     this.updateStageStatus('examples', data.examples_quality_approved);
     this.updateStageStatus('synonyms', data.synonyms_quality_approved);
     this.updateStageStatus('syllables', data.syllables_quality_approved);
     this.updateStageStatus('conjugation', data.conjugation_quality_approved);
 
-    // Pronunciation doesn't have quality gate - check for pronunciations data
     if (data.pronunciations || data.target_pronunciations) {
       this.updateStageStatus('pronunciation', true);
     }
 
-    // Final quality check
     if (data.processing_complete || data.overall_quality_score) {
       this.updateStageStatus('final_quality', true);
     }
 
-    // Check for completed_parallel_tasks array for more granular updates
     if (
       data.completed_parallel_tasks &&
       Array.isArray(data.completed_parallel_tasks)
@@ -944,11 +903,6 @@ export class WordCard implements OnInit, OnDestroy {
         this.updateStageStatus(taskName, true);
       });
     }
-
-    console.log(
-      '📊 Updated stages:',
-      this.processingStages.map((s) => ({ id: s.id, status: s.status }))
-    );
   }
 
   private updateStageStatus(
@@ -959,8 +913,6 @@ export class WordCard implements OnInit, OnDestroy {
       const stage = this.processingStages.find((s) => s.id === stageId);
       if (stage && stage.status !== 'completed') {
         stage.status = 'completed';
-        console.log(`✅ Stage '${stageId}' marked as completed`);
-        // Activate next sequential stage if this was a sequential stage
         this.activateNextSequentialStage(stageId);
       }
     }
@@ -972,16 +924,13 @@ export class WordCard implements OnInit, OnDestroy {
     );
     if (!completedStage || completedStage.category !== 'sequential') return;
 
-    // Find the next sequential stage
     const nextSequentialStage = this.processingStages.find(
       (s) => s.category === 'sequential' && s.order === completedStage.order + 1
     );
 
     if (nextSequentialStage && nextSequentialStage.status === 'pending') {
       nextSequentialStage.status = 'active';
-      console.log(`🔄 Stage '${nextSequentialStage.id}' activated`);
     } else if (completedStage.order === 3) {
-      // After translation (order 3), activate all parallel stages
       this.activateParallelStages();
     }
   }
@@ -990,7 +939,6 @@ export class WordCard implements OnInit, OnDestroy {
     this.processingStages.forEach((stage) => {
       if (stage.category === 'parallel' && stage.status === 'pending') {
         stage.status = 'active';
-        console.log(`🔄 Parallel stage '${stage.id}' activated`);
       }
     });
   }
@@ -999,11 +947,9 @@ export class WordCard implements OnInit, OnDestroy {
     this.processingStages.forEach((stage) => {
       stage.status = 'pending';
     });
-    // Activate the first stage (validation) when starting
     const firstStage = this.processingStages.find((s) => s.order === 1);
     if (firstStage) {
       firstStage.status = 'active';
-      console.log(`🔄 First stage '${firstStage.id}' activated`);
     }
   }
 
@@ -1013,81 +959,18 @@ export class WordCard implements OnInit, OnDestroy {
     });
   }
 
-  getVisibleStages(): ProcessingStage[] {
-    return this.processingStages.filter((stage) => {
-      // Always show conjugation stage initially, only hide after explicit determination
-      if (stage.id === 'conjugation') {
-        // In request mode, always show until we know for sure it's not a verb
-        if (this.isRequestMode) {
-          return true;
-        }
-        // In non-request mode, hide if we definitively know it's not a verb
-        return this.word?.target_pos === 'verb' || this.hasConjugationTable;
-      }
-      // Hide synonyms for POS that don't have synonyms (only after POS is determined)
-      if (
-        stage.id === 'synonyms' &&
-        this.word?.target_pos &&
-        !this.isRequestMode &&
-        !this.shouldHaveSynonyms(this.word.target_pos)
-      ) {
-        return false;
-      }
-      return true;
-    });
-  }
-
-  private shouldHaveSynonyms(pos: string): boolean {
-    const posWithSynonyms = [
-      'noun',
-      'feminine noun',
-      'masculine noun',
-      'neuter noun',
-      'verb',
-      'adjective',
-      'adverb',
-      'interjection',
-      'conjunction',
-    ];
-    return posWithSynonyms.includes(pos.toLowerCase());
-  }
-
-  shouldShowConjugationTab(): boolean {
-    // In request mode, always show until we know for sure it's not a verb
-    if (this.isRequestMode && this.loadingStates.conjugation) {
-      return true;
-    }
-
-    // Show if we have conjugation data or if it's a verb
-    if (this.hasConjugationTable || this.word?.target_pos === 'verb') {
-      return true;
-    }
-
-    // In request mode but not loading, show if we haven't determined it's not a verb yet
-    if (this.isRequestMode && !this.word?.target_pos) {
-      return true;
-    }
-
-    // Otherwise, hide the tab
-    return false;
-  }
-
   private handleUrlParameters(): void {
-    // Extract parameters from route
     const sourceLanguage = this.route.snapshot.paramMap.get('sourceLanguage');
     const targetLanguage = this.route.snapshot.paramMap.get('targetLanguage');
     const word = this.route.snapshot.paramMap.get('word');
     const pos = this.route.snapshot.paramMap.get('pos');
 
     if (sourceLanguage && targetLanguage && word) {
-      // Decode the word parameter to handle special characters like ß
       const decodedWord = decodeURIComponent(word).toLowerCase().trim();
 
-      // With POS - construct PK/SK and fetch directly
       const pk = `SRC#${sourceLanguage}#${decodedWord}`;
       let sk = `TGT#${targetLanguage}`;
       if (pos && pos !== 'pending') {
-        // Normalize POS to match backend logic (feminine noun -> noun, etc.)
         const normalizedPos = this.normalizePOS(pos.trim());
         sk += `#POS#${normalizedPos}`;
       }
@@ -1100,22 +983,7 @@ export class WordCard implements OnInit, OnDestroy {
     }
   }
 
-  private fixPendingUrlIfNeeded(word: VocabularyWord): void {
-    const currentUrl = this.location.path();
-    if (currentUrl.includes('/pending/')) {
-      // Extract POS from SK: "TGT#es#POS#noun" -> "noun"
-      const skParts = word.sk.split('#');
-      const posIndex = skParts.findIndex((part) => part === 'POS');
-      if (posIndex !== -1 && posIndex + 1 < skParts.length) {
-        const correctPos = skParts[posIndex + 1];
-        const newUrl = currentUrl.replace('/pending/', `/${correctPos}/`);
-        this.location.replaceState(newUrl);
-        console.log('🔄 URL updated from pending to correct POS:', correctPos);
-      }
-    }
-  }
-
-  loadWordByPkSk(pk: string, sk: string) {
+  loadWordByPkSk(pk: string, sk: string, isRedirect = false) {
     this.loading = true;
     this.error = null;
     this.wordService.getWordByPkSk(pk, sk).subscribe({
@@ -1123,22 +991,29 @@ export class WordCard implements OnInit, OnDestroy {
         if (data) {
           this.word = data;
           this.langConfig = getLanguageConfig(this.word);
-          this.setAllLoadingStates(false); // Word is fully loaded
-          this.fixPendingUrlIfNeeded(data); // Fix URL if it shows "pending"
+          this.setAllLoadingStates(false);
+
+          if (isRedirect) {
+            this.navigateToWordUrl();
+          }
         } else {
           this.error = this.translationService.translate('wordCard.notFound');
         }
         this.loading = false;
       },
-      error: (err) => {
-        console.error('API Error:', err);
+      error: () => {
         this.error = this.translationService.translate('wordCard.error');
         this.loading = false;
       },
     });
   }
 
-  loadWordByPkSkWithMedia(pk: string, sk: string, mediaRef: string) {
+  loadWordByPkSkWithMedia(
+    pk: string,
+    sk: string,
+    mediaRef: string,
+    isRedirect = false
+  ) {
     this.loading = true;
     this.error = null;
 
@@ -1148,14 +1023,16 @@ export class WordCard implements OnInit, OnDestroy {
           this.word = data;
           this.langConfig = getLanguageConfig(this.word);
           this.setAllLoadingStates(false);
-          this.fixPendingUrlIfNeeded(data); // Fix URL if it shows "pending"
+
+          if (isRedirect) {
+            this.navigateToWordUrl();
+          }
         } else {
           this.error = this.translationService.translate('wordCard.notFound');
         }
         this.loading = false;
       },
-      error: (err) => {
-        console.error('API Error:', err);
+      error: () => {
         this.error = this.translationService.translate('wordCard.loadError');
         this.loading = false;
       },
@@ -1182,19 +1059,20 @@ export class WordCard implements OnInit, OnDestroy {
       ? this.getS3Url(this.word.target_pronunciations.syllables)
       : this.getS3Url(this.word.target_pronunciations.audio);
 
-    // Fallback to main pronunciation if syllables URL is next but not available
     if (!urlToPlay && this.playSyllablesNext) {
       urlToPlay = this.getS3Url(this.word.target_pronunciations.audio);
     }
 
     if (urlToPlay) {
       this.audio = new Audio(urlToPlay);
-      this.audio.play().catch((err) => {
-        console.error('Error playing audio:', err);
+      this.audio.play().catch(() => {
+        // empty
       });
 
-      // Toggle for the next click, only if syllable audio exists.
-      if (this.word.target_pronunciations.syllables) {
+      if (
+        this.word.target_pronunciations.syllables &&
+        this.word.target_pronunciations.syllables.endsWith('.mp3')
+      ) {
         this.playSyllablesNext = !this.playSyllablesNext;
       } else {
         this.playSyllablesNext = false;
@@ -1204,34 +1082,6 @@ export class WordCard implements OnInit, OnDestroy {
 
   getPartOfSpeechLabel(pos: string): string {
     return this.translationService.translate(`wordCard.pos.${pos}`) || pos;
-  }
-
-  getIndicativeTenses(): string[] {
-    const conjugationTable = this.getConjugationTable();
-    const indicativeMoodName = this.getIndicativeMoodName();
-    const moodData = conjugationTable?.[indicativeMoodName];
-    return moodData ? Object.keys(moodData) : [];
-  }
-
-  getSubjunctiveTenses(): string[] {
-    const conjugationTable = this.getConjugationTable();
-    const subjunctiveMoodName = this.getSubjunctiveMoodName();
-    const moodData = conjugationTable?.[subjunctiveMoodName];
-    return moodData ? Object.keys(moodData) : [];
-  }
-
-  getConjugationPronouns(mood: string): string[] {
-    const conjugationTable = this.getConjugationTable();
-    const moodData = conjugationTable?.[mood] as Mood;
-    if (!moodData) return [];
-
-    // Get pronouns from the first available tense
-    const firstTense = Object.values(moodData)[0] as Tense;
-    return firstTense ? Object.keys(firstTense) : [];
-  }
-
-  getPronounLabel(pronoun: string): string {
-    return this.langConfig.labels.pronouns[pronoun] || pronoun;
   }
 
   formatDate(dateString: string | undefined): string {
@@ -1248,19 +1098,35 @@ export class WordCard implements OnInit, OnDestroy {
   }
 
   goBack() {
-    // Clear validation error details when going back
     this.validationError = null;
     this.router.navigate(['/search']);
   }
 
   searchSuggestion(suggestion: { word: string; language: string }): void {
-    if (!this.word) return;
+    let targetLanguage = this.word?.target_language;
+
+    if (!targetLanguage) {
+      const navigation = this.router.lastSuccessfulNavigation;
+      const routeState = navigation?.extras?.state;
+
+      if (routeState && routeState['requestData']) {
+        const requestData = routeState['requestData'] as WordRequestData;
+        targetLanguage = requestData.targetLanguage;
+      }
+
+      if (!targetLanguage) {
+        targetLanguage = 'es';
+      }
+    }
+
+    const sourceLanguageCode = this.getLanguageCode(suggestion.language);
+    const targetLanguageCode = this.getLanguageCode(targetLanguage);
 
     this.router.navigate(['/search'], {
       queryParams: {
         query: suggestion.word,
-        source: suggestion.language,
-        target: this.word.target_language,
+        source: sourceLanguageCode,
+        target: targetLanguageCode,
         autosearch: 'true',
       },
     });
@@ -1268,16 +1134,6 @@ export class WordCard implements OnInit, OnDestroy {
 
   isArray(value: unknown): value is unknown[] {
     return Array.isArray(value);
-  }
-
-  asArray(value: string | string[]): string[] {
-    return value as string[];
-  }
-
-  getTense(mood: string, tense: string): Record<string, string> | null {
-    const conjugationTable = this.getConjugationTable();
-    const moodData = conjugationTable?.[mood] as Mood;
-    return moodData?.[tense] || null;
   }
 
   getLanguageFlag(langCode: string | undefined): string {
@@ -1297,64 +1153,26 @@ export class WordCard implements OnInit, OnDestroy {
     return flagMap[lang] || langCode.toUpperCase();
   }
 
-  getConjugationValue(mood: string, tense: string, pronoun: string): string {
-    const tenseData = this.getTense(mood, tense);
-    return tenseData?.[pronoun] || '';
-  }
-
-  // New helper methods for restructured conjugation tables
-  getGroupedTenses(mood: string): string[][] {
-    const tenses =
-      mood === this.getIndicativeMoodName()
-        ? this.getIndicativeTenses()
-        : this.getSubjunctiveTenses();
-
-    // Group tenses into chunks of 3
-    const grouped: string[][] = [];
-    for (let i = 0; i < tenses.length; i += 3) {
-      grouped.push(tenses.slice(i, i + 3));
-    }
-    return grouped;
-  }
-
-  getConjugationValueForTense(
-    mood: string,
-    tense: string,
-    pronoun: string
-  ): string {
-    const conjugationTable = this.getConjugationTable();
-    const moodData = conjugationTable?.[mood] as Mood;
-    const tenseData = moodData?.[tense] as Tense;
-    return tenseData?.[pronoun] || '';
-  }
-
   getS3Url(key: string | undefined): string {
-    if (!key) return '';
+    if (!key || key === '<nil>') return '';
 
-    // If key is already a full URL, return it as is
     if (key.startsWith('http://') || key.startsWith('https://')) {
       return key;
     }
 
-    // If key starts with a slash, remove it to avoid double slashes
     const cleanKey = key.startsWith('/') ? key.slice(1) : key;
 
     return `${Configs.S3_BASE_URL}${cleanKey}`;
   }
 
-  /**
-   * Normalize POS for database compatibility (feminine/masculine/neuter noun -> noun)
-   */
   private normalizePOS(pos: string): string {
     if (!pos) return 'pending';
     const posLower = pos.toLowerCase();
     return posLower.includes('noun') ? 'noun' : posLower;
   }
 
-  // Returns only the first block of a UUID, or the value as is if not a UUID
   getDisplayCreatedBy(createdBy: string | undefined): string {
     if (!createdBy) return '';
-    // UUID v4: 8-4-4-4-12
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (uuidRegex.test(createdBy)) {

@@ -1,0 +1,307 @@
+<mat-tab-group class="content-tabs">
+  <!-- Definitions Tab -->
+  <mat-tab>
+    <ng-template mat-tab-label>
+      <mat-icon>description</mat-icon>
+      {{ "wordCard.definition" | translate }}
+      @if (loadingStates.definition && isRequestMode) {
+      <mat-spinner diameter="16" strokeWidth="2"></mat-spinner>
+      }
+    </ng-template>
+
+    <div class="tab-content">
+      @if (loadingStates.definition && isRequestMode) {
+      <!-- Definition Loading Skeleton -->
+      <div class="definitions">
+        <div class="skeleton-item">
+          <div class="skeleton-line skeleton-definition-long"></div>
+          <div class="skeleton-line skeleton-definition-medium"></div>
+          <div class="skeleton-line skeleton-definition-short"></div>
+        </div>
+      </div>
+      } @else { @if (word.source_additional_info) {
+      <div class="usage-hint source-hint">
+        <div class="hint-icon-wrapper">
+          <mat-icon class="hint-icon">info_outline</mat-icon>
+        </div>
+        <div class="hint-text">
+          <sup>1</sup> {{ word.source_additional_info }}
+        </div>
+      </div>
+      } @if (word.target_additional_info) {
+      <div class="usage-hint">
+        <div class="hint-icon-wrapper">
+          <mat-icon class="hint-icon">info_outline</mat-icon>
+        </div>
+        <div class="hint-text">
+          <sup>2</sup> {{ word.target_additional_info }}
+        </div>
+      </div>
+      } @if (word.source_definition) {
+      <div class="definitions">
+        @if (isArray(word.source_definition)) {
+        <ul>
+          @for (def of asArray(word.source_definition); track $index) {
+          <li>
+            <span class="definition-number">{{ $index + 1 }}.</span>
+            <span class="definition-text">{{ def }}</span>
+          </li>
+          }
+        </ul>
+        } @else {
+        <p class="single-definition">
+          {{ word.source_definition }}
+        </p>
+        }
+      </div>
+      } }
+    </div>
+  </mat-tab>
+
+  <!-- Synonyms Tab -->
+  <mat-tab>
+    <ng-template mat-tab-label>
+      <mat-icon>compare_arrows</mat-icon>
+      {{ "wordCard.synonyms" | translate }}
+      @if (loadingStates.synonyms && isRequestMode) {
+      <mat-spinner diameter="16" strokeWidth="2"></mat-spinner>
+      }
+    </ng-template>
+
+    <div class="tab-content">
+      @if (loadingStates.synonyms && isRequestMode) {
+      <!-- Synonyms Loading Skeleton -->
+      <div class="synonyms-list">
+        @for (item of [1,2,3]; track item) {
+        <div class="synonym-item skeleton-item">
+          <div class="synonym-header">
+            <div class="skeleton-circle skeleton-number"></div>
+            <div class="skeleton-line skeleton-synonym-word"></div>
+          </div>
+          <div class="skeleton-line skeleton-synonym-explanation"></div>
+        </div>
+        }
+      </div>
+      } @else if (hasSynonyms) {
+      <div class="synonyms-list">
+        @for (synonym of word.synonyms; track $index) {
+        <div class="synonym-item">
+          <div class="synonym-header">
+            <span class="synonym-number">{{ $index + 1 }}.</span>
+            <span class="synonym-word">{{ synonym.synonym }}</span>
+          </div>
+          <p class="synonym-explanation">{{ synonym.explanation }}</p>
+        </div>
+        }
+      </div>
+      } @else {
+      <p class="no-content">{{ "wordCard.noSynonyms" | translate }}</p>
+      }
+    </div>
+  </mat-tab>
+
+  <!-- Examples Tab -->
+  <mat-tab>
+    <ng-template mat-tab-label>
+      <mat-icon>format_quote</mat-icon>
+      {{ "wordCard.examples" | translate }}
+      @if (loadingStates.examples && isRequestMode) {
+      <mat-spinner diameter="16" strokeWidth="2"></mat-spinner>
+      }
+    </ng-template>
+
+    <div class="tab-content">
+      @if (loadingStates.examples && isRequestMode) {
+      <!-- Examples Loading Skeleton -->
+      <div class="examples-list">
+        @for (item of [1,2,3]; track item) {
+        <div class="example-item skeleton-item">
+          <div class="example-text">
+            <div class="skeleton-line skeleton-example-source"></div>
+            <div class="skeleton-line skeleton-example-target"></div>
+          </div>
+          <div class="example-context">
+            <div class="skeleton-circle skeleton-context-icon"></div>
+            <div class="skeleton-line skeleton-context-text"></div>
+          </div>
+        </div>
+        }
+      </div>
+      } @else if (hasExamples) {
+      <div class="examples-list">
+        @for (example of word.examples; track $index) {
+        <div class="example-item">
+          <div class="example-text">
+            <p class="source-example">{{ example.original }}</p>
+            <p class="target-example">{{ example.translation }}</p>
+          </div>
+          @if (example.context) {
+          <div class="example-context">
+            <mat-icon class="context-icon">lightbulb</mat-icon>
+            <span>{{ example.context }}</span>
+          </div>
+          }
+        </div>
+        }
+      </div>
+      } @else {
+      <p class="no-content">{{ "wordCard.noExamples" | translate }}</p>
+      }
+    </div>
+  </mat-tab>
+
+  <!-- Conjugation Tab (conditionally shown) -->
+  @if (shouldShowConjugationTab()) {
+  <mat-tab>
+    <ng-template mat-tab-label>
+      <mat-icon>table_chart</mat-icon>
+      {{ "wordCard.conjugation" | translate }}
+      @if (loadingStates.conjugation && isRequestMode) {
+      <mat-spinner diameter="16" strokeWidth="2"></mat-spinner>
+      }
+    </ng-template>
+
+    <div class="tab-content">
+      @if (loadingStates.conjugation && isRequestMode) {
+      <!-- Conjugation Loading Skeleton -->
+      <div class="conjugation-skeleton">
+        <div class="skeleton-item">
+          <div class="skeleton-line skeleton-conjugation-title"></div>
+          <div class="conjugation-table-skeleton">
+            @for (row of [1,2,3,4,5,6]; track row) {
+            <div class="skeleton-table-row">
+              <div class="skeleton-line skeleton-pronoun"></div>
+              <div class="skeleton-line skeleton-verb-form"></div>
+              <div class="skeleton-line skeleton-verb-form"></div>
+              <div class="skeleton-line skeleton-verb-form"></div>
+            </div>
+            }
+          </div>
+        </div>
+      </div>
+      } @else {
+      <div class="conjugation-table">
+        <!-- Non-personal forms -->
+        @if (hasFormasNoPersonales) {
+        <div class="tense-section">
+          <h4>
+            {{ getLabel("nonPersonalForms") }}
+          </h4>
+          <table>
+            <tr>
+              <td class="pronoun">
+                {{ getLabel("infinitive") }}
+              </td>
+              <td class="conjugation">
+                {{ getInfinitive() }}
+              </td>
+            </tr>
+            <tr>
+              <td class="pronoun">
+                {{ getLabel("participle") }}
+              </td>
+              <td class="conjugation">
+                {{ getParticiple() }}
+              </td>
+            </tr>
+            <tr>
+              <td class="pronoun">
+                {{ getLabel("gerund") }}
+              </td>
+              <td class="conjugation">
+                {{ getGerund() }}
+              </td>
+            </tr>
+          </table>
+        </div>
+        }
+
+        <!-- Indicative Mood -->
+        <div class="mood-section">
+          <h3>
+            {{ getLabel("indicativeMood") }}
+          </h3>
+          @for (tenseGroup of getGroupedTenses(getIndicativeMoodName()); track
+          $index) {
+          <div class="tense-subsection">
+            <table class="conjugation-table-grouped">
+              <thead>
+                <tr>
+                  <th class="pronoun-header">Pronoun</th>
+                  @for (tense of tenseGroup; track tense) {
+                  <th class="tense-header">{{ getLabel(tense) }}</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (pronoun of
+                getConjugationPronouns(getIndicativeMoodName()); track pronoun)
+                {
+                <tr>
+                  <td class="pronoun">{{ getPronounLabel(pronoun) }}</td>
+                  @for (tense of tenseGroup; track tense) {
+                  <td class="conjugation">
+                    {{
+                      getConjugationValueForTense(
+                        getIndicativeMoodName(),
+                        tense,
+                        pronoun
+                      )
+                    }}
+                  </td>
+                  }
+                </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          }
+        </div>
+
+        <!-- Subjunctive Mood -->
+        <div class="mood-section">
+          <h3>
+            {{ getLabel("subjunctiveMood") }}
+          </h3>
+          @for (tenseGroup of getGroupedTenses(getSubjunctiveMoodName()); track
+          $index) {
+          <div class="tense-subsection">
+            <table class="conjugation-table-grouped">
+              <thead>
+                <tr>
+                  <th class="pronoun-header">Pronoun</th>
+                  @for (tense of tenseGroup; track tense) {
+                  <th class="tense-header">{{ getLabel(tense) }}</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (pronoun of
+                getConjugationPronouns(getSubjunctiveMoodName()); track pronoun)
+                {
+                <tr>
+                  <td class="pronoun">{{ getPronounLabel(pronoun) }}</td>
+                  @for (tense of tenseGroup; track tense) {
+                  <td class="conjugation">
+                    {{
+                      getConjugationValueForTense(
+                        getSubjunctiveMoodName(),
+                        tense,
+                        pronoun
+                      )
+                    }}
+                  </td>
+                  }
+                </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          }
+        </div>
+      </div>
+      }
+    </div>
+  </mat-tab>
+  }
+</mat-tab-group>

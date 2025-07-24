@@ -18,6 +18,17 @@ export const routes: Routes = [
       import('./pages/search/search').then((mod) => mod.SearchComponent),
   },
   {
+    path: 'words/request',
+    loadComponent: () =>
+      import('./pages/word-card/word-card').then((mod) => mod.WordCard),
+    canActivate: [AuthGuard],
+  },
+  {
+    path: 'words/error',
+    loadComponent: () =>
+      import('./pages/word-card/word-card').then((mod) => mod.WordCard),
+  },
+  {
     path: 'words/:sourceLanguage/:targetLanguage/:pos/:word',
     loadComponent: () =>
       import('./pages/word-card/word-card').then((mod) => mod.WordCard),

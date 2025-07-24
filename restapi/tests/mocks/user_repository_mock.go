@@ -17,6 +17,10 @@ type MockUserRepository struct {
 	usernameIndex map[string]string // username -> userID
 	googleIDIndex map[string]string // googleID -> userID
 	mutex         sync.RWMutex
+
+	// Test configuration
+	shouldUpdateError bool
+	updateErrorMsg    string
 }
 
 // NewMockUserRepository creates a new mock user repository
@@ -125,6 +129,11 @@ func (m *MockUserRepository) Update(ctx context.Context, user *entities.User) er
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
+	// Check if we should return an error for testing
+	if m.shouldUpdateError {
+		return fmt.Errorf(m.updateErrorMsg)
+	}
+
 	existingUser, exists := m.usersByID[user.ID]
 	if !exists {
 		return fmt.Errorf("user not found")
@@ -200,4 +209,51 @@ func (m *MockUserRepository) BatchValidateExistence(ctx context.Context, email, 
 	}
 
 	return result, nil
+}
+
+// Test helper methods
+
+// AddTestUser adds a user directly to the mock repository for testing
+func (m *MockUserRepository) AddTestUser(user *entities.User) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	// Store copies to avoid data races
+	userCopy := *user
+	m.users[user.Email] = &userCopy
+	m.usersByID[user.ID] = &userCopy
+	m.emailIndex[user.Email] = user.ID
+	m.usernameIndex[user.Username] = user.ID
+	if user.GoogleID != "" {
+		m.googleIDIndex[user.GoogleID] = user.ID
+	}
+}
+
+// SetUpdateError configures the mock to return an error on Update calls
+func (m *MockUserRepository) SetUpdateError(shouldError bool, errorMsg string) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.shouldUpdateError = shouldError
+	m.updateErrorMsg = errorMsg
+}
+
+// Reset clears all data and resets error states
+func (m *MockUserRepository) Reset() {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	m.users = make(map[string]*entities.User)
+	m.usersByID = make(map[string]*entities.User)
+	m.emailIndex = make(map[string]string)
+	m.usernameIndex = make(map[string]string)
+	m.googleIDIndex = make(map[string]string)
+	m.shouldUpdateError = false
+	m.updateErrorMsg = ""
+}
+
+// GetUserCount returns the number of users in the repository
+func (m *MockUserRepository) GetUserCount() int {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	return len(m.users)
 }

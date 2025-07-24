@@ -8,7 +8,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatOptionModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCardModule } from '@angular/material/card';
-import { MatSnackBarModule } from '@angular/material/snack-bar';
+
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialogModule } from '@angular/material/dialog';
 import { CommonModule } from '@angular/common';
@@ -17,7 +17,6 @@ import { TranslationService } from '../../services/translation.service';
 import { WordService } from '../../services/word.service';
 import {
   WordRequestService,
-  WordRequest,
   WordRequestNotification,
 } from '../../services/word-request.service';
 import { MessageService } from '../../services/message.service';
@@ -62,7 +61,6 @@ import { ActivatedRoute, Params } from '@angular/router';
     MatOptionModule,
     MatProgressSpinnerModule,
     MatCardModule,
-    MatSnackBarModule,
     MatTooltipModule,
     MatDialogModule,
     ReactiveFormsModule,
@@ -100,14 +98,12 @@ export class SearchComponent implements OnInit, OnDestroy {
 
   // Word request state
   requestingWord = false;
-  showRequestButton = false;
 
   // Note: Using reactive forms throughout - no need for ngModel bridges
 
   private readonly STORAGE_KEY_SOURCE = 'source_language';
   private readonly STORAGE_KEY_TARGET = 'target_language';
 
-  private noResultsTimer: ReturnType<typeof setTimeout> | null = null;
   private subscriptions = new Subscription();
 
   isHandset$: Observable<boolean> = this.breakpointObserver
@@ -201,12 +197,6 @@ export class SearchComponent implements OnInit, OnDestroy {
           this.searchResults = [];
           this.searchError = null;
 
-          // Clear any existing timer when starting a new search
-          if (this.noResultsTimer) {
-            clearTimeout(this.noResultsTimer);
-            this.noResultsTimer = null;
-          }
-
           this.cdr.detectChanges();
         }),
         switchMap(([term, sourceLanguage, targetLanguage]) => {
@@ -241,19 +231,6 @@ export class SearchComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (results) => {
           this.searchResults = results || [];
-
-          // Clear any existing timer
-          if (this.noResultsTimer) {
-            clearTimeout(this.noResultsTimer);
-            this.noResultsTimer = null;
-          }
-
-          // Keep search results visible - don't auto-clear
-          // Only clear timer if it exists
-          if (this.noResultsTimer) {
-            clearTimeout(this.noResultsTimer);
-            this.noResultsTimer = null;
-          }
         },
         error: () => {
           this.searchError =
@@ -280,12 +257,6 @@ export class SearchComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Clear timer
-    if (this.noResultsTimer) {
-      clearTimeout(this.noResultsTimer);
-    }
-
-    // Unsubscribe from all subscriptions
     this.subscriptions.unsubscribe();
   }
 
@@ -345,20 +316,21 @@ export class SearchComponent implements OnInit, OnDestroy {
     this.searchResults = [];
     this.hasSearched = false;
     this.searchError = null;
-    if (this.noResultsTimer) {
-      clearTimeout(this.noResultsTimer);
-    }
   }
 
   openWord(word: VocabularyWord) {
     // Extract POS from SK: "TGT#es#POS#noun" -> "noun"
     const posFromSk = this.extractPosFromSk(word.sk);
 
+    // Ensure we use language codes, not full language names in URLs
+    const sourceLanguageCode = this.getLanguageCode(word.source_language);
+    const targetLanguageCode = this.getLanguageCode(word.target_language);
+
     this.router.navigate(
       [
         '/words',
-        word.source_language,
-        word.target_language,
+        sourceLanguageCode,
+        targetLanguageCode,
         posFromSk,
         word.source_word.toLowerCase().trim(),
       ],
@@ -370,6 +342,26 @@ export class SearchComponent implements OnInit, OnDestroy {
         },
       }
     );
+  }
+
+  // Convert language name or code to proper language code
+  private getLanguageCode(language: string): string {
+    // If it's already a code, return it
+    if (language.length <= 3) {
+      return language.toLowerCase();
+    }
+
+    // Convert full language names to codes
+    const languageMap: Record<string, string> = {
+      English: 'en',
+      Spanish: 'es',
+      German: 'de',
+      english: 'en',
+      spanish: 'es',
+      german: 'de',
+    };
+
+    return languageMap[language] || language.toLowerCase().slice(0, 2);
   }
 
   // Extract POS from SK format: "TGT#es#POS#noun" -> "noun"
@@ -446,12 +438,6 @@ export class SearchComponent implements OnInit, OnDestroy {
     );
   }
 
-  // Validate word format for request
-  isValidWordFormat(word: string): boolean {
-    // Simple validation: just check if it's not empty after trimming
-    return !!word?.trim();
-  }
-
   // Check if the exact word already exists in search results
   get wordAlreadyExists(): boolean {
     const searchTerm = this.searchControl.value?.trim().toLowerCase();
@@ -492,56 +478,18 @@ export class SearchComponent implements OnInit, OnDestroy {
 
   // Submit word request from dialog and navigate to word card
   private submitWordRequest(result: RequestWordDialogResult): void {
-    this.requestingWord = true;
-    this.cdr.detectChanges();
-
-    const request: WordRequest = {
-      source_word: result.sourceWord,
-      source_language: result.sourceLanguage,
-      target_language: result.targetLanguage,
-    };
-
-    this.wordRequestService.submitWordRequest(request).subscribe({
-      next: () => {
-        this.requestingWord = false;
-
-        // Navigate to word card with skeleton loading state
-        this.navigateToWordCardForRequest(result);
-
-        this.messageService.showSuccessMessage(
-          this.translationService.translate('search.requestWord.success')
-        );
-      },
-      error: (error) => {
-        this.requestingWord = false;
-        console.error('Word request error:', error);
-        this.messageService.showErrorMessage(
-          this.translationService.translate('search.requestWord.error')
-        );
-      },
-    });
+    // Navigate to protected route first - this will trigger auth guard if needed
+    this.navigateToWordCardForRequest(result);
   }
 
   // Navigate to word card for a pending word request
   private navigateToWordCardForRequest(result: RequestWordDialogResult): void {
-    // Create a URL-friendly word parameter
-    const wordParam = result.sourceWord.toLowerCase().trim();
-
-    // Navigate to word card route with request state
-    this.router.navigate(
-      [
-        '/words',
-        result.sourceLanguage || 'auto', // Use 'auto' for auto-detect
-        result.targetLanguage,
-        'pending', // Use 'pending' as POS for requests
-        wordParam,
-      ],
-      {
-        state: {
-          isRequest: true,
-          requestData: result,
-        },
-      }
-    );
+    // Navigate to the protected /words/request route
+    this.router.navigate(['/words/request'], {
+      state: {
+        isRequest: true,
+        requestData: result,
+      },
+    });
   }
 }

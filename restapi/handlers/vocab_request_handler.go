@@ -17,6 +17,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// SQSAPI defines the interface for SQS client operations, allowing for mocking in tests.
+type SQSAPI interface {
+	SendMessage(ctx context.Context, params *sqs.SendMessageInput, optFns ...func(*sqs.Options)) (*sqs.SendMessageOutput, error)
+}
+
 // VocabRequest represents the request structure from frontend
 type VocabRequest struct {
 	SourceWord     string `json:"source_word" binding:"required"`
@@ -34,12 +39,12 @@ type VocabSQSMessage struct {
 
 // VocabRequestHandler handles vocabulary request operations
 type VocabRequestHandler struct {
-	sqsClient      *sqs.Client
+	sqsClient      SQSAPI
 	userRepository repositories.UserRepository
 }
 
 // NewVocabRequestHandler creates a new vocabulary request handler
-func NewVocabRequestHandler(sqsClient *sqs.Client, userRepository repositories.UserRepository) *VocabRequestHandler {
+func NewVocabRequestHandler(sqsClient SQSAPI, userRepository repositories.UserRepository) *VocabRequestHandler {
 	return &VocabRequestHandler{
 		sqsClient:      sqsClient,
 		userRepository: userRepository,

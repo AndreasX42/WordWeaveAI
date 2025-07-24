@@ -1,0 +1,13 @@
+@if (loadingStates.media && isRequestMode) {
+<div class="media-section">
+  <div class="skeleton-media skeleton-line"></div>
+</div>
+} @else if (hasMedia && word.media?.src?.large) {
+<div class="media-section">
+  <img
+    [src]="getS3Url(word.media?.src?.large)"
+    [alt]="word.media?.alt"
+    class="word-image"
+  />
+</div>
+}

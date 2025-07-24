@@ -1,0 +1,18 @@
+<div class="processing-stages-compact">
+  <div class="stages-progress-bar">
+    @for (stage of getVisibleStages(); track stage.id) {
+    <div
+      class="stage-pill"
+      [class.completed]="stage.status === 'completed'"
+      [class.active]="stage.status === 'active'"
+      [class.pending]="stage.status === 'pending'"
+      [title]="stage.name | translate"
+    >
+      <mat-icon class="stage-icon">{{
+        stage.status === "completed" ? "check_circle" : stage.icon
+      }}</mat-icon>
+      <span class="stage-name">{{ stage.name | translate }}</span>
+    </div>
+    }
+  </div>
+</div>

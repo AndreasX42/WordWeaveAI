@@ -19,7 +19,7 @@ export class AuthGuard implements CanActivate {
     } else {
       this.router.navigate(['/login']);
       this.messageService.showWarningMessage(
-        this.translationService.translate('messages.sessionExpired')
+        this.translationService.translate('messages.loginFirst')
       );
       return false;
     }
