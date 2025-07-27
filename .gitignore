@@ -20,6 +20,28 @@ aws-infra/target
 tmp
 .env
 
+# Terraform files
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+*.tfvars
+!*.tfvars.example
+
+# Lambda build artifacts
+*/resources/layers/python/
+*/resources/lambda/vocab_processor/
+*/resources/lambda/websocket_handler/
+*.zip
+
+# Build cache
+.build_cache/
+
+# General
+.DS_Store
+*.log
+*.tmp 
+
 # Python
 .pytest_cache/
 .langgraph_api

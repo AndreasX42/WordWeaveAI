@@ -1,0 +1,44 @@
+# AWS Configuration
+aws_region = "us-east-1"
+
+# Project Configuration
+project_name = "wordweave"
+environment = "dev"
+
+# VPC Configuration
+vpc_cidr = "10.0.0.0/16"
+enable_vpc_flow_logs = false
+
+# S3 Configuration
+s3_media_bucket_name = "wordweave-dev-media-bucket-12345"  # Must be globally unique
+
+# DynamoDB Table Names (will be prefixed with project_name)
+dynamodb_user_table_name = "wordweave-dev-user-data"
+dynamodb_vocab_table_name = "wordweave-dev-vocab-data"
+dynamodb_vocab_media_table_name = "wordweave-dev-vocab-media"
+dynamodb_connections_table_name = "wordweave-dev-connections"
+dynamodb_vocab_list_table_name = "wordweave-dev-vocab-list"
+
+# Lambda Configuration - Paths to ZIP files built by build_lambda.py
+lambda_layer_zip_path = "resources/layers/lambda_requirements_layer.zip"
+lambda_function_zip_path = "resources/lambda/vocab_processor_zip.zip"
+websocket_handler_zip_path = "resources/lambda/websocket_handler_zip.zip"
+
+# Domain Configuration
+frontend_domain_name = "dev.example.com"  # Replace with your actual domain
+backend_domain_name = "api-dev.example.com"  # Replace with your actual domain
+
+# ACM Certificate ARN (optional if using common environment)
+# acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012"
+
+# ECS Configuration
+frontend_cpu = 256
+frontend_memory = 512
+backend_cpu = 256
+backend_memory = 512
+desired_count = 1
+
+# Container Images - Update with your actual image URIs
+frontend_image_uri = "123456789012.dkr.ecr.us-east-1.amazonaws.com/wordweave-frontend:latest"
+backend_image_uri = "123456789012.dkr.ecr.us-east-1.amazonaws.com/wordweave-restapi:latest" 
+

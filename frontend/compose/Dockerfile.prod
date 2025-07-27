@@ -1,21 +1,43 @@
-FROM node:22-alpine AS build
+# Build arguments for dynamic configuration
+ARG BASE_URL=http://localhost:8080/api
+ARG WEBSOCKET_URL=wss://localhost:8080/ws
+
+# Build stage
+FROM node:22 AS build
 
 WORKDIR /app
 
+# Copy package files
 COPY package*.json ./
 
-RUN npm install --silent
+# Install dependencies
+RUN npm ci --only=production
 
-COPY ./ ./
+# Copy source code
+COPY . .
 
-RUN npm run build --prod
+# Copy build arguments to environment variables
+ARG BASE_URL
+ARG WEBSOCKET_URL
+ENV BASE_URL=$BASE_URL
+ENV WEBSOCKET_URL=$WEBSOCKET_URL
 
+# Replace placeholders in config file before build
+RUN sed -i "s|http://localhost:8080/api|${BASE_URL}|g" src/app/shared/config.ts && \
+    sed -i "s|wss://mcjihxssd4.execute-api.us-east-1.amazonaws.com/prod/|${WEBSOCKET_URL}|g" src/app/shared/config.ts
+
+# Build the application
+RUN npm run build
+
+# Production stage
 FROM nginx:alpine
 
+# Copy built application
+COPY --from=build /app/dist/frontend /usr/share/nginx/html
+
+# Copy nginx configuration
+COPY compose/nginx.conf /etc/nginx/nginx.conf
+
 EXPOSE 80
-
-COPY ./nginx.conf /etc/nginx/nginx.conf
-
-COPY --from=build /app/dist/frontend/browser /usr/share/nginx/html
 
 CMD ["nginx", "-g", "daemon off;"]

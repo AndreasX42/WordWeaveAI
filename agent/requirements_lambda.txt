@@ -3,11 +3,8 @@ langchain==0.3.25
 langgraph==0.4.5
 langchain-openai==0.3.17
 
-
 # AWS
 aws-lambda-powertools==3.14.0
-boto3==1.39.4
-botocore==1.39.4
 
 # Essential dependencies
 instructor==1.9.2
