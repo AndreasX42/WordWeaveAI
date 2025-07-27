@@ -1,4 +1,4 @@
-FROM golang:1.24.3-alpine
+FROM public.ecr.aws/docker/library/golang:1.24.3-alpine
 
 ENV GIN_MODE=debug
 
