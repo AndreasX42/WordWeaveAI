@@ -205,6 +205,7 @@ func (h *OAuthHandler) validateAndGetFrontendURL() string {
 	// Define allowed frontend URLs (prevent open redirect attacks)
 	allowedURLs := []string{
 		"http://localhost:4200",
+		"https://wordweave.xyz",
 	}
 
 	// Validate against allowed list

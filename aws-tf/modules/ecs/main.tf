@@ -139,7 +139,8 @@ resource "aws_iam_role_policy" "ecs_task_dynamodb" {
           "dynamodb:Query",
           "dynamodb:Scan",
           "dynamodb:BatchGetItem",
-          "dynamodb:BatchWriteItem"
+          "dynamodb:BatchWriteItem",
+          "dynamodb:DescribeTable"
         ]
         Resource = concat(
           var.dynamodb_table_arns,
