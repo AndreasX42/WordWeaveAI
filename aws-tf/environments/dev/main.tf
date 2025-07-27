@@ -34,6 +34,15 @@ locals {
     Project     = var.project_name
     ManagedBy   = "terraform"
   }
+  
+  # Process backend environment variables to replace SQS queue URL placeholder with actual value
+  backend_environment_variables_processed = [
+    for env_var in var.backend_environment_variables : {
+      name      = env_var.name
+      value     = env_var.name == "SQS_VOCAB_REQUEST_QUEUE_URL" ? module.sqs.queue_url : try(env_var.value, null)
+      valueFrom = try(env_var.valueFrom, null)
+    }
+  ]
 }
 
 # VPC Module
@@ -138,7 +147,7 @@ module "ecs" {
   backend_cpu                   = var.backend_cpu
   backend_memory                = var.backend_memory
   backend_image_uri             = "${data.terraform_remote_state.common.outputs.ecr_backend_repository_url}:latest"
-  backend_environment_variables = var.backend_environment_variables
+  backend_environment_variables = local.backend_environment_variables_processed
   backend_secrets               = var.backend_secrets
   desired_count                 = var.desired_count
   ecs_tasks_security_group_id   = module.alb.ecs_tasks_security_group_id

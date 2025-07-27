@@ -102,7 +102,31 @@ resource "aws_iam_role_policy" "codepipeline_policy" {
           "ecs:DescribeTasks",
           "ecs:ListTasks",
           "ecs:RegisterTaskDefinition",
-          "ecs:UpdateService"
+          "ecs:UpdateService",
+          "ecs:DescribeClusters",
+          "ecs:ListServices",
+          "ecs:ListTaskDefinitions",
+          "ecs:DescribeContainerInstances",
+          "ecs:ListContainerInstances",
+          "ecs:CreateService",
+          "ecs:DeleteService",
+          "ecs:RunTask",
+          "ecs:StartTask",
+          "ecs:StopTask",
+          "ecs:TagResource",
+          "ecs:UntagResource",
+          "ecs:DescribeCapacityProviders",
+          "ecs:ListTagsForResource"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "application-autoscaling:DescribeScalableTargets",
+          "application-autoscaling:DescribeScalingPolicies",
+          "application-autoscaling:RegisterScalableTarget",
+          "application-autoscaling:DeregisterScalableTarget"
         ]
         Resource = "*"
       },
