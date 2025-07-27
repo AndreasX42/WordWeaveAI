@@ -239,7 +239,7 @@ resource "aws_codebuild_project" "frontend" {
 
     environment_variable {
       name  = "ECR_REPO_FRONTEND"
-      value = var.frontend_ecr_repo_name
+      value = "${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/${var.frontend_ecr_repo_name}"
     }
 
     environment_variable {
@@ -311,7 +311,7 @@ resource "aws_codebuild_project" "backend" {
 
     environment_variable {
       name  = "ECR_REPO_BACKEND"
-      value = var.backend_ecr_repo_name
+      value = "${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/${var.backend_ecr_repo_name}"
     }
 
     environment_variable {
