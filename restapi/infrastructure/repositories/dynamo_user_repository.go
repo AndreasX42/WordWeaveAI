@@ -17,7 +17,7 @@ type DynamoUserRepository struct {
 
 // UserRecord represents the DynamoDB storage format
 type UserRecord struct {
-	UserID           string    `dynamo:"user_id,hash" index:"EmailIndex,range UsernameIndex,range GoogleIDIndex,range"`
+	UserID           string    `dynamo:"user_id,hash"`
 	Email            string    `dynamo:"email" index:"EmailIndex,hash"`
 	Username         string    `dynamo:"username" index:"UsernameIndex,hash"`
 	PasswordHash     string    `dynamo:"password_hash"`
