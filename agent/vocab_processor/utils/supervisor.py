@@ -95,7 +95,7 @@ class LLMRouter:
 class VocabSupervisor:
     """Supervisor for vocabulary processing quality control."""
 
-    def __init__(self, quality_threshold: float = 8.0, max_retries: int = 2):
+    def __init__(self, quality_threshold: float = 7.5, max_retries: int = 2):
         self.quality_threshold = quality_threshold
         self.max_retries = max_retries
         self.router = LLMRouter()
@@ -213,7 +213,7 @@ class VocabSupervisor:
             --- JSON END ---
 
             **Instructions for you, the Supervisor:**
-            1.  **Schema Compliance:** First and foremost, check if the JSON output strictly complies with the Pydantic schema. Are all required fields present? Are the data types correct?
+            1.  **Schema Compliance:** First and foremost, check if the JSON output complies with the Pydantic schema. Are all required fields present? Are the data types correct? A stringified JSON output is also valid.
 
             2.  **Requirement Adherence:** Carefully read the 'REQUIREMENTS' section in the prompt. Has the assistant followed all instructions?
 

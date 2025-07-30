@@ -69,6 +69,64 @@ body.light-theme {
   color: var(--text-primary);
 }
 
+body.dark-theme .login-container .mat-mdc-form-field .mat-mdc-floating-label,
+body.dark-theme .login-container .mat-mdc-form-field .mdc-floating-label,
+body.dark-theme
+  .forgot-password-container
+  .mat-mdc-form-field
+  .mat-mdc-floating-label,
+body.dark-theme
+  .forgot-password-container
+  .mat-mdc-form-field
+  .mdc-floating-label,
+body.dark-theme .register-container .mat-mdc-form-field .mat-mdc-floating-label,
+body.dark-theme .register-container .mat-mdc-form-field .mdc-floating-label,
+body.dark-theme .verify-container .mat-mdc-form-field .mat-mdc-floating-label,
+body.dark-theme .verify-container .mat-mdc-form-field .mdc-floating-label {
+  color: var(--text-secondary) !important;
+}
+
+body.dark-theme
+  .login-container
+  .mat-form-field-appearance-outline
+  .mat-form-field-label,
+body.dark-theme
+  .forgot-password-container
+  .mat-form-field-appearance-outline
+  .mat-form-field-label,
+body.dark-theme
+  .register-container
+  .mat-form-field-appearance-outline
+  .mat-form-field-label,
+body.dark-theme
+  .verify-container
+  .mat-form-field-appearance-outline
+  .mat-form-field-label {
+  color: var(--text-secondary) !important;
+}
+
+body.dark-theme .mat-mdc-select-panel {
+  background: var(--surface-color) !important;
+}
+
+body.dark-theme .mat-mdc-select-panel .mat-mdc-option {
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .mat-mdc-option:hover:not(.mdc-list-item--disabled),
+body.dark-theme .mat-mdc-menu-item:hover:not(.mat-mdc-menu-item-disabled),
+body.dark-theme .mat-mdc-select-panel .mat-mdc-option.mat-mdc-option-active,
+body.dark-theme .mat-mdc-menu-panel .mat-mdc-menu-item.mat-highlighted {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme
+  .mat-mdc-option[aria-selected="true"]
+  .mdc-list-item__primary-text {
+  color: var(--text-primary) !important;
+}
+
 // Dark theme specific styles
 body.dark-theme {
   background-color: var(--background-color);
@@ -81,16 +139,12 @@ body.dark-theme {
   }
 
   .mat-mdc-menu-panel {
-    background-color: var(--card-background) !important;
+    background-color: var(--surface-color) !important;
     color: var(--text-primary) !important;
   }
 
   .mat-mdc-menu-item {
     color: var(--text-primary) !important;
-
-    &:hover {
-      background-color: #252525 !important;
-    }
 
     .mat-mdc-menu-item-text {
       color: var(--text-primary) !important;

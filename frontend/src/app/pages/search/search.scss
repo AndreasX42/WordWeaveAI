@@ -426,23 +426,6 @@ mark.hl {
       color: var(--primary-light) !important;
     }
   }
-
-  .mat-mdc-select-panel {
-    background: var(--card-background) !important;
-    .mat-mdc-option {
-      color: var(--text-primary) !important;
-      &:hover:not(.mdc-list-item--disabled) {
-        background: rgba(255, 255, 255, 0.08) !important;
-      }
-      &.mat-mdc-option-active {
-        background: rgba(255, 255, 255, 0.12) !important;
-      }
-      &.mdc-list-item--disabled {
-        opacity: 0.5 !important;
-        cursor: not-allowed !important;
-      }
-    }
-  }
 }
 
 /* Responsive Design */

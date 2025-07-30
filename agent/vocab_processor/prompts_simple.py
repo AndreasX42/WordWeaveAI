@@ -224,9 +224,10 @@ CONJUGATION_PROMPT_TEMPLATE = PromptTemplate(
 {expected_tenses}
 
 **Task:**
-1. Include all essential forms for learners
+1. Include all essential forms for learners, imperative forms are not needed
 2. Follow standard conjugation patterns
 3. Output valid JSON matching expected schema
+4. No explications are needed, just the conjugation table
 
 **Quality Requirements:**
 - Follow natural, standard conjugation patterns for {target_language}
