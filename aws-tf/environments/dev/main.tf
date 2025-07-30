@@ -34,7 +34,7 @@ locals {
     Project     = var.project_name
     ManagedBy   = "terraform"
   }
-  
+
   # Process backend environment variables to replace SQS queue URL placeholder with actual value
   backend_environment_variables_processed = [
     for env_var in var.backend_environment_variables : {
@@ -91,6 +91,15 @@ module "sqs" {
   environment  = var.environment
 }
 
+# Lambda Layer Module
+module "lambda_layer" {
+  source = "../../modules/lambda-layer"
+
+  project_name          = var.project_name
+  environment           = var.environment
+  lambda_layer_zip_path = var.lambda_layer_zip_path
+}
+
 # WebSocket API Module
 module "websocket_api" {
   source = "../../modules/websocket-api"
@@ -100,7 +109,7 @@ module "websocket_api" {
   aws_region                      = var.aws_region
   aws_account_id                  = local.aws_account_id
   websocket_handler_zip_path      = var.websocket_handler_zip_path
-  lambda_layer_arn                = module.lambda.lambda_layer_arn
+  lambda_layer_arn                = module.lambda_layer.lambda_layer_arn
   dynamodb_connections_table_name = module.data.dynamodb_connections_table_name
   dynamodb_connections_table_arn  = module.data.dynamodb_connections_table_arn
 }
@@ -114,6 +123,7 @@ module "lambda" {
   aws_region                      = var.aws_region
   aws_account_id                  = local.aws_account_id
   lambda_layer_zip_path           = var.lambda_layer_zip_path
+  lambda_layer_arn                = module.lambda_layer.lambda_layer_arn
   lambda_function_zip_path        = var.lambda_function_zip_path
   sqs_queue_arn                   = module.sqs.queue_arn
   dynamodb_user_table_name        = module.data.dynamodb_user_table_name
@@ -126,6 +136,8 @@ module "lambda" {
   dynamodb_connections_table_arn  = module.data.dynamodb_connections_table_arn
   s3_bucket_name                  = module.data.s3_vocab_bucket_id
   s3_bucket_arn                   = module.data.s3_vocab_bucket_arn
+  websocket_api_id                = module.websocket_api.websocket_api_id
+  websocket_api_endpoint          = module.websocket_api.websocket_api_endpoint
 
   depends_on = [module.sqs, module.data]
 }

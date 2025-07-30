@@ -16,9 +16,4 @@ output "lambda_function_invoke_arn" {
 output "lambda_role_arn" {
   description = "ARN of the Lambda IAM role"
   value       = aws_iam_role.lambda.arn
-}
-
-output "lambda_layer_arn" {
-  description = "ARN of the Lambda layer"
-  value       = aws_lambda_layer_version.requirements.arn
 } 

@@ -1,53 +1,3 @@
-# S3 Bucket for Lambda artifacts (large layers)
-resource "aws_s3_bucket" "lambda_artifacts" {
-  bucket = "${var.project_name}-lambda-artifacts-${random_id.bucket_suffix.hex}"
-  
-  tags = {
-    Name        = "${var.project_name}-lambda-artifacts"
-    Environment = var.environment
-    Project     = var.project_name
-  }
-}
-
-resource "aws_s3_bucket_versioning" "lambda_artifacts" {
-  bucket = aws_s3_bucket.lambda_artifacts.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-resource "random_id" "bucket_suffix" {
-  byte_length = 4
-}
-
-# Upload lambda layer to S3
-resource "aws_s3_object" "lambda_layer" {
-  bucket      = aws_s3_bucket.lambda_artifacts.bucket
-  key         = "layers/${var.project_name}-requirements-layer.zip"
-  source      = var.lambda_layer_zip_path
-  source_hash = filebase64sha256(var.lambda_layer_zip_path)
-  
-  tags = {
-    Name        = "${var.project_name}-lambda-layer"
-    Environment = var.environment
-    Project     = var.project_name
-  }
-}
-
-# Lambda Layer (using S3 for large files)
-resource "aws_lambda_layer_version" "requirements" {
-  s3_bucket               = aws_s3_bucket.lambda_artifacts.bucket
-  s3_key                  = aws_s3_object.lambda_layer.key
-  layer_name              = "${var.project_name}-lambda-requirements-layer"
-  compatible_runtimes     = ["python3.12"]
-  compatible_architectures = ["arm64"]
-  source_code_hash        = aws_s3_object.lambda_layer.source_hash
-
-  description = "Lambda layer with Python requirements for vocab processor"
-  
-  depends_on = [aws_s3_object.lambda_layer]
-}
-
 # IAM Role for Lambda function
 resource "aws_iam_role" "lambda" {
   name = "${var.project_name}-lambda-role"
@@ -189,7 +139,20 @@ resource "aws_iam_role_policy" "lambda_websocket" {
   })
 }
 
-# Lambda function
+# Data sources to fetch API keys from Parameter Store
+data "aws_ssm_parameter" "openai_api_key" {
+  name = "/apikeys/DEFAULT_OPENAI_API_KEY"
+}
+
+data "aws_ssm_parameter" "pexels_api_key" {
+  name = "/apikeys/PEXELS_API_KEY"
+}
+
+data "aws_ssm_parameter" "elevenlabs_api_key" {
+  name = "/apikeys/ELEVENLABS_API_KEY"
+}
+
+# Lambda function for vocab processing
 resource "aws_lambda_function" "vocab_processor" {
   filename         = var.lambda_function_zip_path
   function_name    = "${var.project_name}-vocab-processor"
@@ -201,16 +164,16 @@ resource "aws_lambda_function" "vocab_processor" {
   architectures    = ["arm64"]
   source_code_hash = filebase64sha256(var.lambda_function_zip_path)
 
-  layers = [aws_lambda_layer_version.requirements.arn]
+  layers = [var.lambda_layer_arn]
 
   # No VPC config - Lambda runs in AWS managed network for internet access
 
   environment {
     variables = {
-      # External API Keys from SSM (like in CDK)
-      OPENAI_API_KEY          = "/apikeys/DEFAULT_OPENAI_API_KEY"
-      PEXELS_API_KEY          = "/apikeys/PEXELS_API_KEY"
-      ELEVENLABS_API_KEY      = "/apikeys/ELEVENLABS_API_KEY"
+      # External API Keys from SSM Parameter Store
+      OPENAI_API_KEY          = data.aws_ssm_parameter.openai_api_key.value
+      PEXELS_API_KEY          = data.aws_ssm_parameter.pexels_api_key.value
+      ELEVENLABS_API_KEY      = data.aws_ssm_parameter.elevenlabs_api_key.value
       AGENT_EXECUTION_CONTEXT = "lambda"
 
       # DynamoDB Tables

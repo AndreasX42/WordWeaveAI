@@ -42,19 +42,19 @@ import { CommonModule } from '@angular/common';
           <div class="hero-stats">
             <div class="stats-grid">
               <div class="stat-item">
-                <div class="stat-number">324</div>
+                <div class="stat-number">TBD</div>
                 <div class="stat-label">
                   {{ 'home.hero.stats.wordsCreated' | translate }}
                 </div>
               </div>
               <div class="stat-item">
-                <div class="stat-number">47</div>
+                <div class="stat-number">TBD</div>
                 <div class="stat-label">
                   {{ 'home.hero.stats.publicLists' | translate }}
                 </div>
               </div>
               <div class="stat-item">
-                <div class="stat-number">156</div>
+                <div class="stat-number">TBD</div>
                 <div class="stat-label">
                   {{ 'home.hero.stats.activeUsers' | translate }}
                 </div>

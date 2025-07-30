@@ -199,6 +199,28 @@ resource "aws_iam_role_policy" "ecs_task_sqs" {
   })
 }
 
+# SES permissions for backend
+resource "aws_iam_role_policy" "ecs_task_ses" {
+  name = "${var.project_name}-ecs-task-ses-policy"
+  role = aws_iam_role.ecs_task_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ses:SendEmail",
+          "ses:SendRawEmail"
+        ]
+        Resource = [
+          "arn:aws:ses:${var.aws_region}:*:identity/*"
+        ]
+      }
+    ]
+  })
+}
+
 # Frontend Task Definition
 resource "aws_ecs_task_definition" "frontend" {
   family                   = "${var.project_name}-frontend"

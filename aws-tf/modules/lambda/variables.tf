@@ -23,6 +23,11 @@ variable "lambda_layer_zip_path" {
   type        = string
 }
 
+variable "lambda_layer_arn" {
+  description = "ARN of the shared Lambda layer"
+  type        = string
+}
+
 variable "lambda_function_zip_path" {
   description = "Path to the Lambda function ZIP file"
   type        = string
