@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/AndreasX42/restapi/domain/services"
-	"github.com/AndreasX42/restapi/utils"
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 )
@@ -100,37 +99,11 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
-	token, err := utils.GenerateJWT(user.ID, user.Username)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not generate token"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Login successful",
-		"details": gin.H{
-			"token":          token,
-			"user_id":        user.ID,
-			"username":       user.Username,
-			"email":          user.Email,
-			"confirmedEmail": user.ConfirmedEmail,
-			"isAdmin":        user.IsAdmin,
-		},
-	})
-}
-
-func (h *UserHandler) GetCurrentUser(c *gin.Context) {
-	user, err := GetPrincipal(c)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Not authenticated"})
-		return
-	}
-
 	// Set user in context for gin-jwt
 	c.Set("user", user)
 
-	// Generate JWT token using gin-jwt's token generator
-	jwtToken, expire, err := h.authMiddleware.TokenGenerator(user)
+	// Generate JWT token using gin-jwt's token generator for consistency
+	jwtToken, _, err := h.authMiddleware.TokenGenerator(user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not generate token"})
 		return
@@ -146,8 +119,38 @@ func (h *UserHandler) GetCurrentUser(c *gin.Context) {
 			"profileImage":   user.ProfileImage,
 			"createdAt":      user.CreatedAt.Format(time.RFC3339),
 		},
-		"token":  jwtToken,
-		"expire": expire.Format(time.RFC3339),
+		"token": jwtToken,
+	})
+}
+
+func (h *UserHandler) GetCurrentUser(c *gin.Context) {
+	user, err := GetPrincipal(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Not authenticated"})
+		return
+	}
+
+	// Set user in context for gin-jwt
+	c.Set("user", user)
+
+	// Generate JWT token using gin-jwt's token generator
+	jwtToken, _, err := h.authMiddleware.TokenGenerator(user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not generate token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"user": gin.H{
+			"id":             user.ID,
+			"username":       user.Username,
+			"email":          user.Email,
+			"confirmedEmail": user.ConfirmedEmail,
+			"isAdmin":        user.IsAdmin,
+			"profileImage":   user.ProfileImage,
+			"createdAt":      user.CreatedAt.Format(time.RFC3339),
+		},
+		"token": jwtToken,
 	})
 }
 

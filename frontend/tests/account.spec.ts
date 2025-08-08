@@ -18,8 +18,9 @@ test.describe('Update Account Flow', () => {
         username: 'TestUser',
         email: 'test@example.com',
         confirmedEmail: true,
-        profilePicture: '',
+        profileImage: '',
         role: 'user',
+        createdAt: new Date(),
       };
       localStorage.setItem('auth_user', JSON.stringify(mockUser));
       localStorage.setItem('auth_token', 'mock-auth-token');

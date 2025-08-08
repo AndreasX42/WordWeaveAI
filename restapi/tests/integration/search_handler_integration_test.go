@@ -29,7 +29,6 @@ func TestSearchHandlerIntegration(t *testing.T) {
 		// Test all search handler endpoints
 		testGetVocabularyByPkSk(t, server)
 		testGetVocabularyByParams(t, server)
-		testGetMediaByRef(t, server)
 		testSearchVocabulary(t, server)
 		testSearchErrorHandling(t, server)
 	})
@@ -68,7 +67,6 @@ func setupSearchIntegrationTestServer(t *testing.T) *gin.Engine {
 	router.POST("/search", searchHandler.SearchVocabulary)
 	router.GET("/vocab", searchHandler.GetVocabularyByPkSk)
 	router.GET("/vocab/:sourceLanguage/:targetLanguage/:word/:pos", searchHandler.GetVocabularyByParams)
-	router.GET("/media/:mediaRef", searchHandler.GetMediaByRef)
 
 	// Auth routes
 	router.POST("/users/register", userHandler.Register)
@@ -335,68 +333,6 @@ func testGetVocabularyByParams(t *testing.T, server *gin.Engine) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "Vocabulary not found", response["message"])
-	})
-}
-
-// Test GetMediaByRef endpoint
-func testGetMediaByRef(t *testing.T, server *gin.Engine) {
-	t.Run("GetMediaByRef successful retrieval", func(t *testing.T) {
-		request := httptest.NewRequest(http.MethodGet, "/media/hello_media_ref", nil)
-		recorder := httptest.NewRecorder()
-		server.ServeHTTP(recorder, request)
-
-		assert.Equal(t, http.StatusOK, recorder.Code)
-
-		var response map[string]any
-		err := json.Unmarshal(recorder.Body.Bytes(), &response)
-		require.NoError(t, err)
-
-		assert.Equal(t, "hello.jpg", response["image"])
-		assert.Equal(t, "hello.mp3", response["audio"])
-		assert.Equal(t, "greeting", response["type"])
-		assert.Equal(t, "2.5s", response["duration"])
-	})
-
-	t.Run("GetMediaByRef different media types", func(t *testing.T) {
-		mediaRefs := []struct {
-			ref          string
-			expectedType string
-		}{
-			{"house_media_ref", "noun"},
-			{"cafe_media_ref", "place"},
-			{"goodbye_media_ref", "farewell"},
-		}
-
-		for _, media := range mediaRefs {
-			request := httptest.NewRequest(http.MethodGet, "/media/"+media.ref, nil)
-			recorder := httptest.NewRecorder()
-			server.ServeHTTP(recorder, request)
-
-			assert.Equal(t, http.StatusOK, recorder.Code)
-
-			var response map[string]any
-			err := json.Unmarshal(recorder.Body.Bytes(), &response)
-			require.NoError(t, err)
-
-			assert.Equal(t, media.expectedType, response["type"])
-			assert.NotEmpty(t, response["image"])
-			assert.NotEmpty(t, response["audio"])
-		}
-	})
-
-	t.Run("GetMediaByRef not found", func(t *testing.T) {
-		request := httptest.NewRequest(http.MethodGet, "/media/nonexistent_media_ref", nil)
-		recorder := httptest.NewRecorder()
-		server.ServeHTTP(recorder, request)
-
-		assert.Equal(t, http.StatusNotFound, recorder.Code)
-
-		var response map[string]any
-		err := json.Unmarshal(recorder.Body.Bytes(), &response)
-		require.NoError(t, err)
-
-		assert.Equal(t, "Media not found", response["message"])
-		assert.Contains(t, response["details"], "error")
 	})
 }
 

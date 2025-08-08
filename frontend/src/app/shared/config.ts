@@ -4,9 +4,6 @@ export class Configs {
   // health
   static readonly HEALTH_URL = '/health';
 
-  // search
-  static readonly SEARCH_URL = '/search';
-
   // auth
   static readonly REGISTER_URL = '/auth/register';
   static readonly CONFIRM_EMAIL_URL = '/auth/confirm-email';
@@ -31,8 +28,10 @@ export class Configs {
 
   // word endpoints
   static readonly WORDS_BASE_URL = '/vocabs';
+  static readonly WORD_FETCH_URL = `${Configs.WORDS_BASE_URL}/get`;
   static readonly WORD_REQUESTS_URL = `${Configs.WORDS_BASE_URL}/request`;
+  static readonly SEARCH_URL = `${Configs.WORDS_BASE_URL}/search`;
 
   static readonly WEBSOCKET_URL =
-    'wss://mcjihxssd4.execute-api.us-east-1.amazonaws.com/prod/';
+    'wss://eb4ck683ui.execute-api.us-east-1.amazonaws.com/prod/';
 }

@@ -39,12 +39,12 @@ func NewSentryConfig() *SentryConfig {
 		TracesSampleRate: 1.0,
 		AttachStacktrace: true,
 		BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
-			// Filter out health check requests and other noise
-			if event.Request != nil && event.Request.URL != "" {
-				if event.Request.URL == "/api/health" {
-					return nil // Don't send health check errors
-				}
-			}
+			// // Filter out health check requests and other noise
+			// if event.Request != nil && event.Request.URL != "" {
+			// 	if event.Request.URL == "/api/health" {
+			// 		return nil // Don't send health check errors
+			// 	}
+			// }
 			return event
 		},
 	})

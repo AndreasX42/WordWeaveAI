@@ -28,10 +28,37 @@ resource "aws_iam_role_policy_attachment" "lambda_basic" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-# SSM read-only access for API keys
-resource "aws_iam_role_policy_attachment" "lambda_ssm" {
-  role       = aws_iam_role.lambda.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
+# Specific SSM permissions for API keys only
+resource "aws_iam_role_policy" "lambda_ssm" {
+  name = "${var.project_name}-lambda-ssm-policy"
+  role = aws_iam_role.lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters"
+        ]
+        Resource = [
+          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/apikeys/DEFAULT_OPENAI_API_KEY",
+          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/apikeys/PEXELS_API_KEY",
+          "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:parameter/apikeys/ELEVENLABS_API_KEY",
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt"
+        ]
+        Resource = [
+          "arn:aws:kms:${var.aws_region}:${var.aws_account_id}:key/alias/aws/ssm"
+        ]
+      }
+    ]
+  })
 }
 
 # SQS permissions
@@ -165,8 +192,6 @@ resource "aws_lambda_function" "vocab_processor" {
   source_code_hash = filebase64sha256(var.lambda_function_zip_path)
 
   layers = [var.lambda_layer_arn]
-
-  # No VPC config - Lambda runs in AWS managed network for internet access
 
   environment {
     variables = {

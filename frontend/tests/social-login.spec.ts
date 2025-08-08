@@ -10,8 +10,9 @@ test.describe('Social Login Flows', () => {
         username: 'GoogleUser',
         email: 'google.user@example.com',
         confirmedEmail: true,
-        profilePicture: '',
+        profileImage: '',
         role: 'user',
+        createdAt: new Date(),
       };
       const mockToken = 'mock-jwt-token-for-google-flow';
 

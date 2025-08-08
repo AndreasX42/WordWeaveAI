@@ -81,11 +81,11 @@ export class Header implements OnInit, OnDestroy {
   onLogout(): void {
     try {
       this.authService.logout();
-      this.messageService.showSuccessMessage('Logout successful!');
+      this.messageService.showSuccessMessage('auth.logoutSuccessful');
       this.router.navigate(['/home'], { replaceUrl: true });
     } catch (error) {
       console.error('Logout failed:', error);
-      this.messageService.showErrorMessage('Logout failed!');
+      this.messageService.showErrorMessage('auth.logoutFailed');
     }
   }
 

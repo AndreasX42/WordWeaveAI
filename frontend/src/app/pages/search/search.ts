@@ -407,23 +407,16 @@ export class SearchComponent implements OnInit, OnDestroy {
 
     switch (notification.status) {
       case 'completed':
-        this.messageService.showSuccessMessage(
-          `Word "${notification.word_data?.['source_word']}" has been created and is now available!`
-        );
         // Optionally refresh search results
         if (this.searchControl.value?.trim()) {
           this.manualSearchTrigger.next();
         }
         break;
       case 'failed':
-        this.messageService.showErrorMessage(
-          `Failed to create word: ${notification.error || 'Unknown error'}`
-        );
+        this.messageService.showErrorMessage('search.requestWord.error');
         break;
       case 'processing':
-        this.messageService.showInfoMessage(
-          `Creating word "${notification.word_data?.['source_word']}"...`
-        );
+        this.messageService.showInfoMessage('search.requestWord.requesting');
         break;
     }
   }

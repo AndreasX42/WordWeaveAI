@@ -136,16 +136,6 @@ func (h *VocabRequestHandler) RequestVocab(c *gin.Context) {
 		return
 	}
 
-	// increment the request count for the user
-	user.RequestCount++
-	if err := h.userRepository.Update(c.Request.Context(), user); err != nil {
-		log.Printf("Error updating user request count: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to update user data",
-		})
-		return
-	}
-
 	// Check if the user has reached the maximum number of requests
 	maxRequestsFreeTier, err := strconv.Atoi(os.Getenv("MAX_VOCAB_REQUESTS_FREE_TIER"))
 	if err != nil {
@@ -154,7 +144,7 @@ func (h *VocabRequestHandler) RequestVocab(c *gin.Context) {
 		})
 		return
 	}
-	if user.RequestCount > maxRequestsFreeTier {
+	if user.RequestCount >= maxRequestsFreeTier {
 		c.JSON(http.StatusTooManyRequests, gin.H{
 			"details": fmt.Sprintf("You have reached the maximum number of %d requests", maxRequestsFreeTier),
 		})
@@ -173,6 +163,16 @@ func (h *VocabRequestHandler) RequestVocab(c *gin.Context) {
 		log.Printf("Error sending message to SQS: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to submit word request",
+		})
+		return
+	}
+
+	// increment the request count for the user
+	user.RequestCount++
+	if err := h.userRepository.Update(c.Request.Context(), user); err != nil {
+		log.Printf("Error updating user request count: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to update user data",
 		})
 		return
 	}

@@ -14,7 +14,6 @@ import { Router, RouterLink } from '@angular/router';
 import { ErrorManagerFactory } from '../../shared/error.manager.factory';
 import { AuthService } from '../../services/auth.service';
 import { MessageService } from '../../services/message.service';
-import { TranslationService } from '../../services/translation.service';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -58,7 +57,6 @@ export class Login {
   private router = inject(Router);
   private authService = inject(AuthService);
   private messageService = inject(MessageService);
-  private translationService = inject(TranslationService);
 
   hide = signal(true);
   isLoggingIn = signal(false);
@@ -102,14 +100,10 @@ export class Login {
       this.isLoggingIn.set(false);
 
       if (success) {
-        this.messageService.showSuccessMessage(
-          this.translationService.translate('auth.loginSuccessful')
-        );
+        this.messageService.showSuccessMessage('auth.loginSuccessful');
         this.router.navigate(['/profile'], { replaceUrl: true });
       } else {
-        this.messageService.showErrorMessage(
-          this.translationService.translate('auth.invalidCredentials')
-        );
+        this.messageService.showErrorMessage('auth.invalidCredentials');
       }
     } catch (error) {
       this.isLoggingIn.set(false);
@@ -118,10 +112,7 @@ export class Login {
 
       switch (errorMessage) {
         case 'EMAIL_NOT_VERIFIED':
-          this.messageService.showWarningMessage(
-            this.translationService.translate('auth.emailNotVerified'),
-            6000
-          );
+          this.messageService.showWarningMessage('auth.emailNotVerified', 6000);
           this.router.navigate(['/verify'], {
             queryParams: { email: email },
             replaceUrl: true,
@@ -129,16 +120,11 @@ export class Login {
           break;
 
         case 'LOGIN_FAILED':
-          this.messageService.showErrorMessage(
-            this.translationService.translate('auth.loginFailed')
-          );
+          this.messageService.showErrorMessage('auth.loginFailed');
           break;
 
         default:
-          // Fallback for any unexpected errors
-          this.messageService.showErrorMessage(
-            this.translationService.translate('auth.unexpectedError')
-          );
+          this.messageService.showErrorMessage('auth.unexpectedError');
           break;
       }
     }
@@ -157,9 +143,7 @@ export class Login {
       this.authService.googleLogin();
     } catch {
       this.isLoggingIn.set(false);
-      this.messageService.showErrorMessage(
-        this.translationService.translate('auth.googleLoginFailed')
-      );
+      this.messageService.showErrorMessage('auth.googleLoginFailed');
     }
   }
 

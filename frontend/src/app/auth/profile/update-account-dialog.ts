@@ -82,7 +82,7 @@ function strictEmailValidator(control: AbstractControl) {
 
         <!-- Email field -->
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>{{ 'auth.email' | translate }}</mat-label>
+          <mat-label>{{ 'auth.emailAddress' | translate }}</mat-label>
           <input
             matInput
             formControlName="email"
@@ -200,7 +200,7 @@ function strictEmailValidator(control: AbstractControl) {
         }
       }
 
-      /* Light mode input styling - more specific selectors */
+      /* Light mode input styling */
       @media (prefers-color-scheme: light),
         (prefers-color-scheme: no-preference) {
         ::ng-deep .full-width input {
@@ -210,24 +210,6 @@ function strictEmailValidator(control: AbstractControl) {
         ::ng-deep .full-width input::placeholder {
           color: #666666 !important;
           opacity: 0.7;
-        }
-
-        ::ng-deep .full-width .mat-mdc-form-field-infix input {
-          color: #333333 !important;
-        }
-
-        ::ng-deep .full-width .mat-mdc-form-field-label {
-          color: #666666 !important;
-        }
-
-        ::ng-deep .full-width .mat-mdc-floating-label {
-          color: #666666 !important;
-        }
-
-        ::ng-deep
-          .full-width
-          .mat-mdc-floating-label.mdc-floating-label--float-above {
-          color: #1976d2 !important;
         }
 
         ::ng-deep .full-width .mat-icon {
@@ -394,22 +376,6 @@ function strictEmailValidator(control: AbstractControl) {
             color: #ffffff !important;
           }
 
-          .mat-mdc-form-field-label {
-            color: #c0c0c0 !important;
-          }
-
-          .mat-mdc-text-field-wrapper {
-            color: #ffffff !important;
-          }
-
-          .mat-mdc-floating-label {
-            color: #c0c0c0 !important;
-          }
-
-          .mat-mdc-floating-label.mdc-floating-label--float-above {
-            color: #42a5f5 !important;
-          }
-
           ::ng-deep .mat-icon {
             color: #c0c0c0 !important;
           }
@@ -442,26 +408,6 @@ function strictEmailValidator(control: AbstractControl) {
 
           .mat-mdc-form-field-infix input {
             color: #ffffff !important;
-          }
-
-          .mat-mdc-form-field-label {
-            color: #c0c0c0 !important;
-          }
-
-          .mat-mdc-text-field-wrapper {
-            color: #ffffff !important;
-          }
-
-          .mat-mdc-floating-label {
-            color: #c0c0c0 !important;
-          }
-
-          .mat-mdc-floating-label.mdc-floating-label--float-above {
-            color: #42a5f5 !important;
-          }
-
-          ::ng-deep .mat-mdc-form-field-subscript-wrapper {
-            color: #c0c0c0 !important;
           }
 
           ::ng-deep .mat-icon {
@@ -501,33 +447,18 @@ function strictEmailValidator(control: AbstractControl) {
         }
       }
 
-      /* Force light mode text colors - highest priority */
-      :host ::ng-deep .full-width input,
-      :host ::ng-deep .full-width .mat-mdc-form-field-infix input {
+      /* Input text color overrides */
+      :host ::ng-deep .full-width input {
         color: #333333 !important;
       }
 
-      @media (prefers-color-scheme: light) {
-        :host ::ng-deep .full-width input,
-        :host ::ng-deep .full-width .mat-mdc-form-field-infix input {
-          color: #333333 !important;
-        }
-      }
-
-      /* Override only in dark mode */
       @media (prefers-color-scheme: dark) {
-        :host ::ng-deep .full-width input,
-        :host ::ng-deep .full-width .mat-mdc-form-field-infix input {
+        :host ::ng-deep .full-width input {
           color: #ffffff !important;
         }
       }
 
-      :host-context(body.dark-theme) ::ng-deep .full-width input,
-      :host-context(body.dark-theme)
-        ::ng-deep
-        .full-width
-        .mat-mdc-form-field-infix
-        input {
+      :host-context(body.dark-theme) ::ng-deep .full-width input {
         color: #ffffff !important;
       }
 
@@ -545,15 +476,7 @@ function strictEmailValidator(control: AbstractControl) {
         color: #4caf50 !important;
       }
 
-      :host-context(body.dark-theme) ::ng-deep .success-icon {
-        color: #4caf50 !important;
-      }
-
       @media (prefers-color-scheme: dark) {
-        :host ::ng-deep .success-icon {
-          color: #4caf50 !important;
-        }
-
         /* System dark mode disabled button styling */
         :host ::ng-deep .mat-mdc-raised-button:disabled {
           background-color: #404040 !important;
@@ -716,14 +639,10 @@ export class UpdateAccountDialog {
       const success = await this.authService.updateAccount(updateData);
 
       if (success) {
-        this.messageService.showSuccessMessage(
-          this.translationService.translate('auth.updateAccountSuccess')
-        );
+        this.messageService.showSuccessMessage('auth.updateAccountSuccess');
         this.dialogRef.close(true);
       } else {
-        this.messageService.showErrorMessage(
-          this.translationService.translate('auth.updateAccountFailed')
-        );
+        this.messageService.showErrorMessage('auth.updateAccountFailed');
       }
     } catch (error) {
       console.error('Account update error:', error);
@@ -756,10 +675,7 @@ export class UpdateAccountDialog {
       }
 
       // For other errors, show generic message
-      const errorMessage =
-        (error as { message?: string })?.message ||
-        'Failed to update account. Please try again.';
-      this.messageService.showErrorMessage(errorMessage);
+      this.messageService.showErrorMessage('auth.updateAccountFailed');
     } finally {
       this.isUpdating.set(false);
     }

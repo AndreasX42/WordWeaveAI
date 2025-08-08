@@ -16,6 +16,7 @@ import { TranslationService } from '../../services/translation.service';
 import { User } from '../../models/user.model';
 import { UpdateAccountDialog } from './update-account-dialog';
 import { TranslatePipe } from '../../shared/pipes/translate.pipe';
+import { DatePipe } from '@angular/common';
 
 @Component({
   selector: 'app-profile',
@@ -27,6 +28,7 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
     MatSlideToggleModule,
     TitleCasePipe,
     TranslatePipe,
+    DatePipe,
   ],
   templateUrl: './profile.html',
   styleUrl: './profile.scss',
@@ -75,15 +77,11 @@ export class Profile implements OnInit {
   logout(): void {
     try {
       this.authService.logout();
-      this.messageService.showSuccessMessage(
-        this.translationService.translate('auth.logoutSuccessful')
-      );
+      this.messageService.showSuccessMessage('auth.logoutSuccessful');
       this.router.navigate(['/home'], { replaceUrl: true });
     } catch (error) {
       console.error('Logout failed:', error);
-      this.messageService.showErrorMessage(
-        this.translationService.translate('auth.logoutFailed')
-      );
+      this.messageService.showErrorMessage('auth.logoutFailed');
     }
   }
 
@@ -116,7 +114,7 @@ export class Profile implements OnInit {
 
         // If we reach here, deletion was successful
         this.messageService.showSuccessMessage(
-          this.translationService.translate('auth.accountDeletedSuccessfully')
+          'auth.accountDeletedSuccessfully'
         );
         this.router.navigate(['/home'], { replaceUrl: true });
       } catch (error) {
@@ -129,10 +127,9 @@ export class Profile implements OnInit {
         }
 
         // Display the specific error message from backend for other errors
-        const displayMessage =
-          errorMessage ||
-          this.translationService.translate('auth.accountDeletionFailed');
-        this.messageService.showErrorMessage(displayMessage);
+        this.messageService.showErrorMessage(
+          errorMessage || 'auth.accountDeletionFailed'
+        );
       }
     }
   }

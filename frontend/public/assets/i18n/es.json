@@ -70,6 +70,24 @@
     "loginFirst": "Debes iniciar sesión para continuar.",
     "sessionExpired": "Tu sesión expiró. Inicia sesión otra vez."
   },
+  "errors": {
+    "network": "Conexión de red perdida. Por favor, verifica tu conexión a internet.",
+    "badRequest": "Por favor, revisa tus datos e inténtalo de nuevo.",
+    "unauthorized": "Necesitas iniciar sesión para acceder a este recurso.",
+    "forbidden": "No tienes permiso para realizar esta acción.",
+    "notFound": "El recurso solicitado no fue encontrado.",
+    "conflict": "Ocurrió un conflicto con tu solicitud.",
+    "validation": "Por favor, revisa tus datos e inténtalo de nuevo.",
+    "tooManyRequests": "Demasiadas solicitudes. Por favor, espera un momento e inténtalo de nuevo.",
+    "serverError": "Error del servidor. Por favor, inténtalo más tarde.",
+    "serviceUnavailable": "Servicio temporalmente no disponible. Por favor, inténtalo más tarde.",
+    "requestFailed": "La solicitud falló. Por favor, inténtalo de nuevo.",
+    "appUpdate": "Se detectó una actualización de la aplicación. Por favor, recarga la página.",
+    "scriptError": "Ocurrió un error de script. Por favor, recarga la página.",
+    "unexpectedError": "Ocurrió un error inesperado. Por favor, inténtalo de nuevo.",
+    "timeout": "La solicitud expiró. Por favor, inténtalo de nuevo.",
+    "networkError": "Error de red. Por favor, verifica tu conexión."
+  },
   "health": {
     "dashboard": {
       "title": "Panel de salud",
@@ -149,6 +167,7 @@
     "verified": "Verificado",
     "notVerified": "No verificado",
     "role": "Rol",
+    "createdAt": "Miembro Desde",
     "sessionStatus": "Sesión",
     "sessionExpiresIn": "Expira en",
     "sessionExpired": "Sesión expirada",

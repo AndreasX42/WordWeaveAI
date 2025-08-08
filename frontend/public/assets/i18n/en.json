@@ -70,6 +70,24 @@
     "loginFirst": "Please sign in to continue.",
     "sessionExpired": "Your session has expired. Please sign in again."
   },
+  "errors": {
+    "network": "Network connection lost. Please check your internet connection.",
+    "badRequest": "Please check your input and try again.",
+    "unauthorized": "You need to sign in to access this resource.",
+    "forbidden": "You do not have permission to perform this action.",
+    "notFound": "The requested resource was not found.",
+    "conflict": "A conflict occurred with your request.",
+    "validation": "Please check your input and try again.",
+    "tooManyRequests": "Too many requests. Please wait a moment and try again.",
+    "serverError": "Server error. Please try again later.",
+    "serviceUnavailable": "Service temporarily unavailable. Please try again later.",
+    "requestFailed": "Request failed. Please try again.",
+    "appUpdate": "Application update detected. Please refresh the page.",
+    "scriptError": "A script error occurred. Please refresh the page.",
+    "unexpectedError": "An unexpected error occurred. Please try again.",
+    "timeout": "Request timed out. Please try again.",
+    "networkError": "Network error. Please check your connection."
+  },
   "health": {
     "dashboard": {
       "title": "Health Dashboard",
@@ -149,6 +167,7 @@
     "verified": "Verified",
     "notVerified": "Not Verified",
     "role": "Role",
+    "createdAt": "Member Since",
     "sessionStatus": "Session Status",
     "sessionExpiresIn": "Session Expires In",
     "sessionExpired": "Session Expired",

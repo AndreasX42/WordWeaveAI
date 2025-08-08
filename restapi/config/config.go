@@ -74,7 +74,7 @@ func NewContainer() *Container {
 	container.initHandlers()
 
 	// Create database tables
-	log.Println("Creating database tables")
+	log.Println("Creating/checking database tables")
 	container.createTables()
 
 	log.Println("Container initialized successfully")
@@ -98,15 +98,15 @@ func (c *Container) initAWS() {
 	cfg.HTTPClient = &http.Client{
 		Timeout: 10 * time.Second,
 		Transport: &http.Transport{
-			MaxConnsPerHost:       50,               // Increase from default 100
-			MaxIdleConns:          100,              // Increase from default 100
-			MaxIdleConnsPerHost:   20,               // Increase from default 2
-			IdleConnTimeout:       90 * time.Second, // Keep connections alive longer
-			ResponseHeaderTimeout: 5 * time.Second,  // Wait max 5s for response headers
-			ExpectContinueTimeout: 1 * time.Second,  // Wait 1s for "100 Continue" response
-			DisableCompression:    true,             // DynamoDB responses are already compressed
-			WriteBufferSize:       32 * 1024,        // 32KB write buffer
-			ReadBufferSize:        32 * 1024,        // 32KB read buffer
+			MaxConnsPerHost:       50,                // Increase from default 100
+			MaxIdleConns:          100,               // Increase from default 100
+			MaxIdleConnsPerHost:   20,                // Increase from default 2
+			IdleConnTimeout:       120 * time.Second, // Keep connections alive longer
+			ResponseHeaderTimeout: 5 * time.Second,   // Wait max 5s for response headers
+			ExpectContinueTimeout: 1 * time.Second,   // Wait 1s for "100 Continue" response
+			DisableCompression:    true,              // DynamoDB responses are already compressed
+			WriteBufferSize:       32 * 1024,         // 32KB write buffer
+			ReadBufferSize:        32 * 1024,         // 32KB read buffer
 			// TLS Configuration - Force TLS 1.2 minimum for all AWS services including SES
 			TLSHandshakeTimeout: 3 * time.Second,
 			ForceAttemptHTTP2:   true, // Use HTTP/2 when possible
@@ -127,7 +127,7 @@ func (c *Container) initAWS() {
 	// Initialize SQS client
 	c.SQSClient = sqs.NewFromConfig(cfg)
 
-	log.Println("AWS services initialized with TLS enforcement")
+	log.Println("AWS services initialized")
 }
 
 func (c *Container) initOAuth() {

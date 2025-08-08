@@ -52,9 +52,9 @@
       class="user-button"
       [matTooltip]="'header.account' | translate"
     >
-      @if (authService.user()?.profilePicture) {
+      @if (authService.user()?.profileImage) {
       <img
-        [src]="authService.user()?.profilePicture"
+        [src]="authService.user()?.profileImage"
         alt="Profile"
         class="profile-image-button"
         crossorigin="anonymous"

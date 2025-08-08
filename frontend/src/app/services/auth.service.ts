@@ -63,12 +63,12 @@ export class AuthService {
         )
       );
 
-      if (!response || !response.token || !response.details?.user) {
+      if (!response || !response.token || !response.user) {
         return false;
       }
 
       const token = response.token;
-      const apiUser = response.details.user;
+      const apiUser = response.user;
 
       // Create user object
       const user: User = {
@@ -76,8 +76,9 @@ export class AuthService {
         username: apiUser.username,
         email: apiUser.email,
         confirmedEmail: apiUser.confirmedEmail,
-        profilePicture: apiUser.profileImage || '',
+        profileImage: apiUser.profileImage || '',
         role: apiUser.isAdmin ? 'admin' : 'user',
+        createdAt: new Date(apiUser.createdAt),
       };
 
       // Set authentication state
@@ -253,21 +254,14 @@ export class AuthService {
 
   async authenticateWithOAuth(): Promise<boolean> {
     try {
-      // Call /api/auth/me endpoint - JWT cookie will be sent automatically
+      // Call /api/auth/me endpoint
       const response = await firstValueFrom(
-        this.httpClient.get<{
-          user: {
-            id: string;
-            username: string;
-            email: string;
-            confirmedEmail?: boolean;
-            profileImage?: string;
-            isAdmin?: boolean;
-          };
-          token: string;
-        }>(`${Configs.BASE_URL}${Configs.AUTH_ME_URL}`, {
-          withCredentials: true, // Include cookies in request
-        })
+        this.httpClient.get<LoginResponse>(
+          `${Configs.BASE_URL}${Configs.AUTH_ME_URL}`,
+          {
+            withCredentials: true, // Include cookies in request
+          }
+        )
       );
 
       if (!response || !response.user || !response.token) {
@@ -282,8 +276,9 @@ export class AuthService {
         username: userData.username,
         email: userData.email,
         confirmedEmail: userData.confirmedEmail || true,
-        profilePicture: userData.profileImage || '',
+        profileImage: userData.profileImage || '',
         role: userData.isAdmin ? 'admin' : 'user',
+        createdAt: new Date(userData.createdAt),
       };
 
       // Store the JWT token for future API requests

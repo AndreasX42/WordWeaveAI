@@ -117,20 +117,16 @@ func JWTMiddleware(userService *services.UserService) (*jwt.GinJWTMiddleware, er
 
 			// Return token along with user information
 			c.JSON(code, gin.H{
-				"code":   code,
-				"token":  token,
-				"expire": expire.Format(time.RFC3339),
-				"details": gin.H{
-					"user": gin.H{
-						"id":             userEntity.ID,
-						"username":       userEntity.Username,
-						"email":          userEntity.Email,
-						"confirmedEmail": userEntity.ConfirmedEmail,
-						"isAdmin":        userEntity.IsAdmin,
-						"createdAt":      userEntity.CreatedAt.Format(time.RFC3339),
-						"profileImage":   userEntity.ProfileImage,
-					},
+				"user": gin.H{
+					"id":             userEntity.ID,
+					"username":       userEntity.Username,
+					"email":          userEntity.Email,
+					"confirmedEmail": userEntity.ConfirmedEmail,
+					"isAdmin":        userEntity.IsAdmin,
+					"profileImage":   userEntity.ProfileImage,
+					"createdAt":      userEntity.CreatedAt.Format(time.RFC3339),
 				},
+				"token": token,
 			})
 		},
 

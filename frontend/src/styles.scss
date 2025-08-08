@@ -82,7 +82,15 @@ body.dark-theme
 body.dark-theme .register-container .mat-mdc-form-field .mat-mdc-floating-label,
 body.dark-theme .register-container .mat-mdc-form-field .mdc-floating-label,
 body.dark-theme .verify-container .mat-mdc-form-field .mat-mdc-floating-label,
-body.dark-theme .verify-container .mat-mdc-form-field .mdc-floating-label {
+body.dark-theme .verify-container .mat-mdc-form-field .mdc-floating-label,
+body.dark-theme
+  .mat-mdc-dialog-container
+  .mat-mdc-form-field
+  .mat-mdc-floating-label,
+body.dark-theme
+  .mat-mdc-dialog-container
+  .mat-mdc-form-field
+  .mdc-floating-label {
   color: var(--text-secondary) !important;
 }
 
@@ -100,6 +108,10 @@ body.dark-theme
   .mat-form-field-label,
 body.dark-theme
   .verify-container
+  .mat-form-field-appearance-outline
+  .mat-form-field-label,
+body.dark-theme
+  .mat-mdc-dialog-container
   .mat-form-field-appearance-outline
   .mat-form-field-label {
   color: var(--text-secondary) !important;

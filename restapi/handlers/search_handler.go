@@ -132,7 +132,7 @@ func (h *SearchHandler) GetVocabularyByPkSk(c *gin.Context) {
 		vocabResult := <-vocabChan
 		mediaResult := <-mediaChan
 
-		// Check for vocab error (critical)
+		// Check for vocab error
 		if vocabResult.err != nil {
 			c.JSON(http.StatusNotFound, gin.H{
 				"message": "Vocabulary not found",
@@ -141,17 +141,16 @@ func (h *SearchHandler) GetVocabularyByPkSk(c *gin.Context) {
 			return
 		}
 
-		// Add media to vocab word (ignore media errors - not critical)
+		// Add media to vocab word (ignore media errors)
 		if mediaResult.err == nil && mediaResult.media != nil {
 			vocabResult.vocab.Media = mediaResult.media
 		}
-		// Media errors are non-critical and logged but not returned to client
 
 		c.JSON(http.StatusOK, vocabResult.vocab)
 		return
 	}
 
-	// Original logic for PK/SK only
+	// Original logic for PK/SK only with subsequent media fetch
 	vocab, err := h.vocabService.GetVocabularyByKeys(ctx, pk, sk)
 
 	if err != nil {
@@ -197,31 +196,6 @@ func (h *SearchHandler) GetVocabularyByParams(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, vocab)
-}
-
-// GetMediaByRef handles fetching media data by media reference
-func (h *SearchHandler) GetMediaByRef(c *gin.Context) {
-	mediaRef := c.Param("mediaRef")
-
-	if mediaRef == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "mediaRef is required"})
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultRequestTimeout)
-	defer cancel()
-
-	// Use the vocab service to fetch media
-	media, err := h.vocabService.GetMediaByRef(ctx, mediaRef)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"message": "Media not found",
-			"details": gin.H{"error": err.Error()},
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, media)
 }
 
 func (h *SearchHandler) convertToSearchResult(vocab entities.VocabWord) VocabularySearchResult {

@@ -179,15 +179,18 @@
 .input-adornments {
   display: flex;
   align-items: center;
+  justify-content: center;
   align-self: center;
-  margin-inline-end: 8px;
+  margin-inline-end: 2px;
+  width: 28px;
+  flex-shrink: 0;
 }
 
 .search-input {
   flex: 1;
   border: none;
   outline: none;
-  padding: 16px 20px;
+  padding: 16px 8px 16px 20px;
   font-size: 16px;
   background: transparent;
   color: var(--text-primary);
@@ -214,6 +217,7 @@
   justify-content: center;
   transition: all 0.2s ease;
   z-index: 2;
+  margin-left: -12px;
 
   &:hover {
     background: var(--clear-btn-hover-bg);
@@ -468,20 +472,28 @@ mark.hl {
     order: 2;
   }
   .search-input {
-    padding: 14px 16px;
-    padding-right: 90px;
+    padding: 14px 4px 14px 16px;
     font-size: 16px;
   }
+  .request-btn {
+    width: 56px;
+    flex-shrink: 0;
+    mat-icon {
+      font-size: 22px;
+      width: 22px;
+      height: 22px;
+    }
+  }
+  .input-adornments {
+    width: 24px;
+    margin-inline-end: 2px;
+  }
   .clear-btn {
-    right: 52px;
     mat-icon {
       font-size: 16px;
       width: 16px;
       height: 16px;
     }
-  }
-  .loading-spinner {
-    right: 52px;
   }
   .result-item {
     padding: 16px;
@@ -579,32 +591,29 @@ mark.hl {
     gap: 0.25rem;
   }
   .search-input {
-    padding: 12px 14px;
-    padding-right: 55px;
+    padding: 12px 4px 12px 14px;
     font-size: 16px;
   }
   .request-btn {
-    min-width: 40px;
-    height: 40px;
-    right: 4px;
-    border-radius: 6px;
+    width: 48px;
+    flex-shrink: 0;
     mat-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
     }
   }
+  .input-adornments {
+    width: 20px;
+    margin-inline-end: 2px;
+  }
   .clear-btn {
-    right: 48px;
     padding: 6px;
     mat-icon {
       font-size: 16px;
       width: 16px;
       height: 16px;
     }
-  }
-  .loading-spinner {
-    right: 48px;
   }
   .result-item {
     padding: 14px 12px;

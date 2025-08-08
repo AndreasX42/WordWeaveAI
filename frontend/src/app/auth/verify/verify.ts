@@ -94,24 +94,22 @@ export class Verify {
       if (success) {
         this.isVerifying.set(false);
         this.messageService.showSuccessMessage(
-          this.translationService.translate('auth.emailVerifiedSuccessfully')
+          'auth.emailVerifiedSuccessfully'
         );
         this.router.navigate(['/login'], { replaceUrl: true });
       } else {
         this.isVerifying.set(false);
-        const errorMessage = this.translationService.translate(
-          'auth.invalidVerificationCode'
+        this.verifyError.set(
+          this.translationService.translate('auth.invalidVerificationCode')
         );
-        this.verifyError.set(errorMessage);
-        this.messageService.showErrorMessage(errorMessage);
+        this.messageService.showErrorMessage('auth.invalidVerificationCode');
       }
     } catch {
       this.isVerifying.set(false);
-      const errorMessage = this.translationService.translate(
-        'auth.verificationFailed'
+      this.verifyError.set(
+        this.translationService.translate('auth.verificationFailed')
       );
-      this.verifyError.set(errorMessage);
-      this.messageService.showErrorMessage(errorMessage);
+      this.messageService.showErrorMessage('auth.verificationFailed');
     }
   }
 
@@ -128,19 +126,13 @@ export class Verify {
       );
 
       if (success) {
-        this.messageService.showSuccessMessage(
-          this.translationService.translate('auth.verificationCodeResent')
-        );
+        this.messageService.showSuccessMessage('auth.verificationCodeResent');
         this.startResendTimer();
       } else {
-        this.messageService.showErrorMessage(
-          this.translationService.translate('auth.resendCodeFailed')
-        );
+        this.messageService.showErrorMessage('auth.resendCodeFailed');
       }
     } catch {
-      this.messageService.showErrorMessage(
-        this.translationService.translate('auth.resendCodeFailed')
-      );
+      this.messageService.showErrorMessage('auth.resendCodeFailed');
     } finally {
       this.isResending.set(false);
     }

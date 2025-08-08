@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import {
   AbstractControl,
   FormControl,
@@ -14,7 +14,6 @@ import { Router, RouterLink } from '@angular/router';
 import { ErrorManagerFactory } from '../../shared/error.manager.factory';
 import { AuthService } from '../../services/auth.service';
 import { MessageService } from '../../services/message.service';
-import { TranslationService } from '../../services/translation.service';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -74,10 +73,8 @@ function strictEmailValidator(control: AbstractControl) {
 })
 export class Register {
   private router = inject(Router);
-  private destroyRef = inject(DestroyRef);
   private authService = inject(AuthService);
   private messageService = inject(MessageService);
-  private translationService = inject(TranslationService);
 
   hide = signal(true);
   isRegistering = signal(false);
@@ -140,10 +137,7 @@ export class Register {
 
       // If we reach here, registration was successful
       this.isRegistering.set(false);
-      this.messageService.showSuccessMessage(
-        this.translationService.translate('auth.registrationSuccessful'),
-        5000
-      );
+      this.messageService.showSuccessMessage('auth.registrationSuccessful');
       // Redirect to verification page with email as query parameter
       this.router.navigate(['/verify'], {
         queryParams: { email: email },
@@ -168,14 +162,9 @@ export class Register {
         .toLowerCase()
         .includes('email already exists');
 
-      let errorMessage = this.translationService.translate(
-        'auth.registrationFailed'
-      );
-
+      let errorMessage = 'auth.registrationFailed';
       if (isUsernameExists || isEmailExists) {
-        errorMessage = this.translationService.translate(
-          'auth.usernameOrEmailExists'
-        );
+        errorMessage = 'auth.usernameOrEmailExists';
       }
 
       this.messageService.showErrorMessage(errorMessage);

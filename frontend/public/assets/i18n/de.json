@@ -70,6 +70,24 @@
     "loginFirst": "Bitte melde dich zuerst an, um weiterzumachen.",
     "sessionExpired": "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an."
   },
+  "errors": {
+    "network": "Netzwerkverbindung unterbrochen. Bitte überprüfe deine Internetverbindung.",
+    "badRequest": "Bitte überprüfe deine Eingabe und versuche es erneut.",
+    "unauthorized": "Du musst dich anmelden, um auf diese Ressource zuzugreifen.",
+    "forbidden": "Du hast keine Berechtigung, diese Aktion durchzuführen.",
+    "notFound": "Die angeforderte Ressource wurde nicht gefunden.",
+    "conflict": "Es ist ein Konflikt mit deiner Anfrage aufgetreten.",
+    "validation": "Bitte überprüfe deine Eingabe und versuche es erneut.",
+    "tooManyRequests": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.",
+    "serverError": "Serverfehler. Bitte versuche es später erneut.",
+    "serviceUnavailable": "Dienst vorübergehend nicht verfügbar. Bitte versuche es später erneut.",
+    "requestFailed": "Anfrage fehlgeschlagen. Bitte versuche es erneut.",
+    "appUpdate": "Anwendungsaktualisierung erkannt. Bitte aktualisiere die Seite.",
+    "scriptError": "Ein Skriptfehler ist aufgetreten. Bitte aktualisiere die Seite.",
+    "unexpectedError": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.",
+    "timeout": "Zeitüberschreitung bei der Anfrage. Bitte versuche es erneut.",
+    "networkError": "Netzwerkfehler. Bitte überprüfe deine Verbindung."
+  },
   "health": {
     "dashboard": {
       "title": "Health-Dashboard",
@@ -150,6 +168,7 @@
     "verified": "Bestätigt",
     "notVerified": "Noch nicht bestätigt",
     "role": "Rolle",
+    "createdAt": "Mitglied Seit",
     "sessionStatus": "Sitzung",
     "sessionExpiresIn": "Läuft ab in",
     "sessionExpired": "Abgelaufen",

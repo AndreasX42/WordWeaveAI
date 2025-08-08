@@ -106,7 +106,7 @@ export class ForgotPassword {
           'auth.resetEmailFailed'
         );
         this.forgotPasswordError.set(errorMessage);
-        this.messageService.showErrorMessage(errorMessage);
+        this.messageService.showErrorMessage('auth.resetEmailFailed');
       }
     } catch (error) {
       this.isSubmitting.set(false);
@@ -125,7 +125,7 @@ export class ForgotPassword {
         this.translationService.translate('auth.resetEmailFailed');
 
       this.forgotPasswordError.set(errorMessage);
-      this.messageService.showErrorMessage(errorMessage);
+      this.messageService.showErrorMessage('auth.resetEmailFailed');
     }
   }
 

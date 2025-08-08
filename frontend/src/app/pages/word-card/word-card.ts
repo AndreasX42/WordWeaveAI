@@ -636,10 +636,7 @@ export class WordCard implements OnInit, OnDestroy {
 
     this.updateHeaderNotificationToRedirect(pk, sk, mediaRef);
 
-    this.messageService.showInfoMessage(
-      this.translationService.translate('wordCard.wordAlreadyExists'),
-      4000
-    );
+    this.messageService.showInfoMessage('wordCard.wordAlreadyExists');
 
     this.isRequestMode = false;
 

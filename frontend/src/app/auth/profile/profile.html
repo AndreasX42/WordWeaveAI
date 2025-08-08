@@ -14,9 +14,9 @@
       <mat-card-content>
         <div class="profile-header">
           <div class="avatar-section">
-            @if (user()?.profilePicture) {
+            @if (user()?.profileImage) {
             <img
-              [src]="user()?.profilePicture"
+              [src]="user()?.profileImage"
               alt="Profile Picture"
               crossorigin="anonymous"
               referrerpolicy="no-referrer"
@@ -53,7 +53,9 @@
               <div class="info-item">
                 <mat-icon class="info-icon">email</mat-icon>
                 <div class="info-content">
-                  <span class="info-label">{{ "auth.email" | translate }}</span>
+                  <span class="info-label">{{
+                    "auth.emailAddress" | translate
+                  }}</span>
                   <span class="info-value">{{
                     user()?.email
                       ? user()?.email
@@ -94,6 +96,17 @@
                   <span class="info-label">{{ "auth.role" | translate }}</span>
                   <span class="info-value">{{
                     user()?.role ? (user()?.role | titlecase) : "User"
+                  }}</span>
+                </div>
+              </div>
+              <div class="info-item">
+                <mat-icon class="info-icon">calendar_month</mat-icon>
+                <div class="info-content">
+                  <span class="info-label">{{
+                    "auth.createdAt" | translate
+                  }}</span>
+                  <span class="info-value">{{
+                    user()?.createdAt | date : "dd/MM/yyyy"
                   }}</span>
                 </div>
               </div>

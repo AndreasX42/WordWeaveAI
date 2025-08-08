@@ -18,6 +18,10 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
+data "aws_ssm_parameter" "sentry_dsn" {
+  name = "/apikeys/SENTRY_DSN"
+}
+
 # Remote state for common environment
 data "terraform_remote_state" "common" {
   backend = "local" # Change to "s3" if using S3 backend
@@ -35,13 +39,47 @@ locals {
     ManagedBy   = "terraform"
   }
 
-  # Process backend environment variables to replace SQS queue URL placeholder with actual value
-  backend_environment_variables_processed = [
-    for env_var in var.backend_environment_variables : {
-      name      = env_var.name
-      value     = env_var.name == "SQS_VOCAB_REQUEST_QUEUE_URL" ? module.sqs.queue_url : try(env_var.value, null)
-      valueFrom = try(env_var.valueFrom, null)
+  backend_secrets = [
+    {
+      name      = "SENTRY_DSN"
+      valueFrom = data.aws_ssm_parameter.sentry_dsn.value
     }
+  ]
+
+  backend_environment_variables = [
+    # Infrastructure-dependent values (generated dynamically)
+    {
+      name  = "SQS_VOCAB_REQUEST_QUEUE_URL"
+      value = module.sqs.queue_url
+    },
+    {
+      name  = "DYNAMODB_USER_TABLE_NAME"
+      value = var.dynamodb_user_table_name
+    },
+    {
+      name  = "DYNAMODB_VOCAB_TABLE_NAME"
+      value = var.dynamodb_vocab_table_name
+    },
+    {
+      name  = "DYNAMODB_VOCAB_MEDIA_TABLE_NAME"
+      value = var.dynamodb_vocab_media_table_name
+    },
+    {
+      name  = "DYNAMODB_VOCAB_LIST_TABLE_NAME"
+      value = var.dynamodb_vocab_list_table_name
+    },
+    {
+      name  = "DYNAMODB_CONNECTIONS_TABLE_NAME"
+      value = var.dynamodb_connections_table_name
+    },
+    {
+      name  = "S3_MEDIA_BUCKET_NAME"
+      value = var.s3_media_bucket_name
+    },
+    {
+      name  = "SENTRY_ENVIRONMENT"
+      value = "${var.project_name}-${var.environment}"
+    },
   ]
 }
 
@@ -159,14 +197,17 @@ module "ecs" {
   backend_cpu                   = var.backend_cpu
   backend_memory                = var.backend_memory
   backend_image_uri             = "${data.terraform_remote_state.common.outputs.ecr_backend_repository_url}:latest"
-  backend_environment_variables = local.backend_environment_variables_processed
-  backend_secrets               = var.backend_secrets
+  backend_environment_variables = local.backend_environment_variables
+  backend_secrets               = local.backend_secrets
   desired_count                 = var.desired_count
   ecs_tasks_security_group_id   = module.alb.ecs_tasks_security_group_id
   public_subnet_ids             = module.vpc.public_subnet_ids
   frontend_target_group_arn     = module.alb.frontend_target_group_arn
   backend_target_group_arn      = module.alb.backend_target_group_arn
   alb_listener_arn              = module.alb.https_listener_arn
+
+  # Ensure infrastructure is created before environment variables are used
+  depends_on = [module.data, module.sqs]
 }
 
 # CI/CD Pipeline Module
@@ -175,7 +216,7 @@ module "cicd_pipeline" {
 
   project_name       = var.project_name
   environment        = var.environment
-  target_environment = var.environment # Deploying to the same environment
+  target_environment = var.environment
   aws_region         = var.aws_region
   aws_account_id     = local.aws_account_id
 

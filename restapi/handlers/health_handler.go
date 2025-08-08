@@ -89,9 +89,11 @@ func (h *HealthHandler) checkDynamoDB(ctx context.Context) ServiceInfo {
 
 	// Define all tables used by the application
 	tables := map[string]string{
-		"users":       utils.GetTableName(os.Getenv("DYNAMODB_USER_TABLE_NAME")),
-		"vocab":       utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_TABLE_NAME")),
-		"vocab_lists": utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_LIST_TABLE_NAME")),
+		"users":          utils.GetTableName(os.Getenv("DYNAMODB_USER_TABLE_NAME")),
+		"vocab":          utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_TABLE_NAME")),
+		"vocab_media":    utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_MEDIA_TABLE_NAME")),
+		"vocab_lists":    utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_LIST_TABLE_NAME")),
+		"ws_connections": utils.GetTableName(os.Getenv("DYNAMODB_CONNECTIONS_TABLE_NAME")),
 	}
 
 	// Use channels to collect results from parallel checks

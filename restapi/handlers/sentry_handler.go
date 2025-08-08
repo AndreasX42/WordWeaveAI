@@ -1,8 +1,10 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/AndreasX42/restapi/domain/entities"
@@ -32,16 +34,9 @@ type LogRequest struct {
 	URL       string            `json:"url,omitempty"`
 
 	// Enhanced frontend error structure
-	Timestamp string          `json:"timestamp,omitempty"`
-	Error     map[string]any  `json:"error,omitempty"` // Unified error field
-	Context   *RequestContext `json:"context,omitempty"`
-}
-
-// RequestContext represents the context information from frontend
-type RequestContext struct {
-	CurrentURL string `json:"currentUrl,omitempty"`
-	UserID     string `json:"userId,omitempty"`
-	SessionID  string `json:"sessionId,omitempty"`
+	Timestamp string         `json:"timestamp,omitempty"`
+	Error     map[string]any `json:"error,omitempty"` // Unified error field
+	Context   map[string]any `json:"context,omitempty"`
 }
 
 // FrontendError represents a unified error structure from frontend logging
@@ -61,16 +56,12 @@ func (e *FrontendError) Error() string {
 // LogEvent handles logging events from the frontend
 func (h *SentryHandler) LogEvent(c *gin.Context) {
 	if h.sentryClient == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"message": "Logging service is not available",
-		})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"message": "Logging service is not available"})
 		return
 	}
 
-	fmt.Printf("c.Request.Body: %+v\n", c.Request.Body)
-
-	var logRequest map[string]any
-	if err := c.ShouldBindJSON(&logRequest); err != nil {
+	var req LogRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid request format",
 			"details": gin.H{"error": err.Error()},
@@ -78,235 +69,219 @@ func (h *SentryHandler) LogEvent(c *gin.Context) {
 		return
 	}
 
-	fmt.Printf("logRequest: %+v\n", logRequest)
-
-	// Determine if this is the enhanced frontend error structure or simple logging
-	isEnhancedError := h.isEnhancedErrorStructure(logRequest)
-
-	// Get Sentry hub from context or create a new one
 	hub := sentry.GetHubFromContext(c.Request.Context())
 	if hub == nil {
 		hub = sentry.CurrentHub().Clone()
 	}
 
-	if isEnhancedError {
-		h.handleEnhancedError(hub, logRequest, c)
-	} else {
-		h.handleSimpleLog(hub, logRequest, c)
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Event logged successfully",
-	})
-}
-
-// isEnhancedErrorStructure determines if the request is using the enhanced frontend error structure
-func (h *SentryHandler) isEnhancedErrorStructure(data map[string]any) bool {
-	// Check if it has the enhanced structure with nested error and context objects
-	if errorData, exists := data["error"]; exists {
-		if errorMap, ok := errorData.(map[string]any); ok {
-			// Check for fields that are specific to the enhanced structure
-			_, hasType := errorMap["type"]
-			_, hasOriginalError := errorMap["originalError"]
-			_, hasContext := data["context"]
-			return hasType || hasOriginalError || hasContext
-		}
-	}
-	return false
-}
-
-// handleEnhancedError processes the comprehensive frontend error structure
-func (h *SentryHandler) handleEnhancedError(hub *sentry.Hub, data map[string]any, c *gin.Context) {
 	hub.WithScope(func(scope *sentry.Scope) {
-		// Set level to error for enhanced error reports
-		scope.SetLevel(sentry.LevelError)
+		h.configureSentryScope(scope, &req, c)
+		h.captureLog(hub, scope, &req)
+	})
 
-		// Add frontend-specific tags
-		scope.SetTag("source", "frontend")
+	c.JSON(http.StatusOK, gin.H{"message": "Event logged successfully"})
+}
+
+// configureSentryScope configures the Sentry scope with data from the log request
+func (h *SentryHandler) configureSentryScope(scope *sentry.Scope, req *LogRequest, c *gin.Context) {
+	isEnhanced := req.Error != nil
+
+	// Set base tags
+	scope.SetTag("source", "frontend")
+	if isEnhanced {
 		scope.SetTag("error_handler", "enhanced")
+	} else {
+		scope.SetTag("error_handler", "simple")
+	}
 
-		// Process error data
-		if errorData, exists := data["error"]; exists {
-			if errorMap, ok := errorData.(map[string]any); ok {
-				// Set error type as tag
-				if errorType, exists := errorMap["type"]; exists {
-					scope.SetTag("error_type", errorType.(string))
-				}
-
-				// Add HTTP status if available
-				if status, exists := errorMap["status"]; exists {
-					scope.SetTag("http_status", status.(string))
-				}
-
-				// Add user agent
-				if userAgent, exists := errorMap["userAgent"]; exists {
-					scope.SetTag("user_agent", userAgent.(string))
-				}
-
-				// Add all error details as extra context
-				scope.SetExtra("error_details", errorMap)
-			}
+	// Process error data for enhanced logging
+	if isEnhanced {
+		if errorType := safeGetString(req.Error, "type"); errorType != "" {
+			scope.SetTag("error_type", errorType)
 		}
-
-		// Process context data
-		if contextData, exists := data["context"]; exists {
-			if contextMap, ok := contextData.(map[string]any); ok {
-				// Set user information if available
-				if userID, exists := contextMap["userId"]; exists && userID != nil {
-					scope.SetUser(sentry.User{
-						ID: userID.(string),
-					})
-				}
-
-				// Add session ID as tag
-				if sessionID, exists := contextMap["sessionId"]; exists && sessionID != nil {
-					scope.SetTag("session_id", sessionID.(string))
-				}
-
-				// Add current URL
-				if currentURL, exists := contextMap["currentUrl"]; exists {
-					scope.SetTag("page_url", currentURL.(string))
-				}
-
-				// Add all context as extra
-				scope.SetExtra("request_context", contextMap)
-			}
+		if status := safeGetString(req.Error, "status"); status != "" {
+			scope.SetTag("http_status", status)
 		}
-
-		// Add timestamp if available
-		if timestamp, exists := data["timestamp"]; exists {
-			scope.SetExtra("frontend_timestamp", timestamp)
+		if userAgent := safeGetString(req.Error, "userAgent"); userAgent != "" {
+			scope.SetTag("user_agent", userAgent)
 		}
-
-		// Add server timestamp
-		scope.SetExtra("server_timestamp", time.Now().UTC())
-
-		// Get user information from JWT if available (will override frontend user if set)
-		if user, exists := c.Get("principal"); exists {
-			user, ok := user.(*entities.User)
-			if !ok {
-				return
-			}
-			scope.SetUser(sentry.User{
-				ID: user.ID,
-			})
+		scope.SetExtra("error_details", req.Error)
+	} else {
+		// Process simple logging fields
+		if req.UserAgent != "" {
+			scope.SetTag("user_agent", req.UserAgent)
 		}
-
-		// Create error message
-		var message string
-		if errorData, exists := data["error"]; exists {
-			if errorMap, ok := errorData.(map[string]any); ok {
-				if msg, exists := errorMap["message"]; exists {
-					message = msg.(string)
-				}
-			}
+		if req.URL != "" {
+			scope.SetTag("page_url", req.URL)
 		}
-		if message == "" {
-			message = "Frontend error occurred"
-		}
+	}
 
-		// Create custom error for better stack trace handling
-		err := &FrontendError{
-			Message: message,
-			Data:    data,
+	// Process context for both simple and enhanced
+	if req.Context != nil {
+		if userID := safeGetString(req.Context, "userId"); userID != "" {
+			scope.SetUser(sentry.User{ID: userID})
 		}
+		if sessionID := safeGetString(req.Context, "sessionId"); sessionID != "" {
+			scope.SetTag("session_id", sessionID)
+		}
+		if currentURL := safeGetString(req.Context, "currentUrl"); currentURL != "" {
+			scope.SetTag("page_url", currentURL)
+		}
+		scope.SetExtra("request_context", req.Context)
+	}
 
-		hub.CaptureException(err)
-	})
+	// Add custom tags and extra data
+	for k, v := range req.Tags {
+		scope.SetTag(k, v)
+	}
+	for k, v := range req.Extra {
+		scope.SetExtra(k, v)
+	}
+
+	// Timestamps
+	if req.Timestamp != "" {
+		scope.SetExtra("frontend_timestamp", req.Timestamp)
+	}
+	scope.SetExtra("server_timestamp", time.Now().UTC())
+
+	// Override user from JWT if available
+	if user, exists := c.Get("principal"); exists {
+		if u, ok := user.(*entities.User); ok {
+			scope.SetUser(sentry.User{ID: u.ID})
+		}
+	}
 }
 
-// handleSimpleLog processes the simple logging structure (backward compatibility)
-func (h *SentryHandler) handleSimpleLog(hub *sentry.Hub, data map[string]any, c *gin.Context) {
-	// Validate log level
-	levelStr, exists := data["level"]
-	if !exists {
-		levelStr = "info" // default
+func (h *SentryHandler) captureLog(hub *sentry.Hub, scope *sentry.Scope, req *LogRequest) {
+	level := h.getSentryLevel(req.Level)
+	scope.SetLevel(level)
+
+	if level == sentry.LevelError && req.Error != nil {
+		errorName := safeGetString(req.Error, "name")
+		if errorName == "" {
+			errorName = "FrontendError"
+		}
+
+		errorType := safeGetString(req.Error, "type")
+		errorMessage := safeGetString(req.Error, "message")
+		if errorMessage == "" {
+			errorMessage = errorType
+		}
+		if errorMessage == "" {
+			errorMessage = "No message provided"
+		}
+
+		displayType := errorName
+		if errorType != "" && errorType != errorMessage {
+			displayType = errorName + ": " + errorType
+		}
+
+		stacktrace := parseJSStacktrace(safeGetString(req.Error, "stack"))
+
+		hub.CaptureEvent(&sentry.Event{
+			Level:    sentry.LevelError,
+			Message:  errorMessage,
+			Platform: "javascript",
+			Exception: []sentry.Exception{
+				{
+					Value:      errorMessage,
+					Type:       displayType,
+					Module:     "frontend",
+					Stacktrace: stacktrace,
+				},
+			},
+			Fingerprint: []string{
+				"frontend",
+				errorName,
+				errorType,
+			},
+			Extra: map[string]interface{}{
+				"error_name": errorName,
+				"error_type": errorType,
+				"url":        safeGetString(req.Error, "url"),
+			},
+		})
+	} else {
+		message := req.Message
+		if message == "" {
+			message = "No message provided"
+		}
+		hub.CaptureMessage(message)
+	}
+}
+
+func parseJSStacktrace(stack string) *sentry.Stacktrace {
+	if stack == "" {
+		return nil
 	}
 
-	var sentryLevel sentry.Level
-	switch levelStr.(string) {
-	case "error":
-		sentryLevel = sentry.LevelError
-	case "warning":
-		sentryLevel = sentry.LevelWarning
-	case "info":
-		sentryLevel = sentry.LevelInfo
-	case "debug":
-		sentryLevel = sentry.LevelDebug
-	default:
-		sentryLevel = sentry.LevelInfo
-	}
+	// Regex to capture function name, file path, line number, and column number
+	re := regexp.MustCompile(`(?m)^(.*)@(.*):(\d+):(\d+)`)
+	lines := strings.Split(stack, "\n")
+	frames := []sentry.Frame{}
 
-	hub.WithScope(func(scope *sentry.Scope) {
-		// Set level
-		scope.SetLevel(sentryLevel)
+	for _, line := range lines {
+		matches := re.FindStringSubmatch(line)
 
-		// Add frontend-specific tags
-		scope.SetTag("source", "frontend")
-		scope.SetTag("error_handler", "simple")
+		if len(matches) == 5 {
+			lineNo, _ := strconv.Atoi(matches[3])
+			colNo, _ := strconv.Atoi(matches[4])
 
-		// Add user agent if available
-		if userAgent, exists := data["user_agent"]; exists {
-			scope.SetTag("user_agent", userAgent.(string))
-		}
-
-		// Add URL if available
-		if url, exists := data["url"]; exists {
-			scope.SetTag("page_url", url.(string))
-		}
-
-		// Add custom tags
-		if tags, exists := data["tags"]; exists {
-			if tagsMap, ok := tags.(map[string]any); ok {
-				for key, value := range tagsMap {
-					scope.SetTag(key, value.(string))
-				}
+			frame := sentry.Frame{
+				Function: matches[1],
+				AbsPath:  matches[2],
+				Lineno:   lineNo,
+				Colno:    colNo,
+				InApp:    true, // You might want to customize this based on file path
 			}
-		}
-
-		// Add extra context
-		scope.SetExtra("timestamp", time.Now().UTC())
-		if extra, exists := data["extra"]; exists {
-			if extraMap, ok := extra.(map[string]any); ok {
-				for key, value := range extraMap {
-					scope.SetExtra(key, value)
-				}
-			}
-		}
-
-		// Get user information if available (from JWT claims)
-		if user, exists := c.Get("principal"); exists {
-			user, ok := user.(*entities.User)
-			if !ok {
-				return
-			}
-			scope.SetUser(sentry.User{
-				ID: user.ID,
+			frames = append(frames, frame)
+		} else {
+			// Handle cases where the line doesn't match the expected format
+			// Could be a simple message line or a different format
+			frames = append(frames, sentry.Frame{
+				Function: line,
+				InApp:    true,
 			})
 		}
+	}
+	// Reverse frames to have the call stack in the correct order (oldest to newest)
+	for i, j := 0, len(frames)-1; i < j; i, j = i+1, j-1 {
+		frames[i], frames[j] = frames[j], frames[i]
+	}
 
-		// Get message
-		message := "No message provided"
-		if msg, exists := data["message"]; exists {
-			message = msg.(string)
-		}
+	return &sentry.Stacktrace{
+		Frames: frames,
+	}
+}
 
-		// If it's an error with error details, capture as exception
-		if sentryLevel == sentry.LevelError {
-			if errorData, exists := data["error"]; exists {
-				if errorMap, ok := errorData.(map[string]any); ok {
-					err := &FrontendError{
-						Message: message,
-						Data:    errorMap,
-					}
-					scope.SetExtra("error_details", errorMap)
-					hub.CaptureException(err)
-					return
-				}
-			}
-		}
+// getSentryLevel converts a log level string to a Sentry level
+func (h *SentryHandler) getSentryLevel(levelStr string) sentry.Level {
+	switch strings.ToLower(levelStr) {
+	case "error":
+		return sentry.LevelError
+	case "warning":
+		return sentry.LevelWarning
+	case "info":
+		return sentry.LevelInfo
+	case "debug":
+		return sentry.LevelDebug
+	default:
+		return sentry.LevelInfo
+	}
+}
 
-		// Capture as message
-		hub.CaptureMessage(message)
-	})
+// safeGetString extracts a string from a map[string]any safely
+func safeGetString(m map[string]any, key string) string {
+	if val, ok := m[key].(string); ok {
+		return val
+	}
+	return ""
+}
+
+// safeGetMap extracts a map[string]any from a map[string]any safely
+func safeGetMap(m map[string]any, key string) map[string]any {
+	if val, ok := m[key].(map[string]any); ok {
+		return val
+	}
+	return nil
 }

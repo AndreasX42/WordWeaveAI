@@ -140,25 +140,16 @@ func TestUserAPI_DynamoDBIntegration(t *testing.T) {
 	t.Run("login validation errors", func(t *testing.T) {
 		server := setupIntegrationTestServer(t)
 
-		// Test invalid email format
-		invalidEmailReq := map[string]string{
-			"email":    "invalid-email",
-			"password": "password123",
-		}
-		testLoginValidationError(t, server, invalidEmailReq, "Field Email failed on the 'email' rule")
-
-		// Test password too short
-		shortPasswordReq := map[string]string{
-			"email":    "test@example.com",
-			"password": "short",
-		}
-		testLoginValidationError(t, server, shortPasswordReq, "Field Password failed on the 'min' rule")
-
-		// Test missing required fields
+		// Test missing credentials (gin-jwt middleware handles this differently)
 		missingEmailReq := map[string]string{
 			"password": "password123",
 		}
-		testLoginValidationError(t, server, missingEmailReq, "Field Email failed on the 'required' rule")
+		testGinJWTLoginError(t, server, missingEmailReq, http.StatusUnauthorized, "missing Username or Password")
+
+		missingPasswordReq := map[string]string{
+			"email": "test@example.com",
+		}
+		testGinJWTLoginError(t, server, missingPasswordReq, http.StatusUnauthorized, "missing Username or Password")
 	})
 
 	t.Run("confirm email validation errors", func(t *testing.T) {
@@ -509,13 +500,15 @@ func setupIntegrationTestServer(t *testing.T) *gin.Engine {
 
 	// Public routes
 	router.POST("/users/register", userHandler.Register)
-	router.POST("/users/login", userHandler.Login)
 	router.POST("/users/confirm-email", userHandler.ConfirmEmail)
 	router.POST("/users/reset-password", userHandler.ResetPassword)
 
+	// JWT routes
+	router.POST("/auth/login", authMiddleware.LoginHandler)
+
 	// Authenticated routes
 	authenticated := router.Group("/users")
-	authenticated.Use(middlewares.Authentication(userService))
+	authenticated.Use(authMiddleware.MiddlewareFunc())
 	authenticated.DELETE("/delete", userHandler.Delete)
 	authenticated.PUT("/update", userHandler.Update)
 
@@ -619,7 +612,7 @@ func testLoginUser(t *testing.T, server *gin.Engine, email, password string) str
 	}
 
 	reqBody, _ := json.Marshal(req)
-	request := httptest.NewRequest(http.MethodPost, "/users/login", bytes.NewBuffer(reqBody))
+	request := httptest.NewRequest(http.MethodPost, "/auth/login", bytes.NewBuffer(reqBody))
 	request.Header.Set("Content-Type", "application/json")
 
 	recorder := httptest.NewRecorder()
@@ -635,8 +628,7 @@ func testLoginUser(t *testing.T, server *gin.Engine, email, password string) str
 		t.Fatalf("Failed to parse login response: %v", err)
 	}
 
-	details := response["details"].(map[string]any)
-	return details["token"].(string)
+	return response["token"].(string)
 }
 
 func testLoginError(t *testing.T, server *gin.Engine, email, password string, expectedStatus int) {
@@ -646,7 +638,7 @@ func testLoginError(t *testing.T, server *gin.Engine, email, password string, ex
 	}
 
 	reqBody, _ := json.Marshal(req)
-	request := httptest.NewRequest(http.MethodPost, "/users/login", bytes.NewBuffer(reqBody))
+	request := httptest.NewRequest(http.MethodPost, "/auth/login", bytes.NewBuffer(reqBody))
 	request.Header.Set("Content-Type", "application/json")
 
 	recorder := httptest.NewRecorder()
@@ -676,7 +668,7 @@ func testLoginAfterDeletion(t *testing.T, server *gin.Engine, email, password st
 	}
 
 	reqBody, _ := json.Marshal(req)
-	request := httptest.NewRequest(http.MethodPost, "/users/login", bytes.NewBuffer(reqBody))
+	request := httptest.NewRequest(http.MethodPost, "/auth/login", bytes.NewBuffer(reqBody))
 	request.Header.Set("Content-Type", "application/json")
 
 	recorder := httptest.NewRecorder()
@@ -871,16 +863,16 @@ func testRegisterMultipleValidationErrors(t *testing.T, server *gin.Engine, req 
 	}
 }
 
-func testLoginValidationError(t *testing.T, server *gin.Engine, req map[string]string, expectedErrorMessage string) {
+func testGinJWTLoginError(t *testing.T, server *gin.Engine, req map[string]string, expectedStatus int, expectedErrorMessage string) {
 	reqBody, _ := json.Marshal(req)
-	request := httptest.NewRequest(http.MethodPost, "/users/login", bytes.NewBuffer(reqBody))
+	request := httptest.NewRequest(http.MethodPost, "/auth/login", bytes.NewBuffer(reqBody))
 	request.Header.Set("Content-Type", "application/json")
 
 	recorder := httptest.NewRecorder()
 	server.ServeHTTP(recorder, request)
 
-	if recorder.Code != http.StatusBadRequest {
-		t.Fatalf("Expected status %d, got %d. Body: %s", http.StatusBadRequest, recorder.Code, recorder.Body.String())
+	if recorder.Code != expectedStatus {
+		t.Fatalf("Expected status %d, got %d. Body: %s", expectedStatus, recorder.Code, recorder.Body.String())
 	}
 
 	var response map[string]any
@@ -889,9 +881,9 @@ func testLoginValidationError(t *testing.T, server *gin.Engine, req map[string]s
 		t.Fatalf("Failed to parse response: %v", err)
 	}
 
-	// Check for structured validation error response
-	if response["message"] != "Validation failed" {
-		t.Errorf("Expected message 'Validation failed', got '%v'", response["message"])
+	// Check for gin-jwt error response format
+	if response["message"] != "Unauthorized" {
+		t.Errorf("Expected message 'Unauthorized', got '%v'", response["message"])
 	}
 
 	details, ok := response["details"].(map[string]any)
@@ -899,21 +891,13 @@ func testLoginValidationError(t *testing.T, server *gin.Engine, req map[string]s
 		t.Fatal("Expected 'details' field in response")
 	}
 
-	errors, ok := details["errors"].([]any)
+	errorMsg, ok := details["error"].(string)
 	if !ok {
-		t.Fatal("Expected 'errors' array in details")
+		t.Fatal("Expected 'error' string in details")
 	}
 
-	errorFound := false
-	for _, err := range errors {
-		if strings.Contains(err.(string), expectedErrorMessage) {
-			errorFound = true
-			break
-		}
-	}
-
-	if !errorFound {
-		t.Errorf("Expected error message containing '%s', got errors: %v", expectedErrorMessage, errors)
+	if !strings.Contains(errorMsg, expectedErrorMessage) {
+		t.Errorf("Expected error message containing '%s', got '%s'", expectedErrorMessage, errorMsg)
 	}
 }
 

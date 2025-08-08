@@ -6,14 +6,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
 	"github.com/AndreasX42/restapi/config"
 	"github.com/AndreasX42/restapi/middlewares"
-	"github.com/AndreasX42/restapi/utils"
-	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -97,19 +94,19 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 		api.POST("/auth/resend-code", container.UserHandler.ResendConfirmationCode)
 		api.POST("/auth/reset-password", container.UserHandler.ResetPassword)
 
+		// JWT routes
+		api.POST("/auth/login", authMiddleware.LoginHandler)
+		api.POST("/auth/logout", authMiddleware.LogoutHandler)
+		api.POST("/auth/refresh", authMiddleware.RefreshHandler)
+
 		// OAuth routes
 		api.GET("/auth/google/login", container.OAuthHandler.GoogleLogin)
 		api.GET("/auth/google/callback", container.OAuthHandler.GoogleCallback)
 
 		// Search and vocab routes
-		api.POST("/search", container.SearchHandler.SearchVocabulary)
-		api.GET("/vocabs", container.SearchHandler.GetVocabularyByPkSk)
-		api.GET("/vocabs/:sourceLanguage/:targetLanguage/:pos/:word", container.SearchHandler.GetVocabularyByParams)
-
-		// JWT routes
-		api.POST("/auth/login", authMiddleware.LoginHandler)
-		api.POST("/auth/logout", authMiddleware.LogoutHandler)
-		api.POST("/auth/refresh", authMiddleware.RefreshHandler)
+		api.POST("/vocabs/search", container.SearchHandler.SearchVocabulary)
+		api.GET("/vocabs/get", container.SearchHandler.GetVocabularyByPkSk)
+		api.GET("/vocabs/get/:sourceLanguage/:targetLanguage/:pos/:word", container.SearchHandler.GetVocabularyByParams)
 
 		// Logging routes
 		api.POST("/log", container.SentryHandler.LogEvent)
@@ -118,7 +115,7 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 		authenticated := api.Group("/")
 		authenticated.Use(authMiddleware.MiddlewareFunc())
 		{
-			// Auth routes (authenticated)
+			// Auth route (after google login)
 			authenticated.GET("/auth/me", container.UserHandler.GetCurrentUser)
 
 			// User routes
@@ -129,56 +126,7 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 			// Vocabulary request routes (authenticated)
 			authenticated.POST("/vocabs/request", container.VocabRequestHandler.RequestVocab)
 
-			// Logging routes
-			// authenticated.POST("/log", container.SentryHandler.LogEvent)
-
-			// Media routes
-			authenticated.GET("/media/:mediaRef", container.SearchHandler.GetMediaByRef)
-
 		}
-	}
-}
-
-func createRefreshHandler(authMiddleware *jwt.GinJWTMiddleware, container *config.Container) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"message": "Unauthorized",
-				"details": gin.H{"error": "missing token"},
-			})
-			return
-		}
-
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-		if tokenString == authHeader {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"message": "Unauthorized",
-				"details": gin.H{"error": "invalid token format"},
-			})
-			return
-		}
-
-		userID, err := utils.VerifyJWT(tokenString)
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"message": "Unauthorized",
-				"details": gin.H{"error": err.Error()},
-			})
-			return
-		}
-
-		// Check if user still exists
-		if _, err := container.UserService.GetUserByID(c.Request.Context(), userID); err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"message": "Unauthorized",
-				"details": gin.H{"error": "user does not exist"},
-			})
-			return
-		}
-
-		// Delegate to the default refresh logic
-		authMiddleware.RefreshHandler(c)
 	}
 }
 
@@ -190,7 +138,7 @@ func initEnvs() {
 	}
 
 	// In development mode, try to load .env files
-	err := godotenv.Load("/app/.env", ".env")
+	err := godotenv.Load(".env")
 	if err != nil {
 		log.Println("No .env file found, using system environment variables:", err)
 	} else {

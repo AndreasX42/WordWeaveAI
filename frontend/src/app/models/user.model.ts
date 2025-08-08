@@ -3,6 +3,7 @@ export interface User {
   username: string;
   email: string;
   confirmedEmail: boolean;
-  profilePicture: string;
+  profileImage: string;
   role: string;
+  createdAt: Date;
 }

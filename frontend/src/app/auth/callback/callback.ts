@@ -59,7 +59,7 @@ export class AuthCallback implements OnInit {
       // Handle error case
       if (error) {
         this.messageService.showErrorMessage(
-          errorDescription || 'Google login failed. Please try again.'
+          errorDescription || 'auth.loginFailed'
         );
         this.router.navigate(['/login'], { replaceUrl: true });
         return;
@@ -71,26 +71,20 @@ export class AuthCallback implements OnInit {
         const loginSuccess = await this.authService.authenticateWithOAuth();
 
         if (loginSuccess) {
-          this.messageService.showSuccessMessage('Google login successful!');
+          this.messageService.showSuccessMessage('auth.loginSuccessful');
           this.router.navigate(['/profile'], { replaceUrl: true });
         } else {
-          this.messageService.showErrorMessage(
-            'Failed to get user information. Please try again.'
-          );
+          this.messageService.showErrorMessage('auth.loginFailed');
           this.router.navigate(['/login'], { replaceUrl: true });
         }
       } else {
         // No valid parameters
-        this.messageService.showErrorMessage(
-          'Invalid login response. Please try again.'
-        );
+        this.messageService.showErrorMessage('auth.loginFailed');
         this.router.navigate(['/login'], { replaceUrl: true });
       }
     } catch (error) {
       console.error('OAuth callback error:', error);
-      this.messageService.showErrorMessage(
-        'Google login failed. Please try again.'
-      );
+      this.messageService.showErrorMessage('auth.loginFailed');
       this.router.navigate(['/login'], { replaceUrl: true });
     }
   }

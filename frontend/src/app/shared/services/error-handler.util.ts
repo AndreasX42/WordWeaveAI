@@ -1,72 +1,154 @@
 import { Injectable } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { Configs } from '../config';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ErrorHandlerUtil {
-  /**
-   * Wraps async operations to ensure proper error propagation to global handler
-   */
-  static async handleAsyncOperation<T>(
-    operation: () => Promise<T>,
-    context = 'Operation'
-  ): Promise<T> {
-    try {
-      return await operation();
-    } catch (error) {
-      console.error(`${context} failed:`, error);
+  private static lastLogTime = 0;
 
-      // Ensure the error has proper context for the global handler
-      if (error instanceof Error) {
-        error.message = `${context}: ${error.message}`;
-      }
-
-      throw error;
-    }
+  static logError(error: unknown, message?: string): void {
+    const errorData = this.buildErrorPayload(error, 'ERROR', message);
+    this.sendToMonitoring(errorData);
   }
 
-  /**
-   * Wraps synchronous operations that might throw to ensure proper error handling
-   */
-  static handleSyncOperation<T>(operation: () => T, context = 'Operation'): T {
-    try {
-      return operation();
-    } catch (error) {
-      console.error(`${context} failed:`, error);
-
-      // Ensure the error has proper context for the global handler
-      if (error instanceof Error) {
-        error.message = `${context}: ${error.message}`;
-      }
-
-      throw error;
-    }
+  static logWarning(message: string): void {
+    const errorData = this.buildErrorPayload(message, 'WARNING', message);
+    this.sendToMonitoring(errorData);
   }
 
-  /**
-   * Creates a standardized error for failed operations
-   */
-  static createOperationError(
-    operation: string,
-    originalError?: unknown,
-    details?: unknown
-  ): Error {
-    const message = `${operation} failed${
-      originalError ? ': ' + this.extractErrorMessage(originalError) : ''
-    }`;
-    const error = new Error(message) as Error & {
-      originalError?: unknown;
-      operation?: string;
-      details?: unknown;
+  private static buildErrorPayload(
+    error: unknown,
+    level: 'ERROR' | 'WARNING',
+    message?: string
+  ) {
+    const sanitizedError = this.sanitizeErrorForLogging(error);
+    const errorWithMessage = sanitizedError as {
+      message?: string;
+      stack?: string;
+      status?: number;
+      statusText?: string;
+      url?: string;
     };
 
-    // Attach additional context
-    error.originalError = originalError;
-    error.operation = operation;
-    error.details = details;
+    return {
+      timestamp: new Date().toISOString(),
+      level,
+      message: message || errorWithMessage?.message || 'Unknown error',
+      error: {
+        status: errorWithMessage?.status,
+        statusText: errorWithMessage?.statusText,
+        url: errorWithMessage?.url || window.location.href,
+        userAgent: navigator.userAgent,
+        type: message || this.getErrorType(error),
+        originalError: sanitizedError,
+      },
+      context: {
+        currentUrl: window.location.href,
+        userId: this.getCurrentUserId(),
+        sessionId: this.getSessionId(),
+      },
+    };
+  }
 
-    return error;
+  private static async sendToMonitoring(errorData: unknown): Promise<void> {
+    const now = Date.now();
+    if (now - this.lastLogTime < 1000) {
+      console.warn('Duplicate log suppressed to prevent loop.');
+      return;
+    }
+    this.lastLogTime = now;
+
+    try {
+      await fetch(`${Configs.BASE_URL}${Configs.LOG_URL}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(errorData),
+      });
+      console.log('Log sent to monitoring service');
+    } catch (loggingError) {
+      console.error('Failed to send log to monitoring service:', loggingError);
+      console.log('Original log data:', errorData);
+    }
+  }
+
+  private static getErrorType(error: unknown): string {
+    if (error instanceof TypeError) return 'TYPE_ERROR';
+    if (error instanceof ReferenceError) return 'REFERENCE_ERROR';
+    if (error instanceof Error) return 'GENERIC_ERROR';
+    return 'UNKNOWN';
+  }
+
+  private static sanitizeErrorForLogging(error: unknown): unknown {
+    if (error instanceof Error) {
+      // Trim the stack trace to only include the most relevant entries
+      let stack = error.stack || '';
+      if (stack) {
+        const stackLines = stack.split('\n');
+        // Keep only the first 10 lines (error message + 9 stack entries)
+        const trimmedStack = stackLines.slice(0, 10).join('\n');
+        stack =
+          trimmedStack +
+          (stackLines.length > 10 ? '\n    ... (truncated)' : '');
+      }
+
+      return {
+        message: error.message,
+        stack,
+        name: error.name,
+      };
+    }
+
+    try {
+      return JSON.parse(
+        JSON.stringify(error, (key, value) => {
+          if (
+            key === 'password' ||
+            key === 'token' ||
+            key === 'authorization'
+          ) {
+            return '[REDACTED]';
+          }
+          return value;
+        })
+      );
+    } catch {
+      return {
+        message:
+          (error as { message?: string })?.message ||
+          'Error serialization failed',
+      };
+    }
+  }
+
+  private static getCurrentUserId(): string | null {
+    try {
+      const userStr = localStorage.getItem('auth_user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        return user.id || null;
+      }
+    } catch {
+      // Ignore errors
+    }
+    return null;
+  }
+
+  private static getSessionId(): string | null {
+    try {
+      let sessionId = sessionStorage.getItem('session_id');
+      if (!sessionId) {
+        sessionId =
+          Date.now().toString(36) + Math.random().toString(36).slice(2);
+        sessionStorage.setItem('session_id', sessionId);
+      }
+      return sessionId;
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -112,132 +194,5 @@ export class ErrorHandlerUtil {
     }
 
     return 'Unknown error occurred';
-  }
-
-  /**
-   * Determines if an error should be handled silently (no user notification)
-   */
-  static shouldHandleSilently(error: unknown): boolean {
-    // Handle certain errors silently
-    const silentErrors = [
-      'AbortError', // Cancelled requests
-      'User cancelled', // User cancelled operations
-      'Navigation cancelled', // Router navigation cancelled
-    ];
-
-    const errorMessage = this.extractErrorMessage(error).toLowerCase();
-    return silentErrors.some((silent) =>
-      errorMessage.includes(silent.toLowerCase())
-    );
-  }
-
-  /**
-   * Creates an enhanced error with operation context
-   */
-  static enhanceError(
-    error: unknown,
-    context: {
-      operation?: string;
-      component?: string;
-      userId?: string;
-      attempts?: number;
-      maxRetries?: number;
-      additional?: unknown;
-    }
-  ): Error {
-    const message = this.extractErrorMessage(error);
-    const enhancedError = new Error(message);
-
-    // Add context information
-    Object.assign(enhancedError, {
-      originalError: error,
-      context,
-      timestamp: new Date().toISOString(),
-      stack:
-        (error instanceof Error ? error.stack : undefined) ||
-        enhancedError.stack,
-    });
-
-    return enhancedError;
-  }
-
-  /**
-   * Validates response and throws meaningful error if invalid
-   */
-  static validateResponse<T>(
-    response: T | null | undefined,
-    operation: string,
-    expectedFields?: (keyof T)[]
-  ): T {
-    if (!response) {
-      throw this.createOperationError(
-        operation,
-        null,
-        'Empty response received'
-      );
-    }
-
-    if (expectedFields && typeof response === 'object') {
-      const missingFields = expectedFields.filter(
-        (field) => response[field] === undefined || response[field] === null
-      );
-
-      if (missingFields.length > 0) {
-        throw this.createOperationError(
-          operation,
-          null,
-          `Missing required fields: ${missingFields.join(', ')}`
-        );
-      }
-    }
-
-    return response;
-  }
-
-  /**
-   * Retry mechanism for operations that might fail temporarily
-   */
-  static async retryOperation<T>(
-    operation: () => Promise<T>,
-    options: {
-      maxRetries?: number;
-      delay?: number;
-      context?: string;
-      shouldRetry?: (error: unknown) => boolean;
-    } = {}
-  ): Promise<T> {
-    const {
-      maxRetries = 3,
-      delay = 1000,
-      context = 'Operation',
-      shouldRetry = (error) => !this.shouldHandleSilently(error),
-    } = options;
-
-    let lastError: unknown;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        return await operation();
-      } catch (error) {
-        lastError = error;
-
-        if (attempt === maxRetries || !shouldRetry(error)) {
-          console.error(`${context} failed after ${attempt} attempts:`, error);
-          throw this.enhanceError(error, {
-            operation: context,
-            attempts: attempt,
-            maxRetries,
-          });
-        }
-
-        console.warn(
-          `${context} attempt ${attempt} failed, retrying in ${delay}ms:`,
-          error
-        );
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
-    }
-
-    throw lastError;
   }
 }

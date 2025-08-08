@@ -97,9 +97,9 @@ resource "aws_iam_role_policy" "ecs_task_execution_parameter_store" {
   })
 }
 
-# ECS Task Role for application permissions
-resource "aws_iam_role" "ecs_task_role" {
-  name = "${var.project_name}-ecs-task-role"
+# Frontend ECS Task Role
+resource "aws_iam_role" "ecs_frontend_task_role" {
+  name = "${var.project_name}-ecs-frontend-task-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -115,16 +115,40 @@ resource "aws_iam_role" "ecs_task_role" {
   })
 
   tags = {
-    Name        = "${var.project_name}-ecs-task-role"
+    Name        = "${var.project_name}-ecs-frontend-task-role"
     Environment = var.environment
     Project     = var.project_name
   }
 }
 
-# DynamoDB permissions for backend
-resource "aws_iam_role_policy" "ecs_task_dynamodb" {
-  name = "${var.project_name}-ecs-task-dynamodb-policy"
-  role = aws_iam_role.ecs_task_role.id
+# Backend ECS Task Role
+resource "aws_iam_role" "ecs_backend_task_role" {
+  name = "${var.project_name}-ecs-backend-task-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Name        = "${var.project_name}-ecs-backend-task-role"
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
+# DynamoDB permissions for backend only
+resource "aws_iam_role_policy" "ecs_backend_dynamodb" {
+  name = "${var.project_name}-ecs-backend-dynamodb-policy"
+  role = aws_iam_role.ecs_backend_task_role.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -151,10 +175,10 @@ resource "aws_iam_role_policy" "ecs_task_dynamodb" {
   })
 }
 
-# S3 permissions for backend
-resource "aws_iam_role_policy" "ecs_task_s3" {
-  name = "${var.project_name}-ecs-task-s3-policy"
-  role = aws_iam_role.ecs_task_role.id
+# S3 permissions for backend only
+resource "aws_iam_role_policy" "ecs_backend_s3" {
+  name = "${var.project_name}-ecs-backend-s3-policy"
+  role = aws_iam_role.ecs_backend_task_role.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -179,10 +203,10 @@ resource "aws_iam_role_policy" "ecs_task_s3" {
   })
 }
 
-# SQS permissions for backend
-resource "aws_iam_role_policy" "ecs_task_sqs" {
-  name = "${var.project_name}-ecs-task-sqs-policy"
-  role = aws_iam_role.ecs_task_role.id
+# SQS permissions for backend only
+resource "aws_iam_role_policy" "ecs_backend_sqs" {
+  name = "${var.project_name}-ecs-backend-sqs-policy"
+  role = aws_iam_role.ecs_backend_task_role.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -199,10 +223,10 @@ resource "aws_iam_role_policy" "ecs_task_sqs" {
   })
 }
 
-# SES permissions for backend
-resource "aws_iam_role_policy" "ecs_task_ses" {
-  name = "${var.project_name}-ecs-task-ses-policy"
-  role = aws_iam_role.ecs_task_role.id
+# SES permissions for backend only
+resource "aws_iam_role_policy" "ecs_backend_ses" {
+  name = "${var.project_name}-ecs-backend-ses-policy"
+  role = aws_iam_role.ecs_backend_task_role.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -229,7 +253,7 @@ resource "aws_ecs_task_definition" "frontend" {
   cpu                      = var.frontend_cpu
   memory                   = var.frontend_memory
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
-  task_role_arn            = aws_iam_role.ecs_task_role.arn
+  task_role_arn            = aws_iam_role.ecs_frontend_task_role.arn
 
   runtime_platform {
     operating_system_family = "LINUX"
@@ -273,7 +297,7 @@ resource "aws_ecs_task_definition" "backend" {
   cpu                      = var.backend_cpu
   memory                   = var.backend_memory
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
-  task_role_arn            = aws_iam_role.ecs_task_role.arn
+  task_role_arn            = aws_iam_role.ecs_backend_task_role.arn
 
   runtime_platform {
     operating_system_family = "LINUX"

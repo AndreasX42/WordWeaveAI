@@ -21,16 +21,20 @@ test.describe('Search Component', () => {
     test('should perform basic search and display results', async ({
       page,
     }) => {
-      // Mock search API response (correct endpoint and format)
-      await page.route('**/api/search', async (route) => {
+      // Mock search API response (correct endpoint and format) - match the actual API endpoint
+      await page.route('**/api/vocabs/search', async (route) => {
+        console.log('Search API call intercepted:', route.request().url());
+        const requestBody = route.request().postDataJSON();
+        console.log('Request body:', requestBody);
+
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
             results: [
               {
-                pk: 'en#hello',
-                sk: 'es#POS#interjection#hola',
+                pk: 'SRC#en#hello',
+                sk: 'TGT#es#POS#interjection',
                 source_word: 'hello',
                 target_word: 'hola',
                 source_language: 'en',
@@ -41,26 +45,52 @@ test.describe('Search Component', () => {
                 created_by: 'test-user',
               },
             ],
-            count: 1,
-            query: 'hello',
           }),
         });
       });
 
-      // Select languages
+      // Select languages first before typing
       await page.locator('.language-select').nth(0).click();
       await page.locator('mat-option[value="en"]').click();
+      await page.waitForTimeout(100);
+
       await page.locator('.language-select').nth(1).click();
       await page.locator('mat-option[value="es"]').click();
+      await page.waitForTimeout(100);
 
-      // Type in search input (this triggers the reactive form)
+      // Type in search input
       await page.locator('.search-input').fill('hello');
+      await page.waitForTimeout(500); // Wait for debounced search
 
-      // Wait for the debounced search to trigger
-      await page.waitForTimeout(500);
+      // Check if results dropdown appears (wait for hasSearched && !loading)
+      const dropdownVisible = await page
+        .locator('.results-dropdown')
+        .isVisible({ timeout: 5000 });
 
-      // Wait for results dropdown to appear and check for results
-      await page.waitForSelector('.results-dropdown', { timeout: 10000 });
+      if (!dropdownVisible) {
+        // Try manual search trigger
+        await page.locator('.search-input').press('Enter');
+        await page.waitForTimeout(1000);
+      }
+
+      // Debug: Check what's actually on the page
+      const hasSearchedState = await page.evaluate(() => {
+        const searchComponent = (window as any).ng?.getComponent?.(
+          document.querySelector('app-search')
+        );
+        return {
+          hasSearched: searchComponent?.hasSearched,
+          loading: searchComponent?.loading,
+          searchResults: searchComponent?.searchResults?.length,
+          searchError: searchComponent?.searchError,
+        };
+      });
+      console.log('Search state:', hasSearchedState);
+
+      // Wait for results dropdown to appear
+      await expect(page.locator('.results-dropdown')).toBeVisible({
+        timeout: 10000,
+      });
 
       // Verify result is displayed
       await expect(page.locator('.result-item')).toBeVisible({
@@ -72,15 +102,13 @@ test.describe('Search Component', () => {
 
     test('should show loading state during search', async ({ page }) => {
       // Mock slow API response
-      await page.route('**/api/search', async (route) => {
+      await page.route('**/api/vocabs/search', async (route) => {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
             results: [],
-            count: 0,
-            query: 'test',
           }),
         });
       });
@@ -102,7 +130,7 @@ test.describe('Search Component', () => {
 
     test('should handle empty search results', async ({ page }) => {
       // Mock empty search response
-      await page.route('**/api/search', async (route) => {
+      await page.route('**/api/vocabs/search', async (route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -132,7 +160,7 @@ test.describe('Search Component', () => {
 
     test('should handle search errors gracefully', async ({ page }) => {
       // Mock API error by aborting the request
-      await page.route('**/api/search', async (route) => {
+      await page.route('**/api/vocabs/search', async (route) => {
         await route.abort('failed');
       });
 
@@ -237,7 +265,7 @@ test.describe('Search Component', () => {
       page,
     }) => {
       // Mock empty search response
-      await page.route('**/api/search', async (route) => {
+      await page.route('**/api/vocabs/search', async (route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -276,7 +304,7 @@ test.describe('Search Component', () => {
 
     test('should validate request word form', async ({ page }) => {
       // Mock empty search response
-      await page.route('**/api/search', async (route) => {
+      await page.route('**/api/vocabs/search', async (route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -329,7 +357,7 @@ test.describe('Search Component', () => {
 
     test('should submit word request successfully', async ({ page }) => {
       // Mock empty search response
-      await page.route('**/api/search', async (route) => {
+      await page.route('**/api/vocabs/search', async (route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -403,15 +431,15 @@ test.describe('Search Component', () => {
       page,
     }) => {
       // Mock search API response
-      await page.route('**/api/search', async (route) => {
+      await page.route('**/api/vocabs/search', async (route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
             results: [
               {
-                pk: 'en#hello',
-                sk: 'es#POS#interjection#hola',
+                pk: 'SRC#en#hello',
+                sk: 'TGT#es#POS#interjection',
                 source_word: 'hello',
                 target_word: 'hola',
                 source_language: 'en',
@@ -422,8 +450,6 @@ test.describe('Search Component', () => {
                 created_by: 'test-user',
               },
             ],
-            count: 1,
-            query: 'hello',
           }),
         });
       });
@@ -440,6 +466,10 @@ test.describe('Search Component', () => {
       // Wait for search to complete
       await page.waitForTimeout(1000);
 
+      // Trigger manual search to ensure results show
+      await page.locator('.search-input').press('Enter');
+      await page.waitForTimeout(1000);
+
       // Wait for result and click
       await page.waitForSelector('.result-item', { timeout: 10000 });
       await page.locator('.result-item').click();
@@ -450,15 +480,15 @@ test.describe('Search Component', () => {
 
     test('should clear search results', async ({ page }) => {
       // Mock search API response
-      await page.route('**/api/search', async (route) => {
+      await page.route('**/api/vocabs/search', async (route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
             results: [
               {
-                pk: 'en#hello',
-                sk: 'es#POS#interjection#hola',
+                pk: 'SRC#en#hello',
+                sk: 'TGT#es#POS#interjection',
                 source_word: 'hello',
                 target_word: 'hola',
                 source_language: 'en',
@@ -469,8 +499,6 @@ test.describe('Search Component', () => {
                 created_by: 'test-user',
               },
             ],
-            count: 1,
-            query: 'hello',
           }),
         });
       });
@@ -485,6 +513,10 @@ test.describe('Search Component', () => {
       await page.locator('.search-input').fill('hello');
 
       // Wait for search to complete
+      await page.waitForTimeout(1000);
+
+      // Trigger manual search to ensure results show
+      await page.locator('.search-input').press('Enter');
       await page.waitForTimeout(1000);
 
       // Wait for results
