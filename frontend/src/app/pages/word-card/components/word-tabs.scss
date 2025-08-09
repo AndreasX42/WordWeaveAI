@@ -4,20 +4,27 @@
   ::ng-deep {
     .mat-mdc-tab-header {
       display: flex;
-      justify-content: center;
+      justify-content: flex-start;
       width: 100%;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .mat-mdc-tab-header::-webkit-scrollbar {
+      display: none;
     }
 
     .mat-mdc-tab-list {
-      flex-grow: 0;
+      flex-grow: 1;
+      width: 100%;
     }
 
     .mat-mdc-tab-header-pagination {
-      min-width: 32px;
+      min-width: 24px;
 
       &-before,
       &-after {
-        padding: 0 6px;
+        padding: 0 4px;
       }
 
       &-chevron {
@@ -28,7 +35,23 @@
 }
 
 .tab-content {
-  padding: 1.5rem 0;
+  padding: 1rem 0;
+}
+@media (max-width: 768px) {
+  .content-tabs {
+    margin-top: 1rem;
+
+    ::ng-deep {
+      .mdc-tab {
+        min-width: auto;
+        padding: 0 12px;
+      }
+    }
+  }
+
+  .tab-content {
+    padding: 0.75rem 0;
+  }
 }
 
 .definitions {
@@ -229,7 +252,7 @@
 }
 
 .conjugation-table-grouped thead {
-  background-color: var(--primary-color);
+  background-color: var(--primary-light);
   color: white;
 }
 
@@ -543,7 +566,7 @@
   }
 
   .conjugation-table-grouped thead {
-    background-color: var(--primary-light, #64b5f6);
+    background-color: var(--primary-dark);
   }
 
   .conjugation-table-grouped th {

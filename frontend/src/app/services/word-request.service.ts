@@ -6,6 +6,7 @@ import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { Configs } from '../shared/config';
 import { NotificationService } from './notification.service';
+import { MessageService } from './message.service';
 
 export interface WordRequest {
   source_word: string;
@@ -58,6 +59,7 @@ export class WordRequestService implements OnDestroy {
   private http = inject(HttpClient);
   private router = inject(Router);
   private notificationService = inject(NotificationService);
+  private messageService = inject(MessageService);
   private apiUrl = `${Configs.BASE_URL}${Configs.WORD_REQUESTS_URL}`;
 
   // WebSocket connection
@@ -93,6 +95,11 @@ export class WordRequestService implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.closeWebSocket();
+  }
+
+  public disconnectFromRequest(): void {
+    this.currentRequestData = null;
     this.closeWebSocket();
   }
 
@@ -138,6 +145,9 @@ export class WordRequestService implements OnDestroy {
       }),
       catchError((error) => {
         console.error('Error submitting word request:', error);
+        if (error?.status === 429) {
+          this.messageService.showErrorMessage('wordCard.freeTierLimitReached');
+        }
         return throwError(() => error);
       })
     );
@@ -159,7 +169,7 @@ export class WordRequestService implements OnDestroy {
   }
 
   /**
-   * Connect to WebSocket with specific parameters (optimized)
+   * Connect to WebSocket with specific parameters
    */
   private connectWebSocket(
     userId: string,
@@ -239,7 +249,8 @@ export class WordRequestService implements OnDestroy {
           notification,
           sourceWord,
           'pending',
-          isOnWordCardPage
+          isOnWordCardPage,
+          data
         );
         break;
 
@@ -250,7 +261,8 @@ export class WordRequestService implements OnDestroy {
           notification,
           sourceWord,
           'processing',
-          isOnWordCardPage
+          isOnWordCardPage,
+          data
         );
         break;
 
@@ -262,7 +274,8 @@ export class WordRequestService implements OnDestroy {
           notification,
           sourceWord,
           'processing',
-          isOnWordCardPage
+          isOnWordCardPage,
+          data
         );
         break;
 
@@ -274,7 +287,8 @@ export class WordRequestService implements OnDestroy {
           notification,
           sourceWord,
           'processing',
-          isOnWordCardPage
+          isOnWordCardPage,
+          data
         );
         break;
 
@@ -299,7 +313,8 @@ export class WordRequestService implements OnDestroy {
           notification,
           sourceWord,
           'failed',
-          isOnWordCardPage
+          isOnWordCardPage,
+          data
         );
         break;
 
@@ -318,7 +333,8 @@ export class WordRequestService implements OnDestroy {
           notification,
           sourceWord,
           'failed',
-          isOnWordCardPage
+          isOnWordCardPage,
+          data
         );
         break;
 
@@ -375,11 +391,17 @@ export class WordRequestService implements OnDestroy {
       // Normalize the source word for consistent notification IDs (case-insensitive)
       const normalizedSourceWord =
         this.currentRequestData.sourceWord.toLowerCase();
-      const normalizedTargetLang =
-        this.currentRequestData.targetLanguage.toLowerCase();
-      const notificationId = `word-request-${normalizedSourceWord}-${this.getLanguageCode(
-        this.currentRequestData.sourceLanguage || 'en'
-      )}-${this.getLanguageCode(normalizedTargetLang)}`;
+      const detectedSourceLang =
+        (wordData && (wordData['source_language'] as string)) || undefined;
+      const srcLangCode = this.getLanguageCode(
+        detectedSourceLang || this.currentRequestData.sourceLanguage || 'en'
+      );
+      const tgtLangCode = this.getLanguageCode(
+        this.currentRequestData.targetLanguage || 'es'
+      );
+      const notificationId = this.currentRequestData.requestId
+        ? `word-request-${this.currentRequestData.requestId}`
+        : `word-request-${normalizedSourceWord}-${srcLangCode}-${tgtLangCode}`;
 
       console.log('🔍 Notification routing:', {
         notificationId,
@@ -399,12 +421,8 @@ export class WordRequestService implements OnDestroy {
       let mediaRef = '';
 
       // Extract language codes for short messages
-      const srcLang = this.getLanguageCode(
-        this.currentRequestData.sourceLanguage || 'en'
-      );
-      const tgtLang = this.getLanguageCode(
-        this.currentRequestData.targetLanguage
-      );
+      const srcLang = srcLangCode;
+      const tgtLang = tgtLangCode;
 
       switch (status) {
         case 'pending':
@@ -443,8 +461,8 @@ export class WordRequestService implements OnDestroy {
           break;
       }
 
-      // Force override for redirect notifications to ensure they're not overridden by processing
-      const forceOverride = status === 'redirect';
+      // Force override for redirect notifications and drop any existing processing one
+      const forceOverride = status === 'redirect' || status === 'completed';
 
       this.notificationService.addOrUpdateNotification(
         {
@@ -463,6 +481,24 @@ export class WordRequestService implements OnDestroy {
         },
         forceOverride
       );
+
+      // If the new status is redirect/completed, remove any older processing notification variants
+      if (status === 'redirect' || status === 'completed') {
+        const targetLang = this.currentRequestData.targetLanguage;
+        const items = this.notificationService.notifications();
+        const variants = items
+          .filter(
+            (n) =>
+              n.id !== notificationId &&
+              n.sourceWord === sourceWord &&
+              n.targetLanguage === targetLang &&
+              n.status === 'processing'
+          )
+          .map((n) => n.id);
+        variants.forEach((id) =>
+          this.notificationService.removeNotification(id)
+        );
+      }
     }
   }
 
@@ -481,71 +517,50 @@ export class WordRequestService implements OnDestroy {
   private normalizeWord(word: string): string {
     if (!word) return '';
 
-    // Convert to lowercase first
-    let normalized = word.toLowerCase();
-
-    // Normalize German umlauts and special characters
-    const umlautMap: Record<string, string> = {
-      ä: 'a',
-      ö: 'o',
-      ü: 'u',
-      ß: 'ss',
-      // Also handle other common accented characters
-      á: 'a',
-      à: 'a',
-      â: 'a',
-      ã: 'a',
-      é: 'e',
-      è: 'e',
-      ê: 'e',
-      ë: 'e',
-      í: 'i',
-      ì: 'i',
-      î: 'i',
-      ï: 'i',
-      ó: 'o',
-      ò: 'o',
-      ô: 'o',
-      õ: 'o',
-      ú: 'u',
-      ù: 'u',
-      û: 'u',
-      ç: 'c',
-      ñ: 'n',
-    };
-
-    // Replace each special character with its base equivalent
-    for (const [accented, base] of Object.entries(umlautMap)) {
-      normalized = normalized.replace(new RegExp(accented, 'g'), base);
+    // Step 1: lowercase and NFKC normalization
+    let s = word.toLowerCase();
+    try {
+      s = s.normalize('NFKC');
+    } catch {
+      // Normalization may not be supported; keep current value
     }
 
-    // Remove any remaining non-alphanumeric characters except spaces and hyphens
-    normalized = normalized.replace(/[^a-z0-9\s-]/g, '');
+    // Step 2: NFD then remove combining marks (Mn)
+    try {
+      s = s.normalize('NFD');
+    } catch {
+      // Normalization may not be supported; keep current value
+    }
+    s = s.replace(/[\u0300-\u036f]/g, '');
 
-    // Replace spaces with hyphens for URL compatibility
-    normalized = normalized.replace(/\s+/g, '-');
+    // Step 3: keep only ascii letters and digits (backend removes non-alphanumeric)
+    s = s.replace(/[^a-z0-9]/g, '');
 
-    // Remove multiple consecutive hyphens
-    normalized = normalized.replace(/-+/g, '-');
-
-    // Trim hyphens from start and end
-    normalized = normalized.replace(/^-+|-+$/g, '');
-
-    return normalized;
+    return s;
   }
 
   /**
    * Get language code from full language name or return as-is if already code
    */
   private getLanguageCode(language: string): string {
+    if (!language) return '';
     const langMap: Record<string, string> = {
       English: 'en',
+      english: 'en',
+      en: 'en',
       Spanish: 'es',
+      spanish: 'es',
+      Español: 'es',
+      español: 'es',
+      es: 'es',
       German: 'de',
+      german: 'de',
+      Deutsch: 'de',
+      deutsch: 'de',
+      de: 'de',
       auto: 'auto',
     };
-
-    return langMap[language] || language.toLowerCase().slice(0, 2);
+    return langMap[language] || langMap[language.toLowerCase()] || language;
   }
 
   /**
@@ -792,7 +807,7 @@ export class WordRequestService implements OnDestroy {
       requestId,
     };
 
-    // Connect to WebSocket - the backend should recognize existing request
+    // Connect to WebSocket
     this.connectWebSocket('user', sourceWord, targetLanguage);
   }
 

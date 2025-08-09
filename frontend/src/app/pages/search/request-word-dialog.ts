@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   MatDialogRef,
@@ -46,9 +46,10 @@ export interface RequestWordDialogResult {
   ],
   templateUrl: './request-word-dialog.html',
   styleUrls: ['./request-word-dialog.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RequestWordDialogComponent {
-  private translationService = inject(TranslationService);
+  translationService = inject(TranslationService);
   public dialogRef = inject(MatDialogRef<RequestWordDialogComponent>);
   public data = inject(MAT_DIALOG_DATA) as RequestWordDialogData;
 
@@ -107,17 +108,11 @@ export class RequestWordDialogComponent {
   }
 
   getLanguageName(code: string): string {
-    const language = this.translationService.languages.find(
-      (lang) => lang.code === code
-    );
-    return language?.name || code;
+    return this.translationService.getLanguageName(code);
   }
 
   getLanguageFlag(code: string): string {
-    const language = this.translationService.languages.find(
-      (lang) => lang.code === code
-    );
-    return language?.flag || '🏳️';
+    return this.translationService.getLanguageFlag(code);
   }
 
   onCancel(): void {

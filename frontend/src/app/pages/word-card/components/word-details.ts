@@ -1,7 +1,8 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { VocabularyWord } from '@/models/word.model';
+import { TranslationService } from '@/services/translation.service';
 
 export interface LoadingStates {
   targetWord: boolean;
@@ -28,21 +29,9 @@ export class WordDetailsComponent {
   @Input() word!: VocabularyWord;
   @Input() loadingStates!: LoadingStates;
   @Input() isRequestMode!: boolean;
+  translationService = inject(TranslationService);
 
   getLanguageFlag(langCode: string | undefined): string {
-    if (!langCode) return '';
-
-    const lang = langCode.toLowerCase();
-
-    const flagMap: Record<string, string> = {
-      en: '🇬🇧',
-      english: '🇬🇧',
-      es: '🇪🇸',
-      spanish: '🇪🇸',
-      de: '🇩🇪',
-      german: '🇩🇪',
-    };
-
-    return flagMap[lang] || langCode.toUpperCase();
+    return this.translationService.getLanguageFlag(langCode);
   }
 }

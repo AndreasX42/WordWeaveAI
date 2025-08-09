@@ -205,7 +205,7 @@ test.describe('Search Component', () => {
         'English'
       );
       await expect(page.locator('.language-select').nth(1)).toContainText(
-        'Spanish'
+        'Español'
       );
     });
 
@@ -232,7 +232,7 @@ test.describe('Search Component', () => {
 
       // Verify languages are swapped
       await expect(page.locator('.language-select').nth(0)).toContainText(
-        'Spanish'
+        'Español'
       );
       await expect(page.locator('.language-select').nth(1)).toContainText(
         'English'
@@ -255,7 +255,7 @@ test.describe('Search Component', () => {
         'English'
       );
       await expect(page.locator('.language-select').nth(1)).toContainText(
-        'Spanish'
+        'Español'
       );
     });
   });
@@ -401,7 +401,7 @@ test.describe('Search Component', () => {
         .textContent();
 
       // If target language is not already Spanish, select it
-      if (!targetLanguageValue?.includes('Spanish')) {
+      if (!targetLanguageValue?.includes('Español')) {
         // Click on the target language select and choose Spanish
         await page.locator('mat-select').nth(1).click({ force: true });
         await page.waitForSelector('mat-option[value="es"]', { timeout: 5000 });
@@ -411,10 +411,12 @@ test.describe('Search Component', () => {
       // Wait for form to be valid
       await page.waitForTimeout(500);
 
-      // Submit request
-      await page
-        .locator('button[mat-raised-button]:has-text("Submit Request")')
-        .click();
+      // Submit request (wait for button enabled and click)
+      const submitButton = page.locator(
+        'mat-dialog-container button[mat-raised-button]:has-text("Submit Request")'
+      );
+      await expect(submitButton).toBeEnabled({ timeout: 5000 });
+      await submitButton.click();
 
       // Verify navigation to login page (authentication required for word requests)
       await expect(page).toHaveURL(/\/login/);

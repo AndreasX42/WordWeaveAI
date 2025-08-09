@@ -308,6 +308,7 @@
     "wordAlreadyExists": "Word already exists! Redirecting to existing entry.",
     "clickToPlay": "Click to play pronunciation",
     "createdBy": "Created by",
+    "freeTierLimitReached": "You have reached the free tier limit of word requests",
     "pos": {
       "noun": "noun",
       "verb": "verb",

@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatIconModule } from '@angular/material/icon';
@@ -26,6 +26,7 @@ import { LoadingStates } from './word-details';
     MatProgressSpinnerModule,
     TranslatePipe,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class WordTabsComponent {
   @Input() word!: VocabularyWord;
@@ -129,23 +130,32 @@ export class WordTabsComponent {
     return tenseData?.[pronoun] || '';
   }
 
-  getConjugationTable(): ConjugationTable | null {
-    if (!this.word?.conjugation_table) return null;
+  private cachedConjSource: unknown | null = null;
+  private cachedConjTable: ConjugationTable | null = null;
 
-    if (typeof this.word.conjugation_table === 'object') {
-      return this.word.conjugation_table as ConjugationTable;
+  getConjugationTable(): ConjugationTable | null {
+    const source = this.word?.conjugation_table;
+    if (!source) return null;
+
+    if (this.cachedConjSource === source && this.cachedConjTable) {
+      return this.cachedConjTable;
     }
 
-    if (typeof this.word.conjugation_table === 'string') {
+    let parsed: ConjugationTable | null = null;
+    if (typeof source === 'object') {
+      parsed = source as ConjugationTable;
+    } else if (typeof source === 'string') {
       try {
-        return JSON.parse(this.word.conjugation_table) as ConjugationTable;
+        parsed = JSON.parse(source) as ConjugationTable;
       } catch (error) {
         console.error('Error parsing conjugation table JSON:', error);
-        return null;
+        parsed = null;
       }
     }
 
-    return null;
+    this.cachedConjSource = source;
+    this.cachedConjTable = parsed;
+    return parsed;
   }
 
   getIndicativeMoodName(): string {

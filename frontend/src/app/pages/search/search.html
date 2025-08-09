@@ -21,21 +21,14 @@
               <mat-option value="">{{
                 "search.selectLanguage" | translate
               }}</mat-option>
+              @for (l of translationService.languages; track l.code) {
               <mat-option
-                value="en"
-                [disabled]="targetLanguageControl.value === 'en'"
-                >English</mat-option
+                [value]="l.code"
+                [attr.value]="l.code"
+                [disabled]="targetLanguageControl.value === l.code"
+                >{{ l.name }}</mat-option
               >
-              <mat-option
-                value="es"
-                [disabled]="targetLanguageControl.value === 'es'"
-                >Spanish</mat-option
-              >
-              <mat-option
-                value="de"
-                [disabled]="targetLanguageControl.value === 'de'"
-                >German</mat-option
-              >
+              }
             </mat-select>
           </mat-form-field>
 
@@ -56,21 +49,14 @@
               <mat-option value="">{{
                 "search.selectLanguage" | translate
               }}</mat-option>
+              @for (l of translationService.languages; track l.code) {
               <mat-option
-                value="en"
-                [disabled]="sourceLanguageControl.value === 'en'"
-                >English</mat-option
+                [value]="l.code"
+                [attr.value]="l.code"
+                [disabled]="sourceLanguageControl.value === l.code"
+                >{{ l.name }}</mat-option
               >
-              <mat-option
-                value="es"
-                [disabled]="sourceLanguageControl.value === 'es'"
-                >Spanish</mat-option
-              >
-              <mat-option
-                value="de"
-                [disabled]="sourceLanguageControl.value === 'de'"
-                >German</mat-option
-              >
+              }
             </mat-select>
           </mat-form-field>
         </div>
@@ -155,11 +141,9 @@
                 >
                   <div class="result-row">
                     <div class="source-info">
-                      <span class="flag">{{
-                        getLanguageFlag(word.source_language)
-                      }}</span>
+                      <span class="flag">{{ word.sourceFlag }}</span>
                       <ng-container *ngIf="word.source_pos">
-                        <span class="pos">{{ getDisplayPos(word) }}</span>
+                        <span class="pos">{{ word.displayPos }}</span>
                         <span
                           class="word"
                           [innerHTML]="
@@ -170,9 +154,7 @@
                     </div>
                     <mat-icon class="arrow">arrow_forward</mat-icon>
                     <div class="target-info">
-                      <span class="flag">{{
-                        getLanguageFlag(word.target_language)
-                      }}</span>
+                      <span class="flag">{{ word.targetFlag }}</span>
                       <span
                         class="word target"
                         [innerHTML]="

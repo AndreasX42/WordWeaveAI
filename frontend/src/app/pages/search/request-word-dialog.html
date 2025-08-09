@@ -25,15 +25,14 @@
         <mat-option value="">{{
           "search.requestWord.dialog.autoDetect" | translate
         }}</mat-option>
-        <mat-option value="en" [disabled]="targetLanguageControl.value === 'en'"
-          >English</mat-option
+        @for (l of translationService.languages; track l.code) {
+        <mat-option
+          [value]="l.code"
+          [attr.value]="l.code"
+          [disabled]="targetLanguageControl.value === l.code"
+          >{{ l.name }}</mat-option
         >
-        <mat-option value="es" [disabled]="targetLanguageControl.value === 'es'"
-          >Spanish</mat-option
-        >
-        <mat-option value="de" [disabled]="targetLanguageControl.value === 'de'"
-          >German</mat-option
-        >
+        }
       </mat-select>
     </mat-form-field>
 
@@ -42,15 +41,14 @@
         "search.requestWord.dialog.targetLanguage" | translate
       }}</mat-label>
       <mat-select [formControl]="targetLanguageControl">
-        <mat-option value="en" [disabled]="sourceLanguageControl.value === 'en'"
-          >English</mat-option
+        @for (l of translationService.languages; track l.code) {
+        <mat-option
+          [value]="l.code"
+          [attr.value]="l.code"
+          [disabled]="sourceLanguageControl.value === l.code"
+          >{{ l.name }}</mat-option
         >
-        <mat-option value="es" [disabled]="sourceLanguageControl.value === 'es'"
-          >Spanish</mat-option
-        >
-        <mat-option value="de" [disabled]="sourceLanguageControl.value === 'de'"
-          >German</mat-option
-        >
+        }
       </mat-select>
     </mat-form-field>
   </div>

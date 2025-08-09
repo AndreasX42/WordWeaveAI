@@ -184,33 +184,40 @@ export class NotificationService {
   handleNotificationClick(notification: NotificationItem): void {
     this.markAsSeen(notification.id);
 
-    if (notification.link) {
-      // For processing/pending notifications, navigate with request data to enable WebSocket reconnection
-      if (
-        notification.status === 'processing' ||
-        notification.status === 'pending'
-      ) {
-        const navigationExtras = {
-          state: {
-            isRequest: true,
-            requestData: {
-              sourceWord: notification.sourceWord,
+    // For processing/pending, ensure we navigate into request mode even if link is missing
+    if (
+      notification.status === 'processing' ||
+      notification.status === 'pending'
+    ) {
+      const navigationExtras = {
+        state: {
+          isRequest: true,
+          requestData: {
+            sourceWord: notification.sourceWord,
+            // If link exists, extract code from it; otherwise keep undefined/known default
+            ...(notification.link && {
               sourceLanguage: this.extractSourceLanguageFromLink(
                 notification.link
               ),
-              targetLanguage: notification.targetLanguage,
-              requestId: notification.requestId || 'reconnect',
-            },
-            // Also include PK/SK if available for fallback
-            ...(notification.pk && { pk: notification.pk }),
-            ...(notification.sk && { sk: notification.sk }),
-            ...(notification.mediaRef && { media_ref: notification.mediaRef }),
+            }),
+            targetLanguage: notification.targetLanguage,
+            requestId: notification.requestId || 'reconnect',
           },
-        };
+          ...(notification.pk && { pk: notification.pk }),
+          ...(notification.sk && { sk: notification.sk }),
+          ...(notification.mediaRef && { media_ref: notification.mediaRef }),
+        },
+      };
+      if (notification.link) {
         this.router.navigate([notification.link], navigationExtras);
+      } else {
+        this.router.navigate(['/words/request'], navigationExtras);
       }
-      // For completed notifications, use optimized loading
-      else if (notification.pk && notification.sk) {
+      return;
+    }
+
+    if (notification.link) {
+      if (notification.pk && notification.sk) {
         const navigationExtras = {
           state: {
             pk: notification.pk,
@@ -220,7 +227,6 @@ export class NotificationService {
         };
         this.router.navigate([notification.link], navigationExtras);
       } else {
-        // Fallback to simple navigation
         this.router.navigateByUrl(notification.link);
       }
     }
@@ -233,16 +239,9 @@ export class NotificationService {
     // Link format: /words/{sourceLanguage}/{targetLanguage}/{pos}/{word}
     const parts = link.split('/');
     if (parts.length >= 3) {
-      const sourceLang = parts[2];
-      // Convert language codes back to full names
-      const langMap: Record<string, string> = {
-        en: 'English',
-        es: 'Spanish',
-        de: 'German',
-      };
-      return langMap[sourceLang] || sourceLang;
+      return parts[2];
     }
-    return 'English'; // fallback
+    return 'en'; // fallback to English code
   }
 
   /**

@@ -7,6 +7,8 @@ import {
   ElementRef,
   Renderer2,
   effect,
+  ChangeDetectionStrategy,
+  DestroyRef,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -40,6 +42,7 @@ import { ValidationErrorInfo } from '@/models/error.model';
 import { getLanguageConfig, LanguageConfig } from './conjugation.config';
 import { Configs } from '../../shared/config';
 import { Subscription } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Location } from '@angular/common';
 import { LoadingStateComponent } from './components/loading-state';
 import { ErrorStateComponent } from './components/error-state';
@@ -124,6 +127,7 @@ interface WordNotificationData {
   ],
   templateUrl: './word-card.html',
   styleUrls: ['./word-card.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class WordCard implements OnInit, OnDestroy {
   themeService = inject(ThemeService);
@@ -138,6 +142,7 @@ export class WordCard implements OnInit, OnDestroy {
   private location = inject(Location);
   private elementRef = inject(ElementRef);
   private renderer = inject(Renderer2);
+  private destroyRef = inject(DestroyRef);
 
   word: VocabularyWord | null = null;
   loading = true;
@@ -291,23 +296,36 @@ export class WordCard implements OnInit, OnDestroy {
     return !!conjugationTable?.[this.langConfig.nonPersonalForms.key];
   }
 
-  getConjugationTable(): ConjugationTable | null {
-    if (!this.word?.conjugation_table) return null;
+  // Memoized parsing of conjugation table to avoid repeated JSON.parse
+  private cachedConjugationSource: unknown | null = null;
+  private cachedConjugationTable: ConjugationTable | null = null;
 
-    if (typeof this.word.conjugation_table === 'object') {
-      return this.word.conjugation_table as ConjugationTable;
+  getConjugationTable(): ConjugationTable | null {
+    const source = this.word?.conjugation_table;
+    if (!source) return null;
+
+    if (
+      this.cachedConjugationSource === source &&
+      this.cachedConjugationTable
+    ) {
+      return this.cachedConjugationTable;
     }
 
-    if (typeof this.word.conjugation_table === 'string') {
+    let parsed: ConjugationTable | null = null;
+    if (typeof source === 'object') {
+      parsed = source as ConjugationTable;
+    } else if (typeof source === 'string') {
       try {
-        return JSON.parse(this.word.conjugation_table) as ConjugationTable;
+        parsed = JSON.parse(source) as ConjugationTable;
       } catch (error) {
         console.error('Error parsing conjugation table JSON:', error);
-        return null;
+        parsed = null;
       }
     }
 
-    return null;
+    this.cachedConjugationSource = source;
+    this.cachedConjugationTable = parsed;
+    return parsed;
   }
 
   ngOnInit() {
@@ -362,6 +380,20 @@ export class WordCard implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
+    if (this.audio) {
+      try {
+        this.audio.pause();
+      } catch {
+        // Ignore pause errors during teardown
+      }
+      this.audio = null;
+    }
+    // Ensure we disconnect any in-flight request WebSocket when leaving the page
+    try {
+      this.wordRequestService.disconnectFromRequest();
+    } catch {
+      // Best effort cleanup; ignore disconnect failures
+    }
   }
 
   constructor() {
@@ -422,11 +454,11 @@ export class WordCard implements OnInit, OnDestroy {
 
     this.createSkeletonWord(requestData);
 
-    this.subscriptions.add(
-      this.wordRequestService.notifications$.subscribe((notification) => {
+    this.wordRequestService.notifications$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((notification) => {
         this.handleWordRequestNotification(notification);
-      })
-    );
+      });
 
     if (requestData.requestId && requestData.requestId !== 'new') {
       this.wordRequestService.reconnectToRequest(
@@ -464,13 +496,20 @@ export class WordCard implements OnInit, OnDestroy {
     const targetLanguage = this.getLanguageCode(
       this.word.target_language || 'es'
     );
-    const sourceWord = encodeURIComponent(this.word.source_word);
+    // Use raw word and let router encode the URL; avoid double-encoding
+    let sourceWord = this.word.source_word || '';
+    try {
+      sourceWord = decodeURIComponent(sourceWord);
+    } catch {
+      // If decoding fails, keep original value
+    }
     const rawPos = this.word.source_pos || 'pending';
     const normalizedPos = this.normalizePOS(rawPos);
 
-    const wordUrl = `/words/${sourceLanguage}/${targetLanguage}/${normalizedPos}/${sourceWord}`;
-
-    this.router.navigate([wordUrl], { replaceUrl: true });
+    this.router.navigate(
+      ['/words', sourceLanguage, targetLanguage, normalizedPos, sourceWord],
+      { replaceUrl: true }
+    );
   }
 
   private navigateToErrorUrl(errorData: {
@@ -634,8 +673,6 @@ export class WordCard implements OnInit, OnDestroy {
       return;
     }
 
-    this.updateHeaderNotificationToRedirect(pk, sk, mediaRef);
-
     this.messageService.showInfoMessage('wordCard.wordAlreadyExists');
 
     this.isRequestMode = false;
@@ -684,15 +721,7 @@ export class WordCard implements OnInit, OnDestroy {
   }
 
   private getLanguageCode(language: string): string {
-    const langMap: Record<string, string> = {
-      English: 'en',
-      Spanish: 'es',
-      German: 'de',
-      en: 'en',
-      es: 'es',
-      de: 'de',
-    };
-    return langMap[language] || language.toLowerCase().slice(0, 2);
+    return this.translationService.getLanguageCode(language);
   }
 
   private generateWordLink(pk: string, sk: string, sourceWord: string): string {
@@ -709,8 +738,14 @@ export class WordCard implements OnInit, OnDestroy {
         pos = skParts[posIndex + 1];
       }
 
-      const encodedWord = encodeURIComponent(sourceWord);
-      return `/words/${sourceLang}/${targetLang}/${pos}/${encodedWord}`;
+      // Avoid manual encoding; router will handle when navigating
+      let rawWord = sourceWord;
+      try {
+        rawWord = decodeURIComponent(sourceWord);
+      } catch {
+        // Keep original word if decoding fails
+      }
+      return `/words/${sourceLang}/${targetLang}/${pos}/${rawWord}`;
     }
 
     return '';
@@ -857,7 +892,7 @@ export class WordCard implements OnInit, OnDestroy {
     }
 
     this.langConfig = getLanguageConfig(this.word);
-    this.cdr.detectChanges();
+    this.cdr.markForCheck();
   }
 
   private updateStageFromWebSocketData(data: WordNotificationData): void {
@@ -938,6 +973,7 @@ export class WordCard implements OnInit, OnDestroy {
         stage.status = 'active';
       }
     });
+    this.cdr.markForCheck();
   }
 
   private initializeProcessingStages(): void {
@@ -948,12 +984,14 @@ export class WordCard implements OnInit, OnDestroy {
     if (firstStage) {
       firstStage.status = 'active';
     }
+    this.cdr.markForCheck();
   }
 
   private setAllStagesCompleted(): void {
     this.processingStages.forEach((stage) => {
       stage.status = 'completed';
     });
+    this.cdr.markForCheck();
   }
 
   private handleUrlParameters(): void {
@@ -963,7 +1001,14 @@ export class WordCard implements OnInit, OnDestroy {
     const pos = this.route.snapshot.paramMap.get('pos');
 
     if (sourceLanguage && targetLanguage && word) {
-      const decodedWord = decodeURIComponent(word).toLowerCase().trim();
+      // Decode and normalize the word to match backend PK rules
+      let decodedWord = '';
+      try {
+        decodedWord = decodeURIComponent(word);
+      } catch {
+        decodedWord = word;
+      }
+      decodedWord = this.normalizeWord(decodedWord);
 
       const pk = `SRC#${sourceLanguage}#${decodedWord}`;
       let sk = `TGT#${targetLanguage}`;
@@ -980,29 +1025,49 @@ export class WordCard implements OnInit, OnDestroy {
     }
   }
 
+  // Match backend normalization: lowercase, NFKC, NFD, strip combining marks, keep [a-z0-9]
+  private normalizeWord(input: string): string {
+    if (!input) return '';
+    let s = input.toLowerCase();
+    try {
+      s = s.normalize('NFKC');
+      s = s.normalize('NFD');
+    } catch {
+      // Normalization not supported or failed; continue with current string
+    }
+    s = s.replace(/[\u0300-\u036f]/g, '');
+    s = s.replace(/[^a-z0-9]/g, '');
+    return s;
+  }
+
   loadWordByPkSk(pk: string, sk: string, isRedirect = false) {
     this.loading = true;
     this.error = null;
-    this.wordService.getWordByPkSk(pk, sk).subscribe({
-      next: (data) => {
-        if (data) {
-          this.word = data;
-          this.langConfig = getLanguageConfig(this.word);
-          this.setAllLoadingStates(false);
+    this.wordService
+      .getWordByPkSk(pk, sk)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (data) => {
+          if (data) {
+            this.word = data;
+            this.langConfig = getLanguageConfig(this.word);
+            this.setAllLoadingStates(false);
 
-          if (isRedirect) {
-            this.navigateToWordUrl();
+            if (isRedirect) {
+              this.navigateToWordUrl();
+            }
+          } else {
+            this.error = this.translationService.translate('wordCard.notFound');
           }
-        } else {
-          this.error = this.translationService.translate('wordCard.notFound');
-        }
-        this.loading = false;
-      },
-      error: () => {
-        this.error = this.translationService.translate('wordCard.error');
-        this.loading = false;
-      },
-    });
+          this.loading = false;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.error = this.translationService.translate('wordCard.error');
+          this.loading = false;
+          this.cdr.markForCheck();
+        },
+      });
   }
 
   loadWordByPkSkWithMedia(
@@ -1014,26 +1079,31 @@ export class WordCard implements OnInit, OnDestroy {
     this.loading = true;
     this.error = null;
 
-    this.wordService.getWordByPkSkWithMedia(pk, sk, mediaRef).subscribe({
-      next: (data) => {
-        if (data) {
-          this.word = data;
-          this.langConfig = getLanguageConfig(this.word);
-          this.setAllLoadingStates(false);
+    this.wordService
+      .getWordByPkSkWithMedia(pk, sk, mediaRef)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (data) => {
+          if (data) {
+            this.word = data;
+            this.langConfig = getLanguageConfig(this.word);
+            this.setAllLoadingStates(false);
 
-          if (isRedirect) {
-            this.navigateToWordUrl();
+            if (isRedirect) {
+              this.navigateToWordUrl();
+            }
+          } else {
+            this.error = this.translationService.translate('wordCard.notFound');
           }
-        } else {
-          this.error = this.translationService.translate('wordCard.notFound');
-        }
-        this.loading = false;
-      },
-      error: () => {
-        this.error = this.translationService.translate('wordCard.loadError');
-        this.loading = false;
-      },
-    });
+          this.loading = false;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.error = this.translationService.translate('wordCard.loadError');
+          this.loading = false;
+          this.cdr.markForCheck();
+        },
+      });
   }
 
   private setAllLoadingStates(state: boolean): void {
@@ -1134,20 +1204,7 @@ export class WordCard implements OnInit, OnDestroy {
   }
 
   getLanguageFlag(langCode: string | undefined): string {
-    if (!langCode) return '';
-
-    const lang = langCode.toLowerCase();
-
-    const flagMap: Record<string, string> = {
-      en: '🇬🇧',
-      english: '🇬🇧',
-      es: '🇪🇸',
-      spanish: '🇪🇸',
-      de: '🇩🇪',
-      german: '🇩🇪',
-    };
-
-    return flagMap[lang] || langCode.toUpperCase();
+    return this.translationService.getLanguageFlag(langCode);
   }
 
   getS3Url(key: string | undefined): string {

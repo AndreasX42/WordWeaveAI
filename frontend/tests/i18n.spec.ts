@@ -24,7 +24,12 @@ const languages = [
 async function switchLanguage(page, languageName) {
   await page.click('.user-button');
   await page.click('button:has-text("Language")');
-  await page.click(`button:has-text("${languageName}")`);
+  // Wait for nested language menu to render in overlay
+  const overlay = page.locator('.cdk-overlay-container');
+  await overlay.waitFor({ state: 'visible' });
+  await overlay
+    .locator(`button.mat-mdc-menu-item:has-text("${languageName}")`)
+    .click();
   await page.waitForTimeout(300);
 }
 

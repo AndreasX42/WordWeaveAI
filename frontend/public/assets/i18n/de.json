@@ -307,6 +307,7 @@
     "wordAlreadyExists": "Wort existiert bereits! Weiterleitung zum vorhandenen Eintrag.",
     "clickToPlay": "Klicken zum Abspielen",
     "createdBy": "Erstellt von",
+    "freeTierLimitReached": "Du hast das Maximum an kostenlosen Anfragen erreicht",
     "pos": {
       "noun": "Substantiv",
       "verb": "Verb",

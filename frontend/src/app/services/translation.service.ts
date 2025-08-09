@@ -136,6 +136,65 @@ export class TranslationService {
     return translation;
   }
 
+  // Centralized helpers for language metadata
+  getLanguageFlag(code: string | undefined): string {
+    if (!code) return '';
+    const normalized = this.getLanguageCode(code);
+    const found = this.languages.find((l) => l.code === normalized);
+    return found ? found.flag : '🏳️';
+  }
+
+  getLanguageName(code: string | undefined): string {
+    if (!code) return '';
+    const normalized = this.getLanguageCode(code);
+    const found = this.languages.find((l) => l.code === normalized);
+    return found ? found.name : normalized;
+  }
+
+  // Normalize input (code or localized name) to a language code
+  getLanguageCode(input: string): string {
+    if (!input) return '';
+    const val = input.trim().toLowerCase();
+
+    // Handle auto-detect aliases up-front
+    if (val === 'auto' || val === 'auto-detect' || val === 'autodetect') {
+      return 'auto';
+    }
+
+    // Known aliases/synonyms across locales and common abbreviations
+    const aliasMap: Record<string, string> = {
+      en: 'en',
+      eng: 'en',
+      english: 'en',
+      es: 'es',
+      spa: 'es',
+      spanish: 'es',
+      espanol: 'es',
+      español: 'es',
+      castilian: 'es',
+      castillano: 'es',
+      sp: 'es',
+      de: 'de',
+      ger: 'de',
+      german: 'de',
+      deutsch: 'de',
+      ge: 'de',
+    };
+    if (aliasMap[val]) return aliasMap[val];
+
+    // Exact code match
+    const byCode = this.languages.find((l) => l.code === val);
+    if (byCode) return byCode.code;
+    // Localized name match
+    const byName = this.languages.find((l) => l.name.toLowerCase() === val);
+    if (byName) return byName.code;
+
+    // Fallback: keep two-letter code if it is a valid one from our list, otherwise default to input
+    const two = val.slice(0, 2);
+    if (this.languages.some((l) => l.code === two)) return two;
+    return val;
+  }
+
   // Get nested translation from object
   private getNestedTranslation(
     obj: Record<string, unknown>,

@@ -4,10 +4,16 @@
 </div>
 } @else if (hasMedia && word.media?.src?.large) {
 <div class="media-section">
+  @if (!imageLoaded && !imageError) {
+  <div class="skeleton-media skeleton-line"></div>
+  }
   <img
     [src]="getS3Url(word.media?.src?.large)"
     [alt]="word.media?.alt"
     class="word-image"
+    (load)="onImageLoad()"
+    (error)="onImageError()"
+    [style.display]="imageLoaded ? 'block' : 'none'"
   />
 </div>
 }

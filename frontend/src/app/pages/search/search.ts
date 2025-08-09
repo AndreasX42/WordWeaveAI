@@ -1,4 +1,11 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import {
+  Component,
+  inject,
+  OnInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  DestroyRef,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,7 +14,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatOptionModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatCardModule } from '@angular/material/card';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -29,7 +35,7 @@ import {
 import { TranslatePipe } from '../../shared/pipes/translate.pipe';
 import { HighlightPipe } from '../../shared/pipes/highlight.pipe';
 import { VocabularyWord } from '../../models/word.model';
-import { Subject, of, combineLatest, merge, Subscription } from 'rxjs';
+import { Subject, of, combineLatest, merge } from 'rxjs';
 import {
   debounceTime,
   distinctUntilChanged,
@@ -38,14 +44,17 @@ import {
   tap,
   startWith,
   filter,
-  finalize,
+  map,
 } from 'rxjs/operators';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { ChangeDetectorRef } from '@angular/core';
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { map } from 'rxjs/operators';
-import { Observable } from 'rxjs';
 import { ActivatedRoute, Params } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+// View-model for precomputed template fields
+type VocabularyWordView = VocabularyWord & {
+  displayPos: string;
+  sourceFlag: string;
+  targetFlag: string;
+};
 
 @Component({
   selector: 'app-search',
@@ -60,7 +69,6 @@ import { ActivatedRoute, Params } from '@angular/router';
     MatSelectModule,
     MatOptionModule,
     MatProgressSpinnerModule,
-    MatCardModule,
     MatTooltipModule,
     MatDialogModule,
     ReactiveFormsModule,
@@ -68,8 +76,9 @@ import { ActivatedRoute, Params } from '@angular/router';
     TranslatePipe,
     HighlightPipe,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SearchComponent implements OnInit, OnDestroy {
+export class SearchComponent implements OnInit {
   themeService = inject(ThemeService);
   translationService = inject(TranslationService);
   wordService = inject(WordService);
@@ -78,7 +87,7 @@ export class SearchComponent implements OnInit, OnDestroy {
   dialog = inject(MatDialog);
   router = inject(Router);
   cdr = inject(ChangeDetectorRef);
-  breakpointObserver = inject(BreakpointObserver);
+  destroyRef = inject(DestroyRef);
   route = inject(ActivatedRoute);
 
   searchControl = new FormControl<string>('', { nonNullable: true });
@@ -92,7 +101,7 @@ export class SearchComponent implements OnInit, OnDestroy {
   private isSwappingLanguages = false;
 
   loading = false;
-  searchResults: VocabularyWord[] = [];
+  searchResults: VocabularyWordView[] = [];
   hasSearched = false;
   searchError: string | null = null;
 
@@ -104,11 +113,10 @@ export class SearchComponent implements OnInit, OnDestroy {
   private readonly STORAGE_KEY_SOURCE = 'source_language';
   private readonly STORAGE_KEY_TARGET = 'target_language';
 
-  private subscriptions = new Subscription();
+  // Memoization cache for flags
+  private languageFlagCache = new Map<string, string>();
 
-  isHandset$: Observable<boolean> = this.breakpointObserver
-    .observe(Breakpoints.Handset)
-    .pipe(map((result) => result.matches));
+  // Removed unused breakpoint observer logic
 
   constructor() {
     this.loadLanguagePreferences();
@@ -116,38 +124,40 @@ export class SearchComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.route.queryParams.subscribe((params: Params) => {
-      const query = params['query'];
-      const source = params['source'];
-      const target = params['target'];
-      const autosearch = params['autosearch'];
+    this.route.queryParams
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params: Params) => {
+        const query = params['query'];
+        const source = params['source'];
+        const target = params['target'];
+        const autosearch = params['autosearch'];
 
-      if (query) {
-        this.searchControl.setValue(query);
-      }
-
-      if (source) {
-        const sourceLang = this.translationService.languages.find(
-          (lang) => lang.name === source || lang.code === source
-        );
-        if (sourceLang) {
-          this.sourceLanguageControl.setValue(sourceLang.code);
+        if (query) {
+          this.searchControl.setValue(query);
         }
-      }
 
-      if (target) {
-        const targetLang = this.translationService.languages.find(
-          (lang) => lang.name === target || lang.code === target
-        );
-        if (targetLang) {
-          this.targetLanguageControl.setValue(targetLang.code);
+        if (source) {
+          const sourceLang = this.translationService.languages.find(
+            (lang) => lang.name === source || lang.code === source
+          );
+          if (sourceLang) {
+            this.sourceLanguageControl.setValue(sourceLang.code);
+          }
         }
-      }
 
-      if (autosearch === 'true' && query) {
-        this.search();
-      }
-    });
+        if (target) {
+          const targetLang = this.translationService.languages.find(
+            (lang) => lang.name === target || lang.code === target
+          );
+          if (targetLang) {
+            this.targetLanguageControl.setValue(targetLang.code);
+          }
+        }
+
+        if (autosearch === 'true' && query) {
+          this.search();
+        }
+      });
 
     // Debounced search stream for automatic search (typing)
     const debouncedSearchTrigger = combineLatest([
@@ -173,19 +183,21 @@ export class SearchComponent implements OnInit, OnDestroy {
 
     // Immediate search stream for manual triggers (Enter key, search button)
     const immediateSearchTrigger = this.manualSearchTrigger.pipe(
-      switchMap(() =>
-        of([
-          this.searchControl.value,
-          this.sourceLanguageControl.value,
-          this.targetLanguageControl.value,
-        ])
-      )
+      map(() => [
+        this.searchControl.value,
+        this.sourceLanguageControl.value,
+        this.targetLanguageControl.value,
+      ])
     );
 
     // Merge both streams - debounced and immediate
     const allSearchTriggers = merge(
       debouncedSearchTrigger,
       immediateSearchTrigger
+    ).pipe(
+      distinctUntilChanged(
+        (a, b) => a[0] === b[0] && a[1] === b[1] && a[2] === b[2]
+      )
     );
 
     // Main search logic
@@ -193,23 +205,26 @@ export class SearchComponent implements OnInit, OnDestroy {
       .pipe(
         tap(() => {
           this.loading = true;
-          this.hasSearched = true;
           this.searchResults = [];
           this.searchError = null;
-
-          this.cdr.detectChanges();
+          this.cdr.markForCheck();
         }),
         switchMap(([term, sourceLanguage, targetLanguage]) => {
-          if (!term.trim()) {
+          const trimmed = term?.trim() ?? '';
+          if (trimmed === '') {
             this.hasSearched = false;
+            this.loading = false;
+            this.cdr.markForCheck();
             return of([]);
           }
+
+          this.hasSearched = true;
 
           const sourceLanguageParam = sourceLanguage || undefined;
           const targetLanguageParam = targetLanguage || undefined;
 
           return this.wordService
-            .searchWords(term.trim(), sourceLanguageParam, targetLanguageParam)
+            .searchWords(trimmed, sourceLanguageParam, targetLanguageParam)
             .pipe(
               catchError((error) => {
                 console.error('Search error:', error);
@@ -221,43 +236,44 @@ export class SearchComponent implements OnInit, OnDestroy {
         }),
         tap(() => {
           this.loading = false;
-          this.cdr.detectChanges();
+          this.cdr.markForCheck();
         }),
-        finalize(() => {
-          this.loading = false;
-          this.cdr.detectChanges();
-        })
+        takeUntilDestroyed(this.destroyRef)
       )
-      .subscribe({
-        next: (results) => {
-          this.searchResults = results || [];
-        },
-        error: () => {
-          this.searchError =
-            'An error occurred during search. Please try again later.';
-          this.cdr.detectChanges();
-        },
+      .subscribe((results) => {
+        const mapped: VocabularyWordView[] = (results || []).map((w) => ({
+          ...w,
+          displayPos: this.extractPosFromSk(w.sk),
+          sourceFlag: this.translationService.getLanguageFlag(
+            w.source_language
+          ),
+          targetFlag: this.translationService.getLanguageFlag(
+            w.target_language
+          ),
+        }));
+        this.searchResults = mapped;
+        this.cdr.markForCheck();
       });
 
     // Listen to language changes for preference saving
-    this.sourceLanguageControl.valueChanges.subscribe(() => {
-      this.saveLanguagePreferences();
-    });
+    this.sourceLanguageControl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.saveLanguagePreferences();
+      });
 
-    this.targetLanguageControl.valueChanges.subscribe(() => {
-      this.saveLanguagePreferences();
-    });
+    this.targetLanguageControl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.saveLanguagePreferences();
+      });
 
     // Subscribe to word request notifications
-    this.subscriptions.add(
-      this.wordRequestService.notifications$.subscribe((notification) => {
+    this.wordRequestService.notifications$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((notification) => {
         this.handleWordRequestNotification(notification);
-      })
-    );
-  }
-
-  ngOnDestroy(): void {
-    this.subscriptions.unsubscribe();
+      });
   }
 
   private loadLanguagePreferences() {
@@ -316,6 +332,7 @@ export class SearchComponent implements OnInit, OnDestroy {
     this.searchResults = [];
     this.hasSearched = false;
     this.searchError = null;
+    this.cdr.markForCheck();
   }
 
   openWord(word: VocabularyWord) {
@@ -379,23 +396,23 @@ export class SearchComponent implements OnInit, OnDestroy {
     return this.extractPosFromSk(word.sk);
   }
 
-  getLanguageName(code: string): string {
-    const language = this.translationService.languages.find(
-      (lang) => lang.code === code
-    );
-    return language?.name || code;
-  }
-
   getLanguageFlag(code: string): string {
+    if (this.languageFlagCache.has(code)) {
+      return this.languageFlagCache.get(code)!;
+    }
     const language = this.translationService.languages.find(
       (lang) => lang.code === code
     );
-    return language?.flag || '🏳️';
+    const flag = language?.flag || '🏳️';
+    this.languageFlagCache.set(code, flag);
+    return flag;
   }
 
   // TrackBy for result list
   trackWord(index: number, word: VocabularyWord) {
-    return word.source_word + word.target_word;
+    return word.pk && word.sk
+      ? `${word.pk}|${word.sk}`
+      : `${word.source_word}|${word.target_word}`;
   }
 
   // Removed redundant requestWord method - using dialog-based approach only
@@ -462,6 +479,7 @@ export class SearchComponent implements OnInit, OnDestroy {
 
     dialogRef
       .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((result: RequestWordDialogResult | undefined) => {
         if (result) {
           this.submitWordRequest(result);
@@ -472,12 +490,6 @@ export class SearchComponent implements OnInit, OnDestroy {
   // Submit word request from dialog and navigate to word card
   private submitWordRequest(result: RequestWordDialogResult): void {
     // Navigate to protected route first - this will trigger auth guard if needed
-    this.navigateToWordCardForRequest(result);
-  }
-
-  // Navigate to word card for a pending word request
-  private navigateToWordCardForRequest(result: RequestWordDialogResult): void {
-    // Navigate to the protected /words/request route
     this.router.navigate(['/words/request'], {
       state: {
         isRequest: true,
