@@ -23,12 +23,12 @@ from typing import List, Optional
 # python build_lambda.py websocket            # Just WebSocket function
 # python build_lambda.py clean                # Clean all
 
-# Build cdk app
-# clear; mvn clean install; cdk synth
-# cdk deploy
-# cdk deploy --all --require-approval never
+# Build terraform - paths configured in terraform.tfvars
+# cd environments/dev
+# terraform plan
+# terraform apply
 
-# Configuration
+# Configuration - Updated paths for aws-tf
 ROOT = Path(__file__).parent.resolve()
 LAYER_DIR = ROOT / "resources" / "layers"
 FUNCTION_DIR = ROOT / "resources" / "lambda"
@@ -476,7 +476,7 @@ def build_parallel(architecture: str, force: bool = False) -> BuildMetrics:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Lambda Build Tool")
+    parser = argparse.ArgumentParser(description="Lambda Build Tool for Terraform")
     parser.add_argument(
         "command",
         nargs="?",
@@ -523,6 +523,11 @@ def main():
             build_websocket_function(args.force)
 
         print("\n🎉 Build completed successfully!")
+        print("\n📁 ZIP files created in:")
+        print(f"   📦 Layer: {LAYER_ZIP}")
+        print(f"   🔧 Function: {FUNCTION_ZIP}")
+        print(f"   🔌 WebSocket: {WEBSOCKET_ZIP}")
+        print("\n🚀 Ready for Terraform deployment!")
 
     except Exception as e:
         print(f"\n❌ Build failed: {e}")
