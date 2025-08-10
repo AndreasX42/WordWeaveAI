@@ -250,10 +250,10 @@ resource "aws_codebuild_project" "frontend" {
 
   environment {
     compute_type                = "BUILD_GENERAL1_SMALL"
-    image                      = "aws/codebuild/amazonlinux-aarch64-standard:3.0"
-    type                       = "ARM_CONTAINER"
+    image                       = "aws/codebuild/amazonlinux-aarch64-standard:3.0"
+    type                        = "ARM_CONTAINER"
     image_pull_credentials_type = "CODEBUILD"
-    privileged_mode            = true
+    privileged_mode             = true
 
     environment_variable {
       name  = "AWS_DEFAULT_REGION"
@@ -292,7 +292,7 @@ resource "aws_codebuild_project" "frontend" {
   }
 
   source {
-    type = "CODEPIPELINE"
+    type      = "CODEPIPELINE"
     buildspec = "frontend/.aws/buildspec.yaml"
   }
 
@@ -322,10 +322,10 @@ resource "aws_codebuild_project" "backend" {
 
   environment {
     compute_type                = "BUILD_GENERAL1_SMALL"
-    image                      = "aws/codebuild/amazonlinux-aarch64-standard:3.0"
-    type                       = "ARM_CONTAINER"
+    image                       = "aws/codebuild/amazonlinux-aarch64-standard:3.0"
+    type                        = "ARM_CONTAINER"
     image_pull_credentials_type = "CODEBUILD"
-    privileged_mode            = true
+    privileged_mode             = true
 
     environment_variable {
       name  = "AWS_DEFAULT_REGION"
@@ -354,7 +354,7 @@ resource "aws_codebuild_project" "backend" {
   }
 
   source {
-    type = "CODEPIPELINE"
+    type      = "CODEPIPELINE"
     buildspec = "restapi/.aws/buildspec.yaml"
   }
 

@@ -10,6 +10,7 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
+  profile = "personal"
 }
 
 # Data sources
@@ -20,6 +21,58 @@ data "aws_availability_zones" "available" {
 
 data "aws_ssm_parameter" "sentry_dsn" {
   name = "/apikeys/SENTRY_DSN"
+  with_decryption = true
+}
+
+## Google OAuth SSM parameters
+data "aws_ssm_parameter" "google_client_id" {
+  name            = "/wordweave/${var.environment}/backend/google-client-id"
+  with_decryption = true
+}
+
+data "aws_ssm_parameter" "google_client_secret" {
+  name            = "/wordweave/${var.environment}/backend/google-client-secret"
+  with_decryption = true
+}
+
+data "aws_ssm_parameter" "google_redirect_url" {
+  name            = "/wordweave/${var.environment}/backend/google-redirect-url"
+  with_decryption = true
+}
+
+data "aws_ssm_parameter" "jwt_secret_key" {
+  name            = "/wordweave/${var.environment}/backend/jwt-secret-key"
+  with_decryption = true
+}
+
+data "aws_ssm_parameter" "jwt_expiration_time" {
+  name            = "/wordweave/${var.environment}/backend/jwt-expiration-time"
+  with_decryption = true
+}
+
+data "aws_ssm_parameter" "cors_allowed_origins" {
+  name            = "/wordweave/${var.environment}/backend/cors-allowed-origins"
+  with_decryption = true
+}
+
+data "aws_ssm_parameter" "frontend_url" {
+  name            = "/wordweave/${var.environment}/backend/frontend-url"
+  with_decryption = true
+}
+
+data "aws_ssm_parameter" "max_vocab_requests_free_tier" {
+  name            = "/wordweave/${var.environment}/backend/max-vocab-requests-free-tier"
+  with_decryption = true
+}
+
+data "aws_ssm_parameter" "ses_from_email" {
+  name            = "/wordweave/${var.environment}/backend/ses-from-email"
+  with_decryption = true
+}
+
+data "aws_ssm_parameter" "ses_from_name" {
+  name            = "/wordweave/${var.environment}/backend/ses-from-name"
+  with_decryption = true
 }
 
 # Remote state for common environment
@@ -41,9 +94,49 @@ locals {
 
   backend_secrets = [
     {
+      name      = "GOOGLE_CLIENT_ID"
+      valueFrom = data.aws_ssm_parameter.google_client_id.arn
+    },
+    {
+      name      = "GOOGLE_CLIENT_SECRET"
+      valueFrom = data.aws_ssm_parameter.google_client_secret.arn
+    },
+    {
+      name      = "GOOGLE_REDIRECT_URL"
+      valueFrom = data.aws_ssm_parameter.google_redirect_url.arn
+    },
+    {
       name      = "SENTRY_DSN"
-      valueFrom = data.aws_ssm_parameter.sentry_dsn.value
-    }
+      valueFrom = data.aws_ssm_parameter.sentry_dsn.arn
+    },
+    {
+      name      = "JWT_SECRET_KEY"
+      valueFrom = data.aws_ssm_parameter.jwt_secret_key.arn
+    },
+    {
+      name      = "JWT_EXPIRATION_TIME"
+      valueFrom = data.aws_ssm_parameter.jwt_expiration_time.arn
+    },
+    {
+      name      = "CORS_ALLOWED_ORIGINS"
+      valueFrom = data.aws_ssm_parameter.cors_allowed_origins.arn
+    },
+    {
+      name      = "FRONTEND_URL"
+      valueFrom = data.aws_ssm_parameter.frontend_url.arn
+    },
+    {
+      name      = "MAX_VOCAB_REQUESTS_FREE_TIER"
+      valueFrom = data.aws_ssm_parameter.max_vocab_requests_free_tier.arn
+    },
+    {
+      name      = "SES_FROM_EMAIL"
+      valueFrom = data.aws_ssm_parameter.ses_from_email.arn
+    },
+    {
+      name      = "SES_FROM_NAME"
+      valueFrom = data.aws_ssm_parameter.ses_from_name.arn
+    },
   ]
 
   backend_environment_variables = [

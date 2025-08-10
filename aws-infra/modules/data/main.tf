@@ -41,7 +41,7 @@ resource "aws_s3_bucket_public_access_block" "vocab_bucket" {
 
 # S3 Bucket policy for public read access to media files
 resource "aws_s3_bucket_policy" "vocab_bucket_policy" {
-  bucket = aws_s3_bucket.vocab_bucket.id
+  bucket     = aws_s3_bucket.vocab_bucket.id
   depends_on = [aws_s3_bucket_public_access_block.vocab_bucket]
 
   policy = jsonencode({
