@@ -37,9 +37,9 @@ resource "aws_cloudwatch_log_group" "backend" {
   }
 }
 
-# ECS Task Execution Role
-resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "${var.project_name}-ecs-task-execution-role"
+# ECS Task Execution Role (Frontend)
+resource "aws_iam_role" "ecs_frontend_task_execution_role" {
+  name = "${var.project_name}-ecs-frontend-task-execution-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -55,45 +55,76 @@ resource "aws_iam_role" "ecs_task_execution_role" {
   })
 
   tags = {
-    Name        = "${var.project_name}-ecs-task-execution-role"
+    Name        = "${var.project_name}-ecs-frontend-task-execution-role"
     Environment = var.environment
     Project     = var.project_name
   }
 }
 
-resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
-  role       = aws_iam_role.ecs_task_execution_role.name
+resource "aws_iam_role_policy_attachment" "ecs_frontend_task_execution_role_policy" {
+  role       = aws_iam_role.ecs_frontend_task_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-# Additional policy for Parameter Store and KMS decrypt permissions
-resource "aws_iam_role_policy" "ecs_task_execution_parameter_store" {
-  name = "${var.project_name}-ecs-task-execution-parameter-store-policy"
-  role = aws_iam_role.ecs_task_execution_role.id
+## Backend ECS Task Execution Role
+resource "aws_iam_role" "ecs_backend_task_execution_role" {
+  name = "${var.project_name}-ecs-backend-task-execution-role"
 
-  policy = jsonencode({
+  assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
+        Action = "sts:AssumeRole"
         Effect = "Allow"
-        Action = [
-          "ssm:GetParameters",
-          "ssm:GetParameter"
-        ]
-        Resource = [
-          "arn:aws:ssm:${var.aws_region}:*:parameter/*",
-        ]
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "kms:Decrypt"
-        ]
-        Resource = [
-          "arn:aws:kms:${var.aws_region}:*:key/alias/aws/ssm"
-        ]
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
       }
     ]
+  })
+
+  tags = {
+    Name        = "${var.project_name}-ecs-backend-task-execution-role"
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_backend_task_execution_role_policy" {
+  role       = aws_iam_role.ecs_backend_task_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# Parameter Store and KMS decrypt permissions for backend execution only (scoped)
+resource "aws_iam_role_policy" "ecs_backend_task_execution_parameter_store" {
+  name = "${var.project_name}-ecs-backend-task-execution-parameter-store-policy"
+  role = aws_iam_role.ecs_backend_task_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = concat(
+      length(local.backend_ssm_parameter_arns) > 0 ? [
+        {
+          Effect = "Allow"
+          Action = [
+            "ssm:GetParameters",
+            "ssm:GetParameter"
+          ]
+          Resource = local.backend_ssm_parameter_arns
+        }
+      ] : [],
+      [
+        {
+          Effect = "Allow"
+          Action = [
+            "kms:Decrypt"
+          ]
+          Resource = [
+            "arn:aws:kms:${var.aws_region}:*:key/alias/aws/ssm"
+          ]
+        }
+      ]
+    )
   })
 }
 
@@ -252,7 +283,7 @@ resource "aws_ecs_task_definition" "frontend" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.frontend_cpu
   memory                   = var.frontend_memory
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  execution_role_arn       = aws_iam_role.ecs_frontend_task_execution_role.arn
   task_role_arn            = aws_iam_role.ecs_frontend_task_role.arn
 
   runtime_platform {
@@ -296,7 +327,7 @@ resource "aws_ecs_task_definition" "backend" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.backend_cpu
   memory                   = var.backend_memory
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  execution_role_arn       = aws_iam_role.ecs_backend_task_execution_role.arn
   task_role_arn            = aws_iam_role.ecs_backend_task_role.arn
 
   runtime_platform {
@@ -314,8 +345,8 @@ resource "aws_ecs_task_definition" "backend" {
           protocol      = "tcp"
         }
       ]
-      environment = var.backend_environment_variables
-      secrets     = var.backend_secrets
+      environment = local.backend_environment_variables
+      secrets     = local.backend_secrets
       logConfiguration = {
         logDriver = "awslogs"
         options = {
@@ -333,6 +364,32 @@ resource "aws_ecs_task_definition" "backend" {
     Environment = var.environment
     Project     = var.project_name
   }
+}
+
+data "aws_ssm_parameter" "backend" {
+  for_each        = var.backend_ssm_parameter_paths
+  name            = each.value
+  with_decryption = true
+}
+
+locals {
+  backend_environment_variables = [
+    for k in sort(keys(var.backend_env_map)) : {
+      name  = k
+      value = var.backend_env_map[k]
+    }
+  ]
+
+  backend_secrets = [
+    for k in sort(keys(var.backend_ssm_parameter_paths)) : {
+      name      = k
+      valueFrom = data.aws_ssm_parameter.backend[k].arn
+    }
+  ]
+
+  backend_ssm_parameter_arns = [
+    for k in sort(keys(var.backend_ssm_parameter_paths)) : data.aws_ssm_parameter.backend[k].arn
+  ]
 }
 
 # Frontend ECS Service

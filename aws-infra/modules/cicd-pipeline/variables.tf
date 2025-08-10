@@ -65,13 +65,25 @@ variable "backend_service_name" {
   type        = string
 }
 
-variable "ecs_task_execution_role_arn" {
-  description = "ARN of the ECS task execution role for deployment target"
+
+variable "ecs_frontend_task_execution_role_arn" {
+  description = "ARN of the ECS frontend task execution role for deployment target"
   type        = string
 }
 
-variable "ecs_task_role_arn" {
-  description = "ARN of the ECS task role for deployment target"
+variable "ecs_backend_task_execution_role_arn" {
+  description = "ARN of the ECS backend task execution role for deployment target"
+  type        = string
+}
+
+
+variable "ecs_frontend_task_role_arn" {
+  description = "ARN of the ECS frontend task role for deployment target"
+  type        = string
+}
+
+variable "ecs_backend_task_role_arn" {
+  description = "ARN of the ECS backend task role for deployment target"
   type        = string
 }
 

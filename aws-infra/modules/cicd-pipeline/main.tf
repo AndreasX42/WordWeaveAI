@@ -136,8 +136,10 @@ resource "aws_iam_role_policy" "codepipeline_policy" {
           "iam:PassRole"
         ]
         Resource = [
-          var.ecs_task_execution_role_arn,
-          var.ecs_task_role_arn
+          var.ecs_frontend_task_execution_role_arn,
+          var.ecs_backend_task_execution_role_arn,
+          var.ecs_frontend_task_role_arn,
+          var.ecs_backend_task_role_arn
         ]
       },
       {
@@ -272,12 +274,12 @@ resource "aws_codebuild_project" "frontend" {
 
     environment_variable {
       name  = "ECS_TASK_EXECUTION_ROLE_ARN"
-      value = var.ecs_task_execution_role_arn
+      value = var.ecs_frontend_task_execution_role_arn
     }
 
     environment_variable {
       name  = "ECS_TASK_ROLE_ARN"
-      value = var.ecs_task_role_arn
+      value = var.ecs_frontend_task_role_arn
     }
 
     environment_variable {
@@ -344,12 +346,12 @@ resource "aws_codebuild_project" "backend" {
 
     environment_variable {
       name  = "ECS_TASK_EXECUTION_ROLE_ARN"
-      value = var.ecs_task_execution_role_arn
+      value = var.ecs_backend_task_execution_role_arn
     }
 
     environment_variable {
       name  = "ECS_TASK_ROLE_ARN"
-      value = var.ecs_task_role_arn
+      value = var.ecs_backend_task_role_arn
     }
   }
 

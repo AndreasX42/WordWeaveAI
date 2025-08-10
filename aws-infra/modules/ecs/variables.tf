@@ -110,15 +110,14 @@ variable "sqs_queue_arn" {
   type        = string
 }
 
-# Backend Environment Variables
-variable "backend_environment_variables" {
-  description = "A list of environment variables for the backend container."
-  type        = any
-  default     = []
+variable "backend_ssm_parameter_paths" {
+  description = "Map of env var names to SSM parameter names/paths for backend secrets. If provided, the module will read these parameters and derive both ECS secrets and the execution role SSM permissions."
+  type        = map(string)
+  default     = {}
 }
 
-variable "backend_secrets" {
-  description = "A list of secrets for the backend container."
-  type        = any
-  default     = []
-} 
+variable "backend_env_map" {
+  description = "Map of backend environment variables (name -> value). Used when backend_environment_variables is not provided."
+  type        = map(string)
+  default     = {}
+}

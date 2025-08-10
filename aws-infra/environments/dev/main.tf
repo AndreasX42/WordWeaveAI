@@ -9,7 +9,7 @@ terraform {
 }
 
 provider "aws" {
-  region = var.aws_region
+  region  = var.aws_region
   profile = "personal"
 }
 
@@ -17,62 +17,6 @@ provider "aws" {
 data "aws_caller_identity" "current" {}
 data "aws_availability_zones" "available" {
   state = "available"
-}
-
-data "aws_ssm_parameter" "sentry_dsn" {
-  name = "/apikeys/SENTRY_DSN"
-  with_decryption = true
-}
-
-## Google OAuth SSM parameters
-data "aws_ssm_parameter" "google_client_id" {
-  name            = "/wordweave/${var.environment}/backend/google-client-id"
-  with_decryption = true
-}
-
-data "aws_ssm_parameter" "google_client_secret" {
-  name            = "/wordweave/${var.environment}/backend/google-client-secret"
-  with_decryption = true
-}
-
-data "aws_ssm_parameter" "google_redirect_url" {
-  name            = "/wordweave/${var.environment}/backend/google-redirect-url"
-  with_decryption = true
-}
-
-data "aws_ssm_parameter" "jwt_secret_key" {
-  name            = "/wordweave/${var.environment}/backend/jwt-secret-key"
-  with_decryption = true
-}
-
-data "aws_ssm_parameter" "jwt_expiration_time" {
-  name            = "/wordweave/${var.environment}/backend/jwt-expiration-time"
-  with_decryption = true
-}
-
-data "aws_ssm_parameter" "cors_allowed_origins" {
-  name            = "/wordweave/${var.environment}/backend/cors-allowed-origins"
-  with_decryption = true
-}
-
-data "aws_ssm_parameter" "frontend_url" {
-  name            = "/wordweave/${var.environment}/backend/frontend-url"
-  with_decryption = true
-}
-
-data "aws_ssm_parameter" "max_vocab_requests_free_tier" {
-  name            = "/wordweave/${var.environment}/backend/max-vocab-requests-free-tier"
-  with_decryption = true
-}
-
-data "aws_ssm_parameter" "ses_from_email" {
-  name            = "/wordweave/${var.environment}/backend/ses-from-email"
-  with_decryption = true
-}
-
-data "aws_ssm_parameter" "ses_from_name" {
-  name            = "/wordweave/${var.environment}/backend/ses-from-name"
-  with_decryption = true
 }
 
 # Remote state for common environment
@@ -86,94 +30,8 @@ data "terraform_remote_state" "common" {
 # Local values
 locals {
   aws_account_id = data.aws_caller_identity.current.account_id
-  common_tags = {
-    Environment = var.environment
-    Project     = var.project_name
-    ManagedBy   = "terraform"
-  }
 
-  backend_secrets = [
-    {
-      name      = "GOOGLE_CLIENT_ID"
-      valueFrom = data.aws_ssm_parameter.google_client_id.arn
-    },
-    {
-      name      = "GOOGLE_CLIENT_SECRET"
-      valueFrom = data.aws_ssm_parameter.google_client_secret.arn
-    },
-    {
-      name      = "GOOGLE_REDIRECT_URL"
-      valueFrom = data.aws_ssm_parameter.google_redirect_url.arn
-    },
-    {
-      name      = "SENTRY_DSN"
-      valueFrom = data.aws_ssm_parameter.sentry_dsn.arn
-    },
-    {
-      name      = "JWT_SECRET_KEY"
-      valueFrom = data.aws_ssm_parameter.jwt_secret_key.arn
-    },
-    {
-      name      = "JWT_EXPIRATION_TIME"
-      valueFrom = data.aws_ssm_parameter.jwt_expiration_time.arn
-    },
-    {
-      name      = "CORS_ALLOWED_ORIGINS"
-      valueFrom = data.aws_ssm_parameter.cors_allowed_origins.arn
-    },
-    {
-      name      = "FRONTEND_URL"
-      valueFrom = data.aws_ssm_parameter.frontend_url.arn
-    },
-    {
-      name      = "MAX_VOCAB_REQUESTS_FREE_TIER"
-      valueFrom = data.aws_ssm_parameter.max_vocab_requests_free_tier.arn
-    },
-    {
-      name      = "SES_FROM_EMAIL"
-      valueFrom = data.aws_ssm_parameter.ses_from_email.arn
-    },
-    {
-      name      = "SES_FROM_NAME"
-      valueFrom = data.aws_ssm_parameter.ses_from_name.arn
-    },
-  ]
 
-  backend_environment_variables = [
-    # Infrastructure-dependent values (generated dynamically)
-    {
-      name  = "SQS_VOCAB_REQUEST_QUEUE_URL"
-      value = module.sqs.queue_url
-    },
-    {
-      name  = "DYNAMODB_USER_TABLE_NAME"
-      value = var.dynamodb_user_table_name
-    },
-    {
-      name  = "DYNAMODB_VOCAB_TABLE_NAME"
-      value = var.dynamodb_vocab_table_name
-    },
-    {
-      name  = "DYNAMODB_VOCAB_MEDIA_TABLE_NAME"
-      value = var.dynamodb_vocab_media_table_name
-    },
-    {
-      name  = "DYNAMODB_VOCAB_LIST_TABLE_NAME"
-      value = var.dynamodb_vocab_list_table_name
-    },
-    {
-      name  = "DYNAMODB_CONNECTIONS_TABLE_NAME"
-      value = var.dynamodb_connections_table_name
-    },
-    {
-      name  = "S3_MEDIA_BUCKET_NAME"
-      value = var.s3_media_bucket_name
-    },
-    {
-      name  = "SENTRY_ENVIRONMENT"
-      value = "${var.project_name}-${var.environment}"
-    },
-  ]
 }
 
 # VPC Module
@@ -276,28 +134,51 @@ module "lambda" {
 module "ecs" {
   source = "../../modules/ecs"
 
-  project_name                  = var.project_name
-  environment                   = var.environment
-  aws_region                    = var.aws_region
-  enable_container_insights     = var.enable_container_insights
-  log_retention_days            = var.log_retention_days
-  dynamodb_table_arns           = [module.data.dynamodb_user_table_arn, module.data.dynamodb_vocab_table_arn, module.data.dynamodb_vocab_media_table_arn, module.data.dynamodb_connections_table_arn, module.data.dynamodb_vocab_list_table_arn]
-  s3_bucket_arn                 = module.data.s3_vocab_bucket_arn
-  sqs_queue_arn                 = module.sqs.queue_arn
-  frontend_cpu                  = var.frontend_cpu
-  frontend_memory               = var.frontend_memory
-  frontend_image_uri            = "${data.terraform_remote_state.common.outputs.ecr_frontend_repository_url}:latest"
-  backend_cpu                   = var.backend_cpu
-  backend_memory                = var.backend_memory
-  backend_image_uri             = "${data.terraform_remote_state.common.outputs.ecr_backend_repository_url}:latest"
-  backend_environment_variables = local.backend_environment_variables
-  backend_secrets               = local.backend_secrets
-  desired_count                 = var.desired_count
-  ecs_tasks_security_group_id   = module.alb.ecs_tasks_security_group_id
-  public_subnet_ids             = module.vpc.public_subnet_ids
-  frontend_target_group_arn     = module.alb.frontend_target_group_arn
-  backend_target_group_arn      = module.alb.backend_target_group_arn
-  alb_listener_arn              = module.alb.https_listener_arn
+  project_name              = var.project_name
+  environment               = var.environment
+  aws_region                = var.aws_region
+  enable_container_insights = var.enable_container_insights
+  log_retention_days        = var.log_retention_days
+  dynamodb_table_arns       = [module.data.dynamodb_user_table_arn, module.data.dynamodb_vocab_table_arn, module.data.dynamodb_vocab_media_table_arn, module.data.dynamodb_connections_table_arn, module.data.dynamodb_vocab_list_table_arn]
+  s3_bucket_arn             = module.data.s3_vocab_bucket_arn
+  sqs_queue_arn             = module.sqs.queue_arn
+  frontend_cpu              = var.frontend_cpu
+  frontend_memory           = var.frontend_memory
+  frontend_image_uri        = "${data.terraform_remote_state.common.outputs.ecr_frontend_repository_url}:latest"
+  backend_cpu               = var.backend_cpu
+  backend_memory            = var.backend_memory
+  backend_image_uri         = "${data.terraform_remote_state.common.outputs.ecr_backend_repository_url}:latest"
+  # Provide envs as a map (module will derive the list)
+  backend_env_map = {
+    SQS_VOCAB_REQUEST_QUEUE_URL     = module.sqs.queue_url
+    DYNAMODB_USER_TABLE_NAME        = var.dynamodb_user_table_name
+    DYNAMODB_VOCAB_TABLE_NAME       = var.dynamodb_vocab_table_name
+    DYNAMODB_VOCAB_MEDIA_TABLE_NAME = var.dynamodb_vocab_media_table_name
+    DYNAMODB_VOCAB_LIST_TABLE_NAME  = var.dynamodb_vocab_list_table_name
+    DYNAMODB_CONNECTIONS_TABLE_NAME = var.dynamodb_connections_table_name
+    S3_MEDIA_BUCKET_NAME            = var.s3_media_bucket_name
+    SENTRY_ENVIRONMENT              = "${var.project_name}-${var.environment}"
+  }
+  # Provide SSM parameter paths (module will fetch, build secrets, and IAM scope)
+  backend_ssm_parameter_paths = {
+    GOOGLE_CLIENT_ID             = "/wordweave/${var.environment}/backend/google-client-id"
+    GOOGLE_CLIENT_SECRET         = "/wordweave/${var.environment}/backend/google-client-secret"
+    GOOGLE_REDIRECT_URL          = "/wordweave/${var.environment}/backend/google-redirect-url"
+    SENTRY_DSN                   = "/apikeys/SENTRY_DSN"
+    JWT_SECRET_KEY               = "/wordweave/${var.environment}/backend/jwt-secret-key"
+    JWT_EXPIRATION_TIME          = "/wordweave/${var.environment}/backend/jwt-expiration-time"
+    CORS_ALLOWED_ORIGINS         = "/wordweave/${var.environment}/backend/cors-allowed-origins"
+    FRONTEND_URL                 = "/wordweave/${var.environment}/backend/frontend-url"
+    MAX_VOCAB_REQUESTS_FREE_TIER = "/wordweave/${var.environment}/backend/max-vocab-requests-free-tier"
+    SES_FROM_EMAIL               = "/wordweave/${var.environment}/backend/ses-from-email"
+    SES_FROM_NAME                = "/wordweave/${var.environment}/backend/ses-from-name"
+  }
+  desired_count               = var.desired_count
+  ecs_tasks_security_group_id = module.alb.ecs_tasks_security_group_id
+  public_subnet_ids           = module.vpc.public_subnet_ids
+  frontend_target_group_arn   = module.alb.frontend_target_group_arn
+  backend_target_group_arn    = module.alb.backend_target_group_arn
+  alb_listener_arn            = module.alb.https_listener_arn
 
   # Ensure infrastructure is created before environment variables are used
   depends_on = [module.data, module.sqs]
@@ -323,11 +204,13 @@ module "cicd_pipeline" {
   backend_ecr_repo_name  = data.terraform_remote_state.common.outputs.ecr_backend_repository_name
 
   # ECS Configuration (deployment targets)
-  ecs_cluster_name            = module.ecs.cluster_name
-  frontend_service_name       = module.ecs.frontend_service_name
-  backend_service_name        = module.ecs.backend_service_name
-  ecs_task_execution_role_arn = module.ecs.ecs_task_execution_role_arn
-  ecs_task_role_arn           = module.ecs.ecs_task_role_arn
+  ecs_cluster_name                     = module.ecs.cluster_name
+  frontend_service_name                = module.ecs.frontend_service_name
+  backend_service_name                 = module.ecs.backend_service_name
+  ecs_frontend_task_role_arn           = module.ecs.ecs_frontend_task_role_arn
+  ecs_backend_task_role_arn            = module.ecs.ecs_backend_task_role_arn
+  ecs_frontend_task_execution_role_arn = module.ecs.ecs_frontend_task_execution_role_arn
+  ecs_backend_task_execution_role_arn  = module.ecs.ecs_backend_task_execution_role_arn
 
   # Frontend Configuration (URLs for build-time injection)
   backend_domain_name    = var.backend_domain_name

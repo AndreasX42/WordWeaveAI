@@ -142,17 +142,6 @@ variable "log_retention_days" {
   default     = 7
 }
 
-variable "backend_environment_variables" {
-  description = "A list of environment variables for the backend container."
-  type        = any
-  default     = []
-}
-
-variable "backend_secrets" {
-  description = "A list of secrets for the backend container."
-  type        = any
-  default     = []
-}
 
 # Lambda VPC Configuration
 variable "enable_lambda_vpc" {
