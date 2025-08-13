@@ -157,7 +157,7 @@ module "ecs" {
     DYNAMODB_VOCAB_LIST_TABLE_NAME  = var.dynamodb_vocab_list_table_name
     DYNAMODB_CONNECTIONS_TABLE_NAME = var.dynamodb_connections_table_name
     S3_MEDIA_BUCKET_NAME            = var.s3_media_bucket_name
-    SENTRY_ENVIRONMENT              = "${var.project_name}-${var.environment}"
+    SENTRY_ENVIRONMENT              = "aws-${var.project_name}-${var.environment}"
   }
   # Provide SSM parameter paths (module will fetch, build secrets, and IAM scope)
   backend_ssm_parameter_paths = {

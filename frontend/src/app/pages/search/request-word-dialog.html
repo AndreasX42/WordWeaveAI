@@ -70,14 +70,22 @@
       </p>
       <div class="existing-items">
         <div class="existing-item" *ngFor="let result of existingResults">
-          <span class="flag">{{
-            getLanguageFlag(result.source_language)
-          }}</span>
+          <img
+            [src]="getLanguageFlag(result.source_language)"
+            [alt]="'Source language flag'"
+            class="flag"
+            width="16"
+            height="12"
+          />
           <span class="word">{{ result.source_word }}</span>
           <mat-icon class="arrow">arrow_forward</mat-icon>
-          <span class="flag">{{
-            getLanguageFlag(result.target_language)
-          }}</span>
+          <img
+            [src]="getLanguageFlag(result.target_language)"
+            [alt]="'Target language flag'"
+            class="flag"
+            width="16"
+            height="12"
+          />
           <span class="word">{{ result.target_word }}</span>
         </div>
       </div>

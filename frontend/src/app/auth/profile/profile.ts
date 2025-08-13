@@ -1,4 +1,11 @@
-import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  inject,
+  OnInit,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { MatButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -32,6 +39,7 @@ import { DatePipe } from '@angular/common';
   ],
   templateUrl: './profile.html',
   styleUrl: './profile.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Profile implements OnInit {
   private router = inject(Router);

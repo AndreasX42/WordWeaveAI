@@ -1,9 +1,33 @@
-/* You can add global styles to this file, and also import other style files */
-@import "@angular/material/prebuilt-themes/azure-blue.css";
-
 // CSS Custom Properties for theming
 :root {
-  // Light theme colors
+  // Dark theme colors (default to prevent flash)
+  --primary-color: #0d47a1;
+  --primary-dark: #0a3d91;
+  --primary-light: #42a5f5;
+  --accent-color: #ff4081;
+  --warn-color: #f44336;
+
+  // Background colors
+  --background-color: #121212;
+  --surface-color: #1e1e1e;
+  --card-background: #2d2d2d;
+
+  // Text colors
+  --text-primary: #ffffff;
+  --text-secondary: #b0b0b0;
+  --text-disabled: #616161;
+
+  // Border colors
+  --border-color: #404040;
+  --divider-color: #333333;
+
+  // Shadow colors
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --shadow-color-dark: rgba(0, 0, 0, 0.5);
+}
+
+// Light theme colors (only applied when explicitly set)
+body.light-theme {
   --primary-color: #1565c0;
   --primary-dark: #0d47a1;
   --primary-light: #42a5f5;
@@ -194,7 +218,33 @@ body {
 
 body {
   margin: 0;
-  font-family: Roboto, "Helvetica Neue", sans-serif;
+  font-family: Roboto, system-ui, -apple-system, Segoe UI, Helvetica, Arial,
+    "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+}
+
+/* Self-hosted Roboto font faces (400/500) */
+@font-face {
+  font-family: "Roboto";
+  src: url("/assets/fonts/roboto-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: optional;
+}
+
+@font-face {
+  font-family: "Roboto";
+  src: url("/assets/fonts/roboto-500.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: optional;
+}
+
+@font-face {
+  font-family: "Roboto";
+  src: url("/assets/fonts/roboto-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: optional;
 }
 
 /* Mobile-first responsive optimizations */

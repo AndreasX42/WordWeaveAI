@@ -1,4 +1,11 @@
-import { Component, input, inject, OnInit, OnDestroy } from '@angular/core';
+import {
+  Component,
+  input,
+  inject,
+  OnInit,
+  OnDestroy,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { MatToolbar } from '@angular/material/toolbar';
 import { MatIconButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
@@ -38,6 +45,7 @@ import { Subscription } from 'rxjs';
   ],
   templateUrl: './header.html',
   styleUrl: './header.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Header implements OnInit, OnDestroy {
   title = input<string>();

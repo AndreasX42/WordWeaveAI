@@ -160,7 +160,13 @@
         (click)="changeLanguage(language.code)"
         [class.active-language]="getCurrentLanguage().code === language.code"
       >
-        <span class="language-flag">{{ language.flag }}</span>
+        <img
+          [src]="language.flag"
+          [alt]="language.name + ' flag'"
+          class="language-flag"
+          width="20"
+          height="15"
+        />
         <span>{{ language.name }}</span>
         @if (getCurrentLanguage().code === language.code) {
         <mat-icon class="check-icon">check</mat-icon>

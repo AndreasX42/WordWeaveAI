@@ -1,4 +1,5 @@
 import { Injectable, ErrorHandler, inject, NgZone } from '@angular/core';
+import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MessageService } from '../../services/message.service';
 import { ErrorHandlerUtil } from './error-handler.util';
@@ -9,6 +10,7 @@ import { ErrorHandlerUtil } from './error-handler.util';
 export class GlobalErrorHandler implements ErrorHandler {
   private messageService = inject(MessageService);
   private ngZone = inject(NgZone);
+  private router = inject(Router);
 
   handleError(error: unknown): void {
     console.error('Global error caught:', error);
@@ -27,6 +29,13 @@ export class GlobalErrorHandler implements ErrorHandler {
     }
 
     this.ngZone.run(() => {
+      // Router no-match: show resolved i18n message and redirect to home
+      if (this.isRouterNoMatchError(error)) {
+        this.messageService.showErrorMessage('errors.unexpectedError');
+        this.router.navigateByUrl('/home');
+        ErrorHandlerUtil.logError(error);
+        return;
+      }
       if (this.isHttpError(error)) {
         this.handleHttpError(error);
       } else if (this.isChunkLoadError(error)) {
@@ -149,6 +158,13 @@ export class GlobalErrorHandler implements ErrorHandler {
     const errorObj = error as { rejection?: unknown; reason?: unknown };
     const rejectionReason = errorObj.rejection || errorObj.reason || error;
 
+    if (this.isRouterNoMatchError(rejectionReason)) {
+      this.messageService.showErrorMessage('errors.unexpectedError');
+      this.router.navigateByUrl('/home');
+      ErrorHandlerUtil.logError(rejectionReason);
+      return;
+    }
+
     if (this.isHttpError(rejectionReason)) {
       this.handleHttpError(rejectionReason);
       return;
@@ -171,6 +187,19 @@ export class GlobalErrorHandler implements ErrorHandler {
     const errorObj = error as { url?: string; status?: number };
     return !!(
       errorObj.url?.includes('/update-account') && errorObj.status === 409
+    );
+  }
+  private isRouterNoMatchError(error: unknown): boolean {
+    const message = (error as { message?: string })?.message || '';
+    const asAny = error as Record<string, unknown>;
+    const innerMessage =
+      (asAny?.['ngNavigationError'] as { message?: string })?.message || '';
+    const reasonMessage =
+      (asAny?.['reason'] as { message?: string })?.message || '';
+    return (
+      message.includes('Cannot match any routes') ||
+      innerMessage.includes('Cannot match any routes') ||
+      reasonMessage.includes('Cannot match any routes')
     );
   }
 }

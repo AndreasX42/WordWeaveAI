@@ -18,9 +18,9 @@ export class TranslationService {
 
   // Available languages
   readonly languages: Language[] = [
-    { code: 'en', name: 'English', flag: '🇺🇸' },
-    { code: 'es', name: 'Español', flag: '🇪🇸' },
-    { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+    { code: 'en', name: 'English', flag: '/assets/icons/flags/en.svg' },
+    { code: 'es', name: 'Español', flag: '/assets/icons/flags/es.svg' },
+    { code: 'de', name: 'Deutsch', flag: '/assets/icons/flags/de.svg' },
   ];
 
   // Current language signal
@@ -38,6 +38,25 @@ export class TranslationService {
   // Signal to trigger updates when translations are loaded
   private translationsLoadedSignal = signal<number>(0);
 
+  // Minimal default English seed to avoid blocking UI on first load
+  private defaultEnglishSeed: Record<string, unknown> = {
+    __seed: true,
+    errors: {
+      unexpectedError: 'An unexpected error occurred. Please try again.',
+      network:
+        'Network connection lost. Please check your internet connection.',
+    },
+    messages: {
+      loginFirst: 'Please sign in to continue.',
+    },
+  };
+
+  private isSeed(translations: Record<string, unknown> | undefined): boolean {
+    return Boolean(
+      translations && (translations as { __seed?: boolean }).__seed
+    );
+  }
+
   constructor() {
     // Load saved language preference
     const savedLanguage = localStorage.getItem(this.LANGUAGE_STORAGE_KEY);
@@ -46,6 +65,12 @@ export class TranslationService {
       if (language) {
         this.currentLanguageSignal.set(language);
       }
+    }
+
+    // Seed English synchronously so i18n works before network completes
+    const current = this.currentLanguageSignal().code;
+    if (current === 'en' && !this.translationCache.has('en')) {
+      this.translationCache.set('en', this.defaultEnglishSeed);
     }
 
     // Load initial translations
@@ -79,9 +104,13 @@ export class TranslationService {
   private loadTranslations(
     languageCode: string
   ): Observable<Record<string, unknown>> {
-    // Return cached translations if available
+    // Return cached translations if available and not a seed
     if (this.translationCache.has(languageCode)) {
-      return of(this.translationCache.get(languageCode)!);
+      const cached = this.translationCache.get(languageCode)!;
+      if (!this.isSeed(cached)) {
+        return of(cached);
+      }
+      // If cached is a seed, continue to fetch the real file
     }
 
     // Return ongoing request if already loading

@@ -15,7 +15,7 @@
   background: transparent !important;
   color: var(--footer-text-light);
   padding: 1.2rem 0 0.5rem;
-  margin-top: 20vh;
+  margin-top: auto; // let flex column push footer to the bottom without layout shift
   border-top: 1px solid var(--footer-border-light);
   font-size: 0.98rem;
   transition: color 0.3s ease;
@@ -125,10 +125,6 @@
 
 // Responsive design
 @media (max-width: 900px) {
-  .footer {
-    margin-top: 6vh;
-  }
-
   .footer-content {
     flex-direction: column;
     align-items: center;
@@ -144,16 +140,10 @@
 
 // For very short screens, use minimal spacing
 @media (max-height: 600px) {
-  .footer {
-    margin-top: 4vh;
-  }
 }
 
-// For very tall screens, limit maximum spacing
+// For very tall screens, keep auto placement
 @media (min-height: 1200px) {
-  .footer {
-    margin-top: 8vh;
-  }
 }
 
 // Performance optimization: reduce repaints

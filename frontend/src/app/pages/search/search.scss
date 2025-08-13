@@ -320,9 +320,12 @@
 }
 
 .flag {
-  font-size: 18px;
-  min-width: 24px;
-  text-align: center;
+  width: 18px;
+  height: 14px;
+  object-fit: contain;
+  border-radius: 2px;
+  vertical-align: middle;
+  margin-right: 6px;
 }
 
 .word {
@@ -566,7 +569,8 @@ mark.hl {
     font-size: 0.65rem;
   }
   .flag {
-    font-size: 1.2rem;
+    width: 16px;
+    height: 12px;
   }
 }
 
@@ -629,8 +633,8 @@ mark.hl {
     padding: 1px 4px;
   }
   .flag {
-    font-size: 16px;
-    min-width: 20px;
+    width: 14px;
+    height: 11px;
   }
   .arrow {
     font-size: 14px;

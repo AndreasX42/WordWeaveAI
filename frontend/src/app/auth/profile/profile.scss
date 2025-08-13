@@ -3,7 +3,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding-top: 80px;
+  padding: 80px 0 20vh 0;
   background: transparent !important;
 
   .profile-wrapper {
@@ -297,7 +297,7 @@
 // Responsive design
 @media (max-width: 768px) {
   .profile-container {
-    padding-top: 40px;
+    padding: 40px 0 20vh 0;
 
     .profile-wrapper {
       max-width: 100%;
@@ -345,7 +345,7 @@
 
 @media (max-width: 480px) {
   .profile-container {
-    padding-top: 32px;
+    padding: 32px 0 16vh 0;
 
     .profile-wrapper {
       margin: 0 12px;
@@ -363,8 +363,7 @@
 // Mobile-first responsive design
 @media (max-width: 599px) {
   .profile-container {
-    padding: 16px 16px 80px !important;
-    padding-top: 80px !important;
+    padding: 80px 16px 16vh 16px !important;
   }
 
   .profile-wrapper {

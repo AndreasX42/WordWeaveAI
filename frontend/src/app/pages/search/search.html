@@ -141,7 +141,13 @@
                 >
                   <div class="result-row">
                     <div class="source-info">
-                      <span class="flag">{{ word.sourceFlag }}</span>
+                      <img
+                        [src]="word.sourceFlag"
+                        [alt]="'Source language flag'"
+                        class="flag"
+                        width="16"
+                        height="12"
+                      />
                       <ng-container *ngIf="word.source_pos">
                         <span class="pos">{{ word.displayPos }}</span>
                         <span
@@ -154,7 +160,13 @@
                     </div>
                     <mat-icon class="arrow">arrow_forward</mat-icon>
                     <div class="target-info">
-                      <span class="flag">{{ word.targetFlag }}</span>
+                      <img
+                        [src]="word.targetFlag"
+                        [alt]="'Target language flag'"
+                        class="flag"
+                        width="16"
+                        height="12"
+                      />
                       <span
                         class="word target"
                         [innerHTML]="

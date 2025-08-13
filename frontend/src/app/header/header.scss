@@ -358,9 +358,17 @@ body.dark-theme .user-menu {
 .language-menu {
   min-width: 160px;
 
+  .mat-mdc-menu-item,
   button[mat-menu-item] {
-    height: 48px;
+    height: 48px !important;
     color: var(--text-primary) !important;
+    padding: 0 16px !important;
+    line-height: 48px !important;
+
+    .mat-mdc-menu-item-text {
+      line-height: 1 !important;
+      vertical-align: middle !important;
+    }
 
     &.active-language {
       background-color: rgba(var(--primary-color-rgb), 0.1) !important;
@@ -368,8 +376,13 @@ body.dark-theme .user-menu {
     }
 
     .language-flag {
-      font-size: 16px;
-      margin-right: 12px;
+      width: 20px !important;
+      height: 15px !important;
+      margin-right: 12px !important;
+      object-fit: contain !important;
+      border-radius: 2px !important;
+      vertical-align: middle !important;
+      display: inline !important;
     }
 
     .check-icon {

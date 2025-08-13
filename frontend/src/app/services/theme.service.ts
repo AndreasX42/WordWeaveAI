@@ -4,8 +4,7 @@ import { Injectable, signal, effect } from '@angular/core';
   providedIn: 'root',
 })
 export class ThemeService {
-  isDarkMode = signal<boolean>(false);
-
+  isDarkMode = signal<boolean>(true);
   constructor() {
     const savedTheme = localStorage.getItem('theme');
     const prefersDark = window.matchMedia(

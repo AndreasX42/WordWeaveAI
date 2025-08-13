@@ -17,9 +17,11 @@
 }
 
 .language-flag {
-  font-size: 1.125rem;
-  line-height: 1;
-  margin-top: -1px;
+  width: 18px;
+  height: 14px;
+  object-fit: contain;
+  border-radius: 2px;
+  vertical-align: middle;
 }
 
 .arrow-icon {

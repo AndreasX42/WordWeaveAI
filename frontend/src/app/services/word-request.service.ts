@@ -241,6 +241,8 @@ export class WordRequestService implements OnDestroy {
       this.currentRequestData?.sourceWord ||
       'word';
 
+    const requestIdFromMsg = message.request_id as string | undefined;
+
     switch (messageType) {
       case 'subscription_confirmed':
         notification.status = 'pending';
@@ -250,7 +252,8 @@ export class WordRequestService implements OnDestroy {
           sourceWord,
           'pending',
           isOnWordCardPage,
-          data
+          data,
+          requestIdFromMsg
         );
         break;
 
@@ -262,7 +265,8 @@ export class WordRequestService implements OnDestroy {
           sourceWord,
           'processing',
           isOnWordCardPage,
-          data
+          data,
+          requestIdFromMsg
         );
         break;
 
@@ -275,7 +279,8 @@ export class WordRequestService implements OnDestroy {
           sourceWord,
           'processing',
           isOnWordCardPage,
-          data
+          data,
+          requestIdFromMsg
         );
         break;
 
@@ -288,7 +293,8 @@ export class WordRequestService implements OnDestroy {
           sourceWord,
           'processing',
           isOnWordCardPage,
-          data
+          data,
+          requestIdFromMsg
         );
         break;
 
@@ -301,7 +307,8 @@ export class WordRequestService implements OnDestroy {
           sourceWord,
           'completed',
           isOnWordCardPage,
-          data
+          data,
+          requestIdFromMsg
         );
         break;
 
@@ -314,7 +321,8 @@ export class WordRequestService implements OnDestroy {
           sourceWord,
           'failed',
           isOnWordCardPage,
-          data
+          data,
+          requestIdFromMsg
         );
         break;
 
@@ -334,7 +342,8 @@ export class WordRequestService implements OnDestroy {
           sourceWord,
           'failed',
           isOnWordCardPage,
-          data
+          data,
+          requestIdFromMsg
         );
         break;
 
@@ -383,7 +392,8 @@ export class WordRequestService implements OnDestroy {
     sourceWord: string,
     status: 'pending' | 'processing' | 'completed' | 'failed' | 'redirect',
     isOnWordCardPage: boolean,
-    wordData?: Record<string, unknown>
+    wordData?: Record<string, unknown>,
+    requestIdFromMsg?: string
   ): void {
     // Send to header notifications regardless of location
     // TODO: Revert to only when not on word-card page after testing
@@ -399,8 +409,10 @@ export class WordRequestService implements OnDestroy {
       const tgtLangCode = this.getLanguageCode(
         this.currentRequestData.targetLanguage || 'es'
       );
-      const notificationId = this.currentRequestData.requestId
-        ? `word-request-${this.currentRequestData.requestId}`
+      const effectiveRequestId =
+        requestIdFromMsg || this.currentRequestData.requestId;
+      const notificationId = effectiveRequestId
+        ? `word-request-${effectiveRequestId}`
         : `word-request-${normalizedSourceWord}-${srcLangCode}-${tgtLangCode}`;
 
       console.log('🔍 Notification routing:', {

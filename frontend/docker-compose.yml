@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+  frontend:
+    container_name: frontend
+    build:
+      context: .
+      dockerfile: compose/Dockerfile.prod
+      args:
+        BASE_URL: ${BASE_URL:-http://localhost:8080/api}
+        WEBSOCKET_URL: ${WEBSOCKET_URL:-wss://localhost:8080/ws}
+    ports:
+      - "4201:80"

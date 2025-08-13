@@ -73,8 +73,9 @@ Part of speech: {part_of_speech_values}
 
 **Task:**
 1. Extract the base form, removing articles/prefixes/modifiers (if the source wourd is itself an article or some base form, leave it as is)
-2. Provide 1-3 clear, natural dictionary definitions in {source_language}
-3. Note any important context (slang, regional usage, etc.) in {source_language}
+2. If the word is in plural form, extract its singular form
+3. Provide 1-3 clear, natural, dictionary-style definitions in {source_language}
+4. Note any **highly important** context (slang, restricted regional usage, etc.) in {source_language}
 
 **CRITICAL LANGUAGE RULES:**
 - If the source word is German and vocals are given like "ue", "ae", or "oe", change them to "ä", "ä", or "ö"
@@ -88,7 +89,7 @@ Part of speech: {part_of_speech_values}
 **Quality Requirements:**
 - Extract base word correctly from the source word, removing any articles, prefixes, temporal and possessive modifiers, and any other prefixes or suffixes
 - Provide 1-3 clear and natural dictionary-style definitions in {source_language} that are distinct and common
-- **IMPORTANT:** Note informal/slang usage and other very important or special context, meaning, and regional usage of '{source_word}' in {source_language} in 'source_additional_info'. If there is no highly important context, leave it empty
+- **IMPORTANT:** Note informal/slang usage and other highly important or special context, meaning, and regional usage of '{source_word}' in {source_language} in 'source_additional_info'. If there is no highly important context, leave it empty
 - Definitions should be written in {source_language}
 - Focus on the most common and relevant meanings
 """
@@ -132,9 +133,9 @@ Source part of speech: {source_part_of_speech}
 - For vulgar/informal terms (e.g., 'huevada'), provide common equivalents (e.g., 'bullshit', 'crap', 'nonsense') **and describe tone and register**
 - **Ensure the part of speech matches {target_language} norms**
 - Fill **'english_word'** with the English equivalent (include **'to'** if verb, article if proper noun)
-- Fill 'target_additional_info' with key contextual or regional notes (in {source_language}):
-  - e.g., if usage is slang, informal, country-specific, or contextually bound
-  - Leave empty if no relevant context
+- Fill 'target_additional_info' with highly important contextual or regional notes (in {source_language}):
+  - e.g., if usage is slang, highly informal, country-specific, or contextually bound
+  - Leave empty if no highly important relevant context
 - For nouns: include plural form of translated target word in the target language in 'target_plural_form' with article (e.g., "casa" → "las casas")
 - Base form only in target_word field
 """

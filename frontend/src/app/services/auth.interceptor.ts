@@ -5,10 +5,9 @@ import {
   HttpEvent,
   HttpInterceptor,
   HttpErrorResponse,
-  HttpResponse,
 } from '@angular/common/http';
 import { Observable, throwError, BehaviorSubject, from } from 'rxjs';
-import { catchError, switchMap, filter, take, tap } from 'rxjs/operators';
+import { catchError, switchMap, filter, take, finalize } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { HealthMonitorService } from './health-monitor.service';
 import { Configs } from '../shared/config';
@@ -37,34 +36,13 @@ export class AuthInterceptor implements HttpInterceptor {
     const authRequest = this.addAuthHeader(request);
 
     return next.handle(authRequest).pipe(
-      tap((event: HttpEvent<unknown>) => {
-        // Track API response time for successful responses
-        if (event instanceof HttpResponse) {
-          const responseTime = performance.now() - startTime;
-          // Only track API calls to our backend, exclude external URLs
-          if (request.url.includes(Configs.BASE_URL)) {
-            this.healthService.trackApiResponseTime(responseTime);
-          }
-        }
-      }),
       catchError((error: HttpErrorResponse) => {
-        // Track API response time even for errors
-        if (error.status !== 0) {
-          // Exclude network errors (status 0)
-          const responseTime = performance.now() - startTime;
-          if (request.url.includes(Configs.BASE_URL)) {
-            this.healthService.trackApiResponseTime(responseTime);
-          }
-        }
-
         // Track API errors for our backend endpoints
         if (request.url.includes(Configs.BASE_URL)) {
-          // Track HTTP errors (4xx, 5xx status codes)
-          if (error.status >= 400 && error.status < 600) {
-            this.healthService.trackApiError();
-          }
-          // Also track network errors as API errors
-          else if (error.status === 0) {
+          if (
+            (error.status >= 400 && error.status < 600) ||
+            error.status === 0
+          ) {
             this.healthService.trackApiError();
           }
         }
@@ -74,6 +52,12 @@ export class AuthInterceptor implements HttpInterceptor {
         }
 
         return throwError(() => error);
+      }),
+      finalize(() => {
+        const responseTime = performance.now() - startTime;
+        if (request.url.includes(Configs.BASE_URL)) {
+          this.healthService.trackApiResponseTime(responseTime);
+        }
       })
     );
   }

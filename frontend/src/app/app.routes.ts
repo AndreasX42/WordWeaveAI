@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { Home } from './pages/home/home';
 import { canLeaveEditPage } from './shared/guards/leave.guard';
 import { AuthGuard } from './shared/guards/auth.guard';
 
@@ -10,7 +11,7 @@ export const routes: Routes = [
   },
   {
     path: 'home',
-    loadComponent: () => import('./pages/home/home').then((mod) => mod.Home),
+    component: Home,
   },
   {
     path: 'search',

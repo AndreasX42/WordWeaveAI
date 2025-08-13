@@ -1,24 +1,97 @@
 <!DOCTYPE html>
+<!--
+  WordWeave Frontend Application
+  
+  ATTRIBUTIONS:
+  - Emoji artwork provided by Twemoji (https://github.com/twitter/twemoji)
+    Licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+-->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <title>WordWeave</title>
     <base href="/" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, user-scalable=no"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <!-- Self-hosted Material Icons -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      as="font"
+      href="/assets/fonts/material-icons.woff2"
+      type="font/woff2"
+      crossorigin
+      fetchpriority="high"
+    />
+    <link rel="stylesheet" href="/assets/fonts/material-icons.css" />
+    <!-- Preload self-hosted Roboto fonts -->
+    <link
+      rel="preload"
+      as="font"
+      href="/assets/fonts/roboto-400.woff2"
+      type="font/woff2"
+      crossorigin
+      fetchpriority="high"
     />
     <link
-      href="https://fonts.googleapis.com/icon?family=Material+Icons"
-      rel="stylesheet"
+      rel="preload"
+      as="font"
+      href="/assets/fonts/roboto-500.woff2"
+      type="font/woff2"
+      crossorigin
+      fetchpriority="high"
     />
+    <link
+      rel="preload"
+      as="font"
+      href="/assets/fonts/roboto-700.woff2"
+      type="font/woff2"
+      crossorigin
+      fetchpriority="high"
+    />
+    <!-- Preload current language translations early (fallback to en.json) -->
+    <script>
+      (function () {
+        try {
+          var lang = localStorage.getItem("language") || "en";
+          var link = document.createElement("link");
+          link.rel = "preload";
+          link.as = "fetch";
+          link.href = "/assets/i18n/" + lang + ".json";
+          link.crossOrigin = "anonymous";
+          link.setAttribute("fetchpriority", "high");
+          document.head.appendChild(link);
+        } catch (e) {
+          var fallback = document.createElement("link");
+          fallback.rel = "preload";
+          fallback.as = "fetch";
+          fallback.href = "/assets/i18n/en.json";
+          fallback.crossOrigin = "anonymous";
+          fallback.setAttribute("fetchpriority", "high");
+          document.head.appendChild(fallback);
+        }
+      })();
+    </script>
   </head>
   <body class="mat-typography">
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem("theme");
+          var prefersDark = window.matchMedia(
+            "(prefers-color-scheme: dark)"
+          ).matches;
+          var isDark = saved ? saved === "dark" : prefersDark;
+          var body = document.body;
+          if (isDark) {
+            body.classList.add("dark-theme");
+            body.classList.remove("light-theme");
+          } else {
+            body.classList.add("light-theme");
+            body.classList.remove("dark-theme");
+          }
+        } catch (e) {}
+      })();
+    </script>
     <app-root></app-root>
   </body>
 </html>

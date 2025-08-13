@@ -3,7 +3,7 @@ ARG BASE_URL=http://localhost:8080/api
 ARG WEBSOCKET_URL=wss://localhost:8080/ws
 
 # Build stage
-FROM public.ecr.aws/docker/library/node:22 AS build
+FROM public.ecr.aws/docker/library/node:22-alpine AS build
 
 WORKDIR /app
 
@@ -27,7 +27,7 @@ RUN sed -i "s|http://localhost:8080/api|${BASE_URL}|g" src/app/shared/config.ts 
     sed -i "s|wss://mcjihxssd4.execute-api.us-east-1.amazonaws.com/prod/|${WEBSOCKET_URL}|g" src/app/shared/config.ts
 
 # Build the application
-RUN npm run build
+RUN npm run build -- --configuration production
 
 # Production stage
 FROM public.ecr.aws/docker/library/nginx:alpine

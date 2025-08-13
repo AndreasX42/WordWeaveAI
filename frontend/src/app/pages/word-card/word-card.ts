@@ -161,6 +161,7 @@ export class WordCard implements OnInit, OnDestroy {
   private audio: HTMLAudioElement | null = null;
   private subscriptions = new Subscription();
   isRequestMode = false;
+  private lastRequestData: WordRequestData | null = null;
 
   loadingStates = {
     targetWord: true,
@@ -437,6 +438,10 @@ export class WordCard implements OnInit, OnDestroy {
         'validationError'
       ] as ValidationErrorInfo;
       this.error = 'Word validation failed';
+      // Persist request data for later actions (e.g., suggestion search)
+      if (routeState['requestData']) {
+        this.lastRequestData = routeState['requestData'] as WordRequestData;
+      }
     } else {
       this.error = 'An error occurred while processing your request';
     }
@@ -515,6 +520,7 @@ export class WordCard implements OnInit, OnDestroy {
   private navigateToErrorUrl(errorData: {
     error?: string;
     validationError?: ValidationErrorInfo;
+    requestData?: WordRequestData;
   }): void {
     this.router.navigate(['/words/error'], {
       state: errorData,
@@ -625,7 +631,15 @@ export class WordCard implements OnInit, OnDestroy {
                 language: string;
               }[]) || [],
           };
-          this.navigateToErrorUrl({ validationError });
+          const requestDataForError: WordRequestData = {
+            sourceWord: this.word?.source_word || '',
+            sourceLanguage: this.word?.source_language || 'auto',
+            targetLanguage: this.word?.target_language || 'es',
+          };
+          this.navigateToErrorUrl({
+            validationError,
+            requestData: requestDataForError,
+          });
         } else {
           const error =
             notification.error ||
@@ -1173,21 +1187,35 @@ export class WordCard implements OnInit, OnDestroy {
     let targetLanguage = this.word?.target_language;
 
     if (!targetLanguage) {
-      const navigation = this.router.lastSuccessfulNavigation;
-      const routeState = navigation?.extras?.state;
-
-      if (routeState && routeState['requestData']) {
-        const requestData = routeState['requestData'] as WordRequestData;
-        targetLanguage = requestData.targetLanguage;
+      // Prefer request data captured on error route, if available
+      if (this.lastRequestData?.targetLanguage) {
+        targetLanguage = this.lastRequestData.targetLanguage;
+      } else {
+        const navigation = this.router.lastSuccessfulNavigation;
+        const routeState = navigation?.extras?.state;
+        if (routeState && routeState['requestData']) {
+          const requestData = routeState['requestData'] as WordRequestData;
+          targetLanguage = requestData.targetLanguage;
+        }
       }
 
       if (!targetLanguage) {
-        targetLanguage = 'es';
+        // Fallback to saved user preference from Search page
+        const savedTarget = localStorage.getItem('target_language');
+        targetLanguage = savedTarget || 'es';
       }
     }
 
     const sourceLanguageCode = this.getLanguageCode(suggestion.language);
     const targetLanguageCode = this.getLanguageCode(targetLanguage);
+
+    // Persist chosen languages so Search page picks them up immediately
+    try {
+      localStorage.setItem('source_language', sourceLanguageCode);
+      localStorage.setItem('target_language', targetLanguageCode);
+    } catch {
+      // ignore storage errors
+    }
 
     this.router.navigate(['/search'], {
       queryParams: {

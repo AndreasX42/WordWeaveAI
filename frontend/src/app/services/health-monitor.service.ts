@@ -1,6 +1,13 @@
-import { Injectable, DestroyRef, inject, OnDestroy } from '@angular/core';
+import {
+  Injectable,
+  DestroyRef,
+  inject,
+  OnDestroy,
+  effect,
+} from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Configs } from '../shared/config';
+import { AuthService } from './auth.service';
 
 export interface HealthTile {
   id: string;
@@ -72,13 +79,34 @@ export class HealthMonitorService implements OnDestroy {
   private errorStartTime = Date.now();
   private apiErrorCount = 0;
   private apiErrorStartTime = Date.now();
+  private errorTrackingStarted = false;
+
+  // Error tracking cleanup references
+  private errorEventListener?: (event: ErrorEvent) => void;
+  private rejectionEventListener?: (event: PromiseRejectionEvent) => void;
+  private errorRateInterval?: number;
+  private fastErrorRateInterval?: number;
+
+  private authService = inject(AuthService);
 
   constructor() {
     this.loadTilesFromStorage();
-    this.startMonitoring();
+    // Start/stop monitoring based on authentication state
+    effect(() => {
+      const loggedIn = this.authService.isLoggedIn();
+      if (loggedIn) {
+        this.startMonitoring();
+      } else {
+        this.stopMonitoring();
+      }
+    });
   }
 
-  private startMonitoring(): void {
+  // Start monitoring explicitly
+  startMonitoring(): void {
+    if (this.monitoringInterval) {
+      return; // already monitoring
+    }
     // Check backend health every 2 minutes
     this.checkBackendHealth();
     this.monitoringInterval = window.setInterval(() => {
@@ -87,6 +115,54 @@ export class HealthMonitorService implements OnDestroy {
 
     // Start error tracking
     this.startErrorTracking();
+  }
+
+  // Stop monitoring explicitly
+  stopMonitoring(): void {
+    // Clear backend health check interval
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+      this.monitoringInterval = undefined;
+    }
+
+    // Clean up error tracking
+    this.stopErrorTracking();
+  }
+
+  private stopErrorTracking(): void {
+    // Remove event listeners
+    if (this.errorEventListener) {
+      window.removeEventListener('error', this.errorEventListener);
+      this.errorEventListener = undefined;
+    }
+
+    if (this.rejectionEventListener) {
+      window.removeEventListener(
+        'unhandledrejection',
+        this.rejectionEventListener
+      );
+      this.rejectionEventListener = undefined;
+    }
+
+    // Clear intervals
+    if (this.errorRateInterval) {
+      clearInterval(this.errorRateInterval);
+      this.errorRateInterval = undefined;
+    }
+
+    if (this.fastErrorRateInterval) {
+      clearInterval(this.fastErrorRateInterval);
+      this.fastErrorRateInterval = undefined;
+    }
+
+    // Reset tracking state
+    this.errorTrackingStarted = false;
+    this.errorCount = 0;
+    this.errorStartTime = Date.now();
+    this.apiErrorCount = 0;
+    this.apiErrorStartTime = Date.now();
+
+    console.log('Error tracking stopped and cleaned up');
   }
 
   private async checkBackendHealth(): Promise<void> {
@@ -115,36 +191,30 @@ export class HealthMonitorService implements OnDestroy {
   }
 
   private startErrorTracking(): void {
-    console.log('Starting error tracking...');
+    if (this.errorTrackingStarted) return;
+    this.errorTrackingStarted = true;
 
-    // Track JavaScript errors
-    window.addEventListener('error', (event) => {
-      console.log('Error caught:', event.error);
+    // Track JavaScript errors - store reference for cleanup
+    this.errorEventListener = () => {
       this.recordError();
-    });
+    };
+    window.addEventListener('error', this.errorEventListener);
 
-    // Track unhandled promise rejections
-    window.addEventListener('unhandledrejection', (event) => {
-      console.log('Promise rejection caught:', event.reason);
+    // Track unhandled promise rejections - store reference for cleanup
+    this.rejectionEventListener = () => {
       this.recordError();
-    });
+    };
+    window.addEventListener('unhandledrejection', this.rejectionEventListener);
 
-    // Update error rate every minute
-    setInterval(() => {
+    // Update error rate every minute - store reference for cleanup
+    this.errorRateInterval = window.setInterval(() => {
       this.updateErrorRate();
       this.updateApiErrorRate();
     }, 60000);
-
-    // Also update every 10 seconds for more responsive testing
-    setInterval(() => {
-      this.updateErrorRate();
-      this.updateApiErrorRate();
-    }, 10000);
   }
 
   private recordError(): void {
     this.errorCount++;
-    console.log(`Error recorded. Total errors: ${this.errorCount}`);
 
     // Update immediately for testing purposes
     setTimeout(() => {
@@ -157,26 +227,18 @@ export class HealthMonitorService implements OnDestroy {
     const errorRate =
       timeElapsed > 0 ? this.errorCount / timeElapsed : this.errorCount; // If less than 1 minute, use raw count
 
-    console.log(
-      `Updating error rate: ${this.errorCount} errors in ${timeElapsed.toFixed(
-        2
-      )} minutes = ${errorRate.toFixed(2)} errors/min`
-    );
-
     this.updateTile('errors', errorRate, this.getErrorStatus(errorRate));
 
     // Reset for next period only if we've been running for more than a minute
     if (timeElapsed >= 1) {
       this.errorCount = 0;
       this.errorStartTime = Date.now();
-      console.log('Error counter reset');
     }
   }
 
   // Method to track API errors from interceptor
   trackApiError(): void {
     this.apiErrorCount++;
-    console.log(`API Error recorded. Total API errors: ${this.apiErrorCount}`);
 
     // Update immediately for testing purposes
     setTimeout(() => {
@@ -189,14 +251,6 @@ export class HealthMonitorService implements OnDestroy {
     const apiErrorRate =
       timeElapsed > 0 ? this.apiErrorCount / timeElapsed : this.apiErrorCount; // If less than 1 minute, use raw count
 
-    console.log(
-      `Updating API error rate: ${
-        this.apiErrorCount
-      } errors in ${timeElapsed.toFixed(2)} minutes = ${apiErrorRate.toFixed(
-        2
-      )} errors/min`
-    );
-
     this.updateTile(
       'api_errors',
       apiErrorRate,
@@ -207,7 +261,6 @@ export class HealthMonitorService implements OnDestroy {
     if (timeElapsed >= 1) {
       this.apiErrorCount = 0;
       this.apiErrorStartTime = Date.now();
-      console.log('API Error counter reset');
     }
   }
 
@@ -455,9 +508,7 @@ export class HealthMonitorService implements OnDestroy {
 
   // Cleanup method
   ngOnDestroy(): void {
-    if (this.monitoringInterval) {
-      clearInterval(this.monitoringInterval);
-    }
+    this.stopMonitoring();
   }
 
   // Add public method to manually trigger error rate update for testing
@@ -469,8 +520,5 @@ export class HealthMonitorService implements OnDestroy {
   // Public method to force clear cached tiles and use latest translation keys
   public clearCachedTiles(): void {
     localStorage.removeItem(this.STORAGE_KEY);
-    console.log(
-      'Health tiles cache cleared - tiles will use latest translation keys'
-    );
   }
 }
