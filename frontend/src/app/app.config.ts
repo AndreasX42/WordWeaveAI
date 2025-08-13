@@ -14,7 +14,6 @@ import { AuthInterceptor } from './services/auth.interceptor';
 import { GlobalErrorHandler } from './shared/services/global-error-handler';
 
 import { routes } from './app.routes';
-// TranslationService preloading removed to avoid duplicate requests
 
 export const appConfig: ApplicationConfig = {
   providers: [

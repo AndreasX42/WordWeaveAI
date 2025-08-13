@@ -2,7 +2,30 @@
 ARG BASE_URL=http://localhost:8080/api
 ARG WEBSOCKET_URL=wss://localhost:8080/ws
 
-# Build stage
+# ---------- Brotli builder stage: build brotli module against exact nginx version ----------
+FROM public.ecr.aws/docker/library/nginx:alpine AS brotli-builder
+
+RUN apk add --no-cache git g++ make cmake pcre-dev zlib-dev openssl-dev wget
+
+# Discover the nginx version from the base image and build brotli module
+RUN nginx_version=$(nginx -v 2>&1 | grep -o '[0-9.]\+') \
+ && echo "Building Brotli for nginx version: $nginx_version" \
+ # Fetch matching nginx sources
+ && wget -q http://nginx.org/download/nginx-${nginx_version}.tar.gz \
+ && tar -xzf nginx-${nginx_version}.tar.gz \
+ # Fetch brotli module
+ && git clone --recursive https://github.com/google/ngx_brotli.git \
+ # First build the Brotli library dependencies
+ && cd ngx_brotli/deps/brotli \
+ && mkdir out && cd out \
+ && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF .. \
+ && cmake --build . --config Release --target brotlienc \
+ # Now build the nginx module with proper library paths
+ && cd /nginx-${nginx_version} \
+ && ./configure --with-compat --add-dynamic-module=../ngx_brotli \
+ && make modules
+
+# ---------- App build stage ----------
 FROM public.ecr.aws/docker/library/node:22-alpine AS build
 
 WORKDIR /app
@@ -29,8 +52,16 @@ RUN sed -i "s|http://localhost:8080/api|${BASE_URL}|g" src/app/shared/config.ts 
 # Build the application
 RUN npm run build -- --configuration production
 
-# Production stage
+# ---------- Final production stage ----------
 FROM public.ecr.aws/docker/library/nginx:alpine
+
+# Copy built brotli modules compiled against THIS image's nginx version
+COPY --from=brotli-builder /nginx-*/objs/ngx_http_brotli_filter_module.so /etc/nginx/modules/
+COPY --from=brotli-builder /nginx-*/objs/ngx_http_brotli_static_module.so /etc/nginx/modules/
+
+# Create module loading configuration
+RUN printf "load_module modules/ngx_http_brotli_filter_module.so;\nload_module modules/ngx_http_brotli_static_module.so;\n" \
+    > /etc/nginx/modules/brotli.conf
 
 # Remove default nginx static files
 RUN rm -rf /usr/share/nginx/html/*
