@@ -81,39 +81,37 @@ import { CommonModule } from '@angular/common';
 
       <!-- How It Works Section -->
       <section class="how-it-works-section">
-        <div class="how-it-works-container">
-          <div class="section-header">
-            <h2>{{ 'home.howItWorks.title' | translate }}</h2>
-            <p>{{ 'home.howItWorks.subtitle' | translate }}</p>
+        <div class="section-header">
+          <h2>{{ 'home.howItWorks.title' | translate }}</h2>
+          <p>{{ 'home.howItWorks.subtitle' | translate }}</p>
+        </div>
+
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-number">1</div>
+            <div class="step-icon">
+              <mat-icon>library_add</mat-icon>
+            </div>
+            <h3>{{ 'home.howItWorks.step1.title' | translate }}</h3>
+            <p>{{ 'home.howItWorks.step1.description' | translate }}</p>
           </div>
 
-          <div class="steps-grid">
-            <div class="step-card">
-              <div class="step-number">1</div>
-              <div class="step-icon">
-                <mat-icon>library_add</mat-icon>
-              </div>
-              <h3>{{ 'home.howItWorks.step1.title' | translate }}</h3>
-              <p>{{ 'home.howItWorks.step1.description' | translate }}</p>
+          <div class="step-card">
+            <div class="step-number">2</div>
+            <div class="step-icon">
+              <mat-icon>auto_awesome</mat-icon>
             </div>
+            <h3>{{ 'home.howItWorks.step2.title' | translate }}</h3>
+            <p>{{ 'home.howItWorks.step2.description' | translate }}</p>
+          </div>
 
-            <div class="step-card">
-              <div class="step-number">2</div>
-              <div class="step-icon">
-                <mat-icon>auto_awesome</mat-icon>
-              </div>
-              <h3>{{ 'home.howItWorks.step2.title' | translate }}</h3>
-              <p>{{ 'home.howItWorks.step2.description' | translate }}</p>
+          <div class="step-card">
+            <div class="step-number">3</div>
+            <div class="step-icon">
+              <mat-icon>quiz</mat-icon>
             </div>
-
-            <div class="step-card">
-              <div class="step-number">3</div>
-              <div class="step-icon">
-                <mat-icon>quiz</mat-icon>
-              </div>
-              <h3>{{ 'home.howItWorks.step3.title' | translate }}</h3>
-              <p>{{ 'home.howItWorks.step3.description' | translate }}</p>
-            </div>
+            <h3>{{ 'home.howItWorks.step3.title' | translate }}</h3>
+            <p>{{ 'home.howItWorks.step3.description' | translate }}</p>
           </div>
         </div>
       </section>
@@ -162,6 +160,14 @@ import { CommonModule } from '@angular/common';
       .home-container {
         position: relative;
         overflow-x: hidden;
+        width: 100%;
+        max-width: 100vw;
+        box-sizing: border-box;
+      }
+
+      :host {
+        overflow-x: hidden !important;
+        max-width: 100vw !important;
       }
 
       /* Skeleton loading styles for stats - optimized for 500ms load */
@@ -344,21 +350,20 @@ import { CommonModule } from '@angular/common';
         position: relative;
         z-index: 1;
         background: rgba(255, 255, 255, 0.02);
-        /* Prevent CLS in this section */
         contain: layout style;
         width: 100%;
-      }
-
-      .how-it-works-container {
-        max-width: 1200px;
-        margin: 0 auto;
+        overflow-x: hidden;
+        max-width: 100vw;
+        box-sizing: border-box;
       }
 
       .steps-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
         gap: 32px;
         margin-top: 48px;
+        max-width: 1000px;
+        margin: 0 auto;
       }
 
       .step-card {
@@ -370,7 +375,6 @@ import { CommonModule } from '@angular/common';
         text-align: center;
         transition: all 0.3s ease;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-        /* Prevent layout shifts */
         contain: layout style;
       }
 
@@ -383,7 +387,7 @@ import { CommonModule } from '@angular/common';
       .step-number {
         position: absolute;
         top: -12px;
-        left: 24px;
+        left: 32px;
         background: var(--primary-color);
         color: white;
         width: 24px;
@@ -431,6 +435,9 @@ import { CommonModule } from '@angular/common';
         position: relative;
         z-index: 1;
         background: rgba(255, 255, 255, 0.01);
+        overflow-x: hidden;
+        max-width: 100vw;
+        box-sizing: border-box;
       }
 
       .features-container {
@@ -588,11 +595,6 @@ import { CommonModule } from '@angular/common';
 
         .section-header h2 {
           font-size: 2rem;
-        }
-
-        .features-grid {
-          grid-template-columns: 1fr;
-          gap: 20px;
         }
       }
 

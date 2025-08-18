@@ -36,4 +36,6 @@ output "backend_target_group_arn" {
 output "https_listener_arn" {
   description = "ARN of the HTTPS listener"
   value       = aws_lb_listener.https.arn
-} 
+}
+
+ 

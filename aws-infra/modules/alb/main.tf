@@ -216,6 +216,8 @@ resource "aws_lb_listener_rule" "frontend" {
   }
 }
 
+
+
 # Route53 Records (if zone_id provided)
 resource "aws_route53_record" "frontend" {
   count   = var.route53_zone_id != null ? 1 : 0

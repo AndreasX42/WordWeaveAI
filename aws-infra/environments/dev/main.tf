@@ -72,6 +72,22 @@ module "alb" {
   route53_zone_id      = try(data.terraform_remote_state.common.outputs.route53_zone_id, null)
 }
 
+# WAF Module
+module "waf" {
+  source = "../../modules/waf"
+
+  project_name                      = var.project_name
+  environment                       = var.environment
+  alb_arn                           = module.alb.alb_arn
+  rate_limit_requests_per_5_minutes = var.waf_rate_limit_requests_per_5_minutes
+  blocked_ip_addresses              = var.waf_blocked_ip_addresses
+  log_retention_days                = var.waf_log_retention_days
+  enable_waf_logging                = var.waf_enable_logging
+  rate_limit_response_message       = var.waf_rate_limit_response_message
+
+  depends_on = [module.alb]
+}
+
 # SQS Module
 module "sqs" {
   source = "../../modules/sqs"

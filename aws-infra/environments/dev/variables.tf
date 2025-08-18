@@ -165,4 +165,35 @@ variable "github_branch" {
   description = "GitHub branch to build from"
   type        = string
   default     = "master"
+}
+
+# WAF Configuration
+variable "waf_rate_limit_requests_per_5_minutes" {
+  description = "Maximum number of requests per IP address per 5 minutes for WAF rate limiting"
+  type        = number
+  default     = 1000
+}
+
+variable "waf_blocked_ip_addresses" {
+  description = "List of IP addresses to block via WAF"
+  type        = list(string)
+  default     = []
+}
+
+variable "waf_log_retention_days" {
+  description = "Number of days to retain WAF logs"
+  type        = number
+  default     = 30
+}
+
+variable "waf_enable_logging" {
+  description = "Enable WAF logging to CloudWatch (increases costs but provides monitoring)"
+  type        = bool
+  default     = true
+}
+
+variable "waf_rate_limit_response_message" {
+  description = "Custom message to display when WAF rate limit is exceeded"
+  type        = string
+  default     = "Rate limit exceeded. Please try again in 5 minutes."
 } 
