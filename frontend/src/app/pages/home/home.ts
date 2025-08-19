@@ -5,6 +5,8 @@ import {
   computed,
   signal,
 } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
@@ -12,6 +14,17 @@ import { ThemeService } from '../../services/theme.service';
 import { TranslationService } from '../../services/translation.service';
 import { TranslatePipe } from '../../shared/pipes/translate.pipe';
 import { CommonModule } from '@angular/common';
+import { Configs } from '../../shared/config';
+
+interface StatsResponse {
+  status: string;
+  data: {
+    total_users: number;
+    total_lists: number;
+    total_vocab_words: number;
+    last_updated: string;
+  };
+}
 
 @Component({
   selector: 'app-home',
@@ -52,8 +65,12 @@ import { CommonModule } from '@angular/common';
                 <div class="stat-number skeleton-text">0000</div>
                 <div class="stat-label skeleton-text">words<br />created</div>
                 } @else {
-                <div class="stat-number">1,234</div>
-                <div class="stat-label">words<br />created</div>
+                <div class="stat-number">
+                  {{ formatNumber(stats()?.total_vocab_words || 0) }}
+                </div>
+                <div class="stat-label">
+                  {{ 'home.hero.stats.wordsCreated' | translate }}
+                </div>
                 }
               </div>
               <div class="stat-item">
@@ -61,8 +78,12 @@ import { CommonModule } from '@angular/common';
                 <div class="stat-number skeleton-text">000</div>
                 <div class="stat-label skeleton-text">public<br />lists</div>
                 } @else {
-                <div class="stat-number">567</div>
-                <div class="stat-label">public<br />lists</div>
+                <div class="stat-number">
+                  {{ formatNumber(stats()?.total_lists || 0) }}
+                </div>
+                <div class="stat-label">
+                  {{ 'home.hero.stats.publicLists' | translate }}
+                </div>
                 }
               </div>
               <div class="stat-item">
@@ -70,8 +91,12 @@ import { CommonModule } from '@angular/common';
                 <div class="stat-number skeleton-text">0000</div>
                 <div class="stat-label skeleton-text">active<br />users</div>
                 } @else {
-                <div class="stat-number">2,891</div>
-                <div class="stat-label">active<br />users</div>
+                <div class="stat-number">
+                  {{ formatNumber(stats()?.total_users || 0) }}
+                </div>
+                <div class="stat-label">
+                  {{ 'home.hero.stats.activeUsers' | translate }}
+                </div>
                 }
               </div>
             </div>
@@ -342,6 +367,9 @@ import { CommonModule } from '@angular/common';
         font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        white-space: pre-line;
+        word-break: break-word;
+        line-height: 1.3;
       }
 
       /* How It Works Section */
@@ -658,17 +686,109 @@ import { CommonModule } from '@angular/common';
 export class Home {
   themeService = inject(ThemeService);
   translationService = inject(TranslationService);
+  private http = inject(HttpClient);
 
-  // Loading states for stats skeleton
-  statsLoaded = signal(false);
+  // Stats data
+  stats = signal<StatsResponse['data'] | null>(null);
+  statsError = signal<string | null>(null);
 
   // Computed loading state for templates
-  isStatsLoading = computed(() => !this.statsLoaded());
+  isStatsLoading = computed(
+    () => this.stats() === null && this.statsError() === null
+  );
 
   constructor() {
-    // Simulate stats loading
-    setTimeout(() => {
-      this.statsLoaded.set(true);
-    }, 500);
+    this.loadStats();
+  }
+
+  private async loadStats(): Promise<void> {
+    try {
+      const response = await firstValueFrom(
+        this.http.get<StatsResponse>(`${Configs.BASE_URL}/stats`)
+      );
+      if (response?.status === 'success' && response.data) {
+        this.stats.set(response.data);
+        this.addStatsStructuredData(response.data);
+      } else {
+        throw new Error('Invalid stats response');
+      }
+    } catch (error) {
+      console.error('Failed to load stats:', error);
+      this.statsError.set('Failed to load stats');
+      // Fallback to default values after a delay
+      setTimeout(() => {
+        this.stats.set({
+          total_users: 0,
+          total_lists: 0,
+          total_vocab_words: 0,
+          last_updated: new Date().toISOString(),
+        });
+      }, 2000);
+    }
+  }
+
+  private addStatsStructuredData(statsData: StatsResponse['data']): void {
+    // Remove existing stats structured data
+    const existingStats = document.querySelector(
+      'script[type="application/ld+json"][data-stats-schema]'
+    );
+    if (existingStats) {
+      existingStats.remove();
+    }
+
+    // Add structured data for platform statistics
+    const statsSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'Dataset',
+      name: 'WordWeave Language Learning Statistics',
+      description:
+        "Real-time statistics from WordWeave's AI-powered language learning platform",
+      dateModified: statsData.last_updated,
+      publisher: {
+        '@type': 'Organization',
+        name: 'WordWeave',
+      },
+      distribution: [
+        {
+          '@type': 'DataDownload',
+          name: 'Total Vocabulary Words',
+          description: `${this.formatNumber(
+            statsData.total_vocab_words
+          )} AI-generated vocabulary words`,
+          contentSize: statsData.total_vocab_words,
+        },
+        {
+          '@type': 'DataDownload',
+          name: 'Active Users',
+          description: `${this.formatNumber(
+            statsData.total_users
+          )} active language learners`,
+          contentSize: statsData.total_users,
+        },
+        {
+          '@type': 'DataDownload',
+          name: 'Public Word Lists',
+          description: `${this.formatNumber(
+            statsData.total_lists
+          )} community-shared vocabulary lists`,
+          contentSize: statsData.total_lists,
+        },
+      ],
+    };
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.setAttribute('data-stats-schema', 'true');
+    script.textContent = JSON.stringify(statsSchema);
+    document.head.appendChild(script);
+  }
+
+  formatNumber(num: number): string {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1).replace('.0', '') + 'M';
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1).replace('.0', '') + 'K';
+    }
+    return num.toLocaleString();
   }
 }

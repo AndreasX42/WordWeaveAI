@@ -216,9 +216,9 @@
       "subtitle": "Crea listas personalizadas o mira cómo nuestros agentes de IA generan nuevas palabras en tiempo real con audio, imágenes y ejemplos. Domina inglés, español y alemán con cuestionarios interactivos y aprendizaje colaborativo.",
       "ctaButton": "Empieza ahora",
       "stats": {
-        "wordsCreated": "Palabras creadas",
-        "publicLists": "Listas públicas",
-        "activeUsers": "Usuarios activos"
+        "wordsCreated": "Palabras\ncreadas",
+        "publicLists": "Listas\npúblicas",
+        "activeUsers": "Usuarios\nregistrados"
       }
     },
     "howItWorks": {

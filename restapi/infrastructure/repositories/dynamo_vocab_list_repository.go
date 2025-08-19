@@ -50,6 +50,13 @@ type VocabListWordRecord struct {
 	IsLearned bool       `dynamo:"is_learned"`
 }
 
+// VocabListCountRecord represents the DynamoDB storage format for vocabulary list counts
+type VocabListCountRecord struct {
+	PK    string `dynamo:"PK,hash"`  // COUNT#lists
+	SK    string `dynamo:"SK,range"` // COUNT
+	Count int    `dynamo:"count"`    // Total number of vocab lists
+}
+
 // Utility functions for vocabulary key encoding/decoding
 func encodeVocabKeys(vocabPK, vocabSK string) string {
 	combined := vocabPK + "|" + vocabSK
@@ -68,12 +75,20 @@ func decodeVocabKeys(encoded string) (string, string, error) {
 	return parts[0], parts[1], nil
 }
 
-// CreateList creates a new vocabulary list
+// CreateList creates a new vocabulary list and increments the count
 func (r *DynamoVocabListRepository) CreateList(ctx context.Context, list *entities.VocabList) error {
 	record := r.toListRecord(list)
-	return r.table.Put(record).
+
+	// Create the list record first
+	err := r.table.Put(record).
 		If("attribute_not_exists(PK) AND attribute_not_exists(SK)").
 		Run(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Atomically increment the list count
+	return r.incrementListCount(ctx, 1)
 }
 
 // GetListByID retrieves a vocabulary list by ID
@@ -122,7 +137,7 @@ func (r *DynamoVocabListRepository) UpdateList(ctx context.Context, list *entiti
 func (r *DynamoVocabListRepository) DeleteList(ctx context.Context, userID, listID string) error {
 	pk := "USER#" + userID
 
-	// First, get all items for this list (metadata + words)
+	// First, check if the list exists and get all items
 	var items []struct {
 		PK string `dynamo:"PK"`
 		SK string `dynamo:"SK"`
@@ -135,6 +150,15 @@ func (r *DynamoVocabListRepository) DeleteList(ctx context.Context, userID, list
 
 	if len(items) == 0 {
 		return nil // Nothing to delete
+	}
+
+	// Check if we have a list metadata record (to decrement count)
+	hasListMeta := false
+	for _, item := range items {
+		if strings.HasSuffix(item.SK, "#META") {
+			hasListMeta = true
+			break
+		}
 	}
 
 	// Delete items in parallel to avoid sequential bottleneck
@@ -151,6 +175,11 @@ func (r *DynamoVocabListRepository) DeleteList(ctx context.Context, userID, list
 		if err := <-errChan; err != nil {
 			return err
 		}
+	}
+
+	// If we deleted a list metadata record, decrement the count
+	if hasListMeta {
+		return r.incrementListCount(ctx, -1)
 	}
 
 	return nil
@@ -298,4 +327,53 @@ func (r *DynamoVocabListRepository) toWordEntity(record VocabListWordRecord) *en
 		LearnedAt: record.LearnedAt,
 		IsLearned: record.IsLearned,
 	}
+}
+
+// incrementListCount atomically increments or decrements the total list count
+func (r *DynamoVocabListRepository) incrementListCount(ctx context.Context, delta int) error {
+	countPK := "COUNT#lists"
+	countSK := "COUNT"
+
+	return r.table.Update("PK", countPK).Range("SK", countSK).
+		Add("count", delta).
+		Run(ctx)
+}
+
+// GetTotalListCount retrieves the total number of vocabulary lists across all users
+func (r *DynamoVocabListRepository) GetTotalListCount(ctx context.Context) (int, error) {
+	var record VocabListCountRecord
+	countPK := "COUNT#lists"
+	countSK := "COUNT"
+
+	err := r.table.Get("PK", countPK).Range("SK", dynamo.Equal, countSK).One(ctx, &record)
+	if err != nil {
+		if errors.Is(err, dynamo.ErrNotFound) {
+			// If count record doesn't exist, return 0
+			return 0, nil
+		}
+		return 0, err
+	}
+
+	return record.Count, nil
+}
+
+// InitializeListCount initializes the count record if it doesn't exist
+func (r *DynamoVocabListRepository) InitializeListCount(ctx context.Context) error {
+	countRecord := VocabListCountRecord{
+		PK:    "COUNT#lists",
+		SK:    "COUNT",
+		Count: 0,
+	}
+
+	err := r.table.Put(countRecord).
+		If("attribute_not_exists(PK) AND attribute_not_exists(SK)").
+		Run(ctx)
+
+	// If the conditional check failed, it means the record already exists
+	// This is fine for initialization - we want it to be idempotent
+	if err != nil && strings.Contains(err.Error(), "ConditionalCheckFailedException") {
+		return nil
+	}
+
+	return err
 }

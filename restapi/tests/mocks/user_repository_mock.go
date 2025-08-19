@@ -18,6 +18,10 @@ type MockUserRepository struct {
 	googleIDIndex map[string]string // googleID -> userID
 	mutex         sync.RWMutex
 
+	// Count tracking
+	userCount        int
+	countInitialized bool
+
 	// Test configuration
 	shouldUpdateError bool
 	updateErrorMsg    string
@@ -59,6 +63,9 @@ func (m *MockUserRepository) Create(ctx context.Context, user *entities.User) er
 	if user.GoogleID != "" {
 		m.googleIDIndex[user.GoogleID] = user.ID
 	}
+
+	// Increment user count
+	m.userCount++
 
 	return nil
 }
@@ -179,6 +186,11 @@ func (m *MockUserRepository) Delete(ctx context.Context, id string) error {
 		delete(m.googleIDIndex, user.GoogleID)
 	}
 
+	// Decrement user count
+	if m.userCount > 0 {
+		m.userCount--
+	}
+
 	return nil
 }
 
@@ -211,6 +223,28 @@ func (m *MockUserRepository) BatchValidateExistence(ctx context.Context, email, 
 	return result, nil
 }
 
+// Count operations
+func (m *MockUserRepository) GetTotalUserCount(ctx context.Context) (int, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	return m.userCount, nil
+}
+
+func (m *MockUserRepository) InitializeUserCount(ctx context.Context) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if !m.countInitialized {
+		// Don't reset the count if it already reflects real data
+		// Only set to 0 if we haven't been tracking counts
+		if m.userCount == 0 && len(m.users) > 0 {
+			m.userCount = len(m.users)
+		}
+		m.countInitialized = true
+	}
+	return nil
+}
+
 // Test helper methods
 
 // AddTestUser adds a user directly to the mock repository for testing
@@ -227,6 +261,9 @@ func (m *MockUserRepository) AddTestUser(user *entities.User) {
 	if user.GoogleID != "" {
 		m.googleIDIndex[user.GoogleID] = user.ID
 	}
+
+	// Increment count for test user
+	m.userCount++
 }
 
 // SetUpdateError configures the mock to return an error on Update calls
@@ -247,6 +284,8 @@ func (m *MockUserRepository) Reset() {
 	m.emailIndex = make(map[string]string)
 	m.usernameIndex = make(map[string]string)
 	m.googleIDIndex = make(map[string]string)
+	m.userCount = 0
+	m.countInitialized = false
 	m.shouldUpdateError = false
 	m.updateErrorMsg = ""
 }

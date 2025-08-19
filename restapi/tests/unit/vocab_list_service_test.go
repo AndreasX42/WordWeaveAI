@@ -2,6 +2,7 @@ package unit
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/AndreasX42/restapi/domain/entities"
@@ -735,4 +736,99 @@ func TestVocabListService_Integration(t *testing.T) {
 	// Verify list is deleted
 	_, err = service.GetList(ctx, userID, list.ID)
 	assert.Error(t, err)
+}
+
+func TestVocabListService_CountingIntegration(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("list count updates through service operations", func(t *testing.T) {
+		// Setup
+		vocabListRepo := mocks.NewMockVocabListRepository().(*mocks.MockVocabListRepository)
+		vocabRepo := mocks.NewMockVocabRepository()
+		service := services.NewVocabListService(vocabListRepo, vocabRepo)
+
+		// Initialize count
+		err := vocabListRepo.InitializeListCount(ctx)
+		require.NoError(t, err)
+
+		// Verify initial count
+		count, err := vocabListRepo.GetTotalListCount(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, 0, count)
+
+		// Create a list through the service
+		userID := "user123"
+		req := services.CreateListRequest{
+			UserID:      userID,
+			Name:        "Test List",
+			Description: "A test list",
+		}
+
+		list, err := service.CreateList(ctx, req)
+		require.NoError(t, err)
+
+		// Verify count increased
+		count, err = vocabListRepo.GetTotalListCount(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, 1, count)
+
+		// Delete the list through the service
+		err = service.DeleteList(ctx, userID, list.ID)
+		require.NoError(t, err)
+
+		// Verify count decreased
+		count, err = vocabListRepo.GetTotalListCount(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, 0, count)
+	})
+
+	t.Run("count tracks multiple lists correctly", func(t *testing.T) {
+		// Setup
+		vocabListRepo := mocks.NewMockVocabListRepository().(*mocks.MockVocabListRepository)
+		vocabRepo := mocks.NewMockVocabRepository()
+		service := services.NewVocabListService(vocabListRepo, vocabRepo)
+
+		vocabListRepo.InitializeListCount(ctx)
+
+		userID := "user123"
+
+		// Create multiple lists
+		lists := make([]string, 3) // Store list IDs instead of response objects
+		for i := 0; i < 3; i++ {
+			req := services.CreateListRequest{
+				UserID:      userID,
+				Name:        fmt.Sprintf("Test List %d", i),
+				Description: fmt.Sprintf("Test list number %d", i),
+			}
+
+			list, err := service.CreateList(ctx, req)
+			require.NoError(t, err)
+			lists[i] = list.ID
+		}
+
+		// Verify count is 3
+		count, err := vocabListRepo.GetTotalListCount(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, 3, count)
+
+		// Delete one list
+		err = service.DeleteList(ctx, userID, lists[0])
+		require.NoError(t, err)
+
+		// Verify count is 2
+		count, err = vocabListRepo.GetTotalListCount(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, 2, count)
+
+		// Delete remaining lists
+		for i := 1; i < 3; i++ {
+			err = service.DeleteList(ctx, userID, lists[i])
+			require.NoError(t, err)
+		}
+
+		// Verify count is 0
+		count, err = vocabListRepo.GetTotalListCount(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, 0, count)
+	})
 }

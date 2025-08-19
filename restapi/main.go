@@ -88,6 +88,9 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 		// Health check routes
 		api.GET("/health", container.HealthHandler.HealthCheck)
 
+		// Stats routes
+		api.GET("/stats", container.StatsHandler.GetSystemStats)
+
 		// Public routes
 		api.POST("/auth/register", container.UserHandler.Register)
 		api.POST("/auth/confirm-email", container.UserHandler.ConfirmEmail)

@@ -2,6 +2,7 @@ package unit
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -988,6 +989,119 @@ func TestUserService_UpdateUser(t *testing.T) {
 		// Verify password hash was not changed
 		if user.PasswordHash != originalPasswordHash {
 			t.Error("Expected password hash to remain unchanged when updating with empty password")
+		}
+	})
+}
+
+func TestUserService_CountingIntegration(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("user count updates through service operations", func(t *testing.T) {
+		// Setup
+		userRepo := mocks.NewMockUserRepository().(*mocks.MockUserRepository)
+		emailService := mocks.NewMockEmailService()
+		userService := services.NewUserService(userRepo, emailService)
+
+		// Initialize count
+		err := userRepo.InitializeUserCount(ctx)
+		if err != nil {
+			t.Errorf("Failed to initialize user count: %v", err)
+		}
+
+		// Verify initial count is 0
+		count, err := userRepo.GetTotalUserCount(ctx)
+		if err != nil {
+			t.Errorf("Failed to get initial user count: %v", err)
+		}
+		if count != 0 {
+			t.Errorf("Expected initial user count to be 0, got %d", count)
+		}
+
+		// Register a user through the service
+		registerReq := services.RegisterUserRequest{
+			Email:    "test@example.com",
+			Username: "testuser",
+			Password: "password123",
+		}
+
+		user, err := userService.RegisterUser(ctx, registerReq)
+		if err != nil {
+			t.Errorf("Failed to register user: %v", err)
+		}
+
+		// Verify count increased
+		count, err = userRepo.GetTotalUserCount(ctx)
+		if err != nil {
+			t.Errorf("Failed to get user count after registration: %v", err)
+		}
+		if count != 1 {
+			t.Errorf("Expected user count to be 1 after registration, got %d", count)
+		}
+
+		// Delete user through service
+		err = userService.DeleteUser(ctx, user.ID)
+		if err != nil {
+			t.Errorf("Failed to delete user: %v", err)
+		}
+
+		// Verify count decreased
+		count, err = userRepo.GetTotalUserCount(ctx)
+		if err != nil {
+			t.Errorf("Failed to get user count after deletion: %v", err)
+		}
+		if count != 0 {
+			t.Errorf("Expected user count to be 0 after deletion, got %d", count)
+		}
+	})
+
+	t.Run("multiple users registered and deleted", func(t *testing.T) {
+		// Setup
+		userRepo := mocks.NewMockUserRepository().(*mocks.MockUserRepository)
+		emailService := mocks.NewMockEmailService()
+		userService := services.NewUserService(userRepo, emailService)
+
+		userRepo.InitializeUserCount(ctx)
+
+		// Register multiple users
+		users := make([]string, 5) // Store user IDs instead of response objects
+		for i := 0; i < 5; i++ {
+			registerReq := services.RegisterUserRequest{
+				Email:    fmt.Sprintf("test%d@example.com", i),
+				Username: fmt.Sprintf("testuser%d", i),
+				Password: "password123",
+			}
+
+			user, err := userService.RegisterUser(ctx, registerReq)
+			if err != nil {
+				t.Errorf("Failed to register user %d: %v", i, err)
+			}
+			users[i] = user.ID
+		}
+
+		// Verify count is 5
+		count, err := userRepo.GetTotalUserCount(ctx)
+		if err != nil {
+			t.Errorf("Failed to get user count: %v", err)
+		}
+		if count != 5 {
+			t.Errorf("Expected user count to be 5 after registering 5 users, got %d", count)
+		}
+
+		// Delete 3 users
+		for i := 0; i < 3; i++ {
+			err = userService.DeleteUser(ctx, users[i])
+			if err != nil {
+				t.Errorf("Failed to delete user %d: %v", i, err)
+			}
+		}
+
+		// Verify count is 2
+		count, err = userRepo.GetTotalUserCount(ctx)
+		if err != nil {
+			t.Errorf("Failed to get user count after deletions: %v", err)
+		}
+		if count != 2 {
+			t.Errorf("Expected user count to be 2 after deleting 3 users, got %d", count)
 		}
 	})
 }

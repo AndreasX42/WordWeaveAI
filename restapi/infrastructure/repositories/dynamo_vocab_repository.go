@@ -64,6 +64,13 @@ type VocabRecord struct {
 	TargetPluralForm string      `dynamo:"target_plural_form"`
 }
 
+// VocabCountRecord represents the DynamoDB storage format for vocabulary word counts
+type VocabCountRecord struct {
+	PK    string `dynamo:"PK,hash"`  // COUNT#vocab
+	SK    string `dynamo:"SK,range"` // COUNT
+	Count int    `dynamo:"count"`    // Total number of vocabulary words
+}
+
 // NewDynamoVocabRepository creates a new DynamoDB vocabulary repository
 func NewDynamoVocabRepository(table dynamo.Table) repositories.VocabRepository {
 	return &DynamoVocabRepository{
@@ -538,4 +545,43 @@ func (r *DynamoVocabRepository) GetByKeysBatch(ctx context.Context, keys []entit
 	}
 
 	return result, nil
+}
+
+// GetTotalVocabCount retrieves the total number of vocabulary words
+func (r *DynamoVocabRepository) GetTotalVocabCount(ctx context.Context) (int, error) {
+	var record VocabCountRecord
+	countPK := "COUNT#vocab"
+	countSK := "COUNT"
+
+	err := r.table.Get("PK", countPK).Range("SK", dynamo.Equal, countSK).One(ctx, &record)
+	if err != nil {
+		if errors.Is(err, dynamo.ErrNotFound) {
+			// If count record doesn't exist, return 0
+			return 0, nil
+		}
+		return 0, err
+	}
+
+	return record.Count, nil
+}
+
+// InitializeVocabCount initializes the vocab count record if it doesn't exist
+func (r *DynamoVocabRepository) InitializeVocabCount(ctx context.Context) error {
+	countRecord := VocabCountRecord{
+		PK:    "COUNT#vocab",
+		SK:    "COUNT",
+		Count: 0,
+	}
+
+	err := r.table.Put(countRecord).
+		If("attribute_not_exists(PK) AND attribute_not_exists(SK)").
+		Run(ctx)
+
+	// If the conditional check failed, it means the record already exists
+	// This is fine for initialization - we want it to be idempotent
+	if err != nil && strings.Contains(err.Error(), "ConditionalCheckFailedException") {
+		return nil
+	}
+
+	return err
 }

@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/AndreasX42/restapi/domain/entities"
@@ -31,6 +32,12 @@ type UserRecord struct {
 	IsOAuthUser  bool   `dynamo:"is_oauth_user"`
 	ProfileImage string `dynamo:"profile_image"`
 	RequestCount int    `dynamo:"request_count"`
+}
+
+// UserCountRecord represents the DynamoDB storage format for user counts
+type UserCountRecord struct {
+	UserID string `dynamo:"user_id,hash"` // COUNT#users
+	Count  int    `dynamo:"count"`        // Total number of users
 }
 
 // NewDynamoUserRepository creates a new DynamoDB user repository
@@ -80,9 +87,17 @@ func (r *DynamoUserRepository) toEntity(record UserRecord) *entities.User {
 
 func (r *DynamoUserRepository) Create(ctx context.Context, user *entities.User) error {
 	record := r.toUserRecord(user)
-	return r.table.Put(record).
+
+	// Create the user record first
+	err := r.table.Put(record).
 		If("attribute_not_exists(user_id)").
 		Run(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Atomically increment the user count
+	return r.incrementUserCount(ctx, 1)
 }
 
 func (r *DynamoUserRepository) GetByID(ctx context.Context, id string) (*entities.User, error) {
@@ -147,9 +162,16 @@ func (r *DynamoUserRepository) Update(ctx context.Context, user *entities.User) 
 }
 
 func (r *DynamoUserRepository) Delete(ctx context.Context, id string) error {
-	return r.table.Delete("user_id", id).
+	// Delete the user record
+	err := r.table.Delete("user_id", id).
 		If("attribute_exists(user_id)").
 		Run(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Atomically decrement the user count
+	return r.incrementUserCount(ctx, -1)
 }
 
 func (r *DynamoUserRepository) EmailExists(ctx context.Context, email string) (bool, error) {
@@ -232,4 +254,49 @@ func (r *DynamoUserRepository) BatchValidateExistence(ctx context.Context, email
 	result.UsernameExists = usernameResult.exists
 
 	return result, nil
+}
+
+// incrementUserCount atomically increments or decrements the total user count
+func (r *DynamoUserRepository) incrementUserCount(ctx context.Context, delta int) error {
+	countUserID := "COUNT#users"
+
+	return r.table.Update("user_id", countUserID).
+		Add("count", delta).
+		Run(ctx)
+}
+
+// GetTotalUserCount retrieves the total number of users
+func (r *DynamoUserRepository) GetTotalUserCount(ctx context.Context) (int, error) {
+	var record UserCountRecord
+	countUserID := "COUNT#users"
+
+	err := r.table.Get("user_id", countUserID).One(ctx, &record)
+	if err != nil {
+		if errors.Is(err, dynamo.ErrNotFound) {
+			// If count record doesn't exist, return 0
+			return 0, nil
+		}
+		return 0, err
+	}
+
+	return record.Count, nil
+}
+
+// InitializeUserCount initializes the user count record if it doesn't exist
+func (r *DynamoUserRepository) InitializeUserCount(ctx context.Context) error {
+	countRecord := UserCountRecord{
+		UserID: "COUNT#users",
+		Count:  0,
+	}
+
+	err := r.table.Put(countRecord).
+		If("attribute_not_exists(user_id)").
+		Run(ctx)
+
+	// If the conditional check failed, it means the record already exists
+	if err != nil && strings.Contains(err.Error(), "ConditionalCheckFailedException") {
+		return nil
+	}
+
+	return err
 }

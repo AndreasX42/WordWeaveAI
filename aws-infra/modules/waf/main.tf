@@ -30,9 +30,9 @@ resource "aws_wafv2_web_acl" "main" {
     })
   }
 
-  # More granular rate limiting rule with custom response
+  # Rate limiting rule with custom response 
   rule {
-    name     = "StrictRateLimit"
+    name     = "RateLimit"
     priority = 1
 
     statement {
@@ -57,7 +57,7 @@ resource "aws_wafv2_web_acl" "main" {
 
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "StrictRateLimit"
+      metric_name                = "RateLimit"
       sampled_requests_enabled   = true
     }
   }
@@ -89,10 +89,55 @@ resource "aws_wafv2_web_acl" "main" {
     }
   }
 
-  # Combined security rules
+  # AWS Bot Control - Detects and blocks bots
   rule {
-    name     = "SecurityRules"
+    name     = "AWSManagedRulesBotControlRuleSet"
     priority = 3
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesBotControlRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "BotControlRules"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # AWS Known Bad Inputs - Blocks common attack patterns including PHP exploits
+  rule {
+    name     = "AWSManagedRulesKnownBadInputsRuleSet"
+    priority = 4
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesKnownBadInputsRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "KnownBadInputsRules"
+      sampled_requests_enabled   = true
+    }
+  }
+  # Combined security rules (Core Rule Set)
+  rule {
+    name     = "AWSManagedRulesCommonRuleSet"
+    priority = 5
 
     override_action {
       none {}
@@ -107,7 +152,99 @@ resource "aws_wafv2_web_acl" "main" {
 
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "SecurityRules"
+      metric_name                = "CommonRuleSet"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # PHP Application Rule Set - Blocks PHP-specific exploits
+  rule {
+    name     = "AWSManagedRulesPHPRuleSet"
+    priority = 6
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesPHPRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "PHPRuleSet"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Amazon IP Reputation List - Blocks IPs with known bad reputation
+  rule {
+    name     = "AWSManagedRulesAmazonIpReputationList"
+    priority = 7
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesAmazonIpReputationList"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AmazonIpReputationList"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Linux Rule Set - Blocks Linux-specific exploits
+  rule {
+    name     = "AWSManagedRulesLinuxRuleSet"
+    priority = 8
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesLinuxRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "LinuxRuleSet"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Admin Protection Rule Set - Protects admin pages and endpoints
+  rule {
+    name     = "AWSManagedRulesAdminProtectionRuleSet"
+    priority = 9
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesAdminProtectionRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AdminProtectionRuleSet"
       sampled_requests_enabled   = true
     }
   }
@@ -152,7 +289,7 @@ resource "aws_wafv2_web_acl_association" "alb" {
 
 # CloudWatch Log Group for WAF logs
 resource "aws_cloudwatch_log_group" "waf_logs" {
-  name              = "/aws/waf/${var.project_name}-web-acl"
+  name              = "/aws/wafv2/${var.project_name}-web-acl"
   retention_in_days = var.log_retention_days
 
   tags = {

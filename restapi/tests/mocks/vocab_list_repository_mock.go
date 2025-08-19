@@ -15,6 +15,10 @@ type MockVocabListRepository struct {
 	words       map[string]*entities.VocabListWord // key: userID:listID:vocabPK:vocabSK
 	listsByUser map[string][]*entities.VocabList   // key: userID
 	mutex       sync.RWMutex
+
+	// Count tracking
+	listCount        int
+	countInitialized bool
 }
 
 // NewMockVocabListRepository creates a new mock vocab list repository
@@ -52,6 +56,9 @@ func (m *MockVocabListRepository) CreateList(ctx context.Context, list *entities
 
 	// Update user's lists
 	m.listsByUser[list.UserID] = append(m.listsByUser[list.UserID], &listCopy)
+
+	// Increment list count
+	m.listCount++
 
 	return nil
 }
@@ -145,6 +152,11 @@ func (m *MockVocabListRepository) DeleteList(ctx context.Context, userID, listID
 	}
 	for _, wordKey := range keysToDelete {
 		delete(m.words, wordKey)
+	}
+
+	// Decrement list count
+	if m.listCount > 0 {
+		m.listCount--
 	}
 
 	return nil
@@ -270,4 +282,44 @@ func (m *MockVocabListRepository) WordExistsInList(ctx context.Context, userID, 
 	wordKey := m.getWordKey(userID, listID, vocabPK, vocabSK)
 	_, exists := m.words[wordKey]
 	return exists, nil
+}
+
+// Count operations
+func (m *MockVocabListRepository) GetTotalListCount(ctx context.Context) (int, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	return m.listCount, nil
+}
+
+func (m *MockVocabListRepository) InitializeListCount(ctx context.Context) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if !m.countInitialized {
+		// Don't reset the count if it already reflects real data
+		// Only set to 0 if we haven't been tracking counts
+		if m.listCount == 0 && len(m.lists) > 0 {
+			m.listCount = len(m.lists)
+		}
+		m.countInitialized = true
+	}
+	return nil
+}
+
+// Test helper methods
+func (m *MockVocabListRepository) Reset() {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	m.lists = make(map[string]*entities.VocabList)
+	m.words = make(map[string]*entities.VocabListWord)
+	m.listsByUser = make(map[string][]*entities.VocabList)
+	m.listCount = 0
+	m.countInitialized = false
+}
+
+func (m *MockVocabListRepository) GetListCount() int {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	return m.listCount
 }

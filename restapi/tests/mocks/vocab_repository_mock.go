@@ -13,6 +13,9 @@ import (
 type MockVocabRepository struct {
 	words map[string]*entities.VocabWord // key: PK|SK
 	mutex sync.RWMutex
+
+	// Count tracking (managed externally, but we track for testing)
+	vocabCount int
 }
 
 // NewMockVocabRepository creates a new mock vocabulary repository
@@ -117,4 +120,37 @@ func (m *MockVocabRepository) SearchByWordWithLanguages(ctx context.Context, nor
 	}
 
 	return results, nil
+}
+
+// Count operations
+func (m *MockVocabRepository) GetTotalVocabCount(ctx context.Context) (int, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	return m.vocabCount, nil
+}
+
+func (m *MockVocabRepository) InitializeVocabCount(ctx context.Context) error {
+	// For testing, we don't need to do anything special here
+	// The count is already initialized to 0 when the mock is created
+	return nil
+}
+
+// Test helper methods
+func (m *MockVocabRepository) SetVocabCount(count int) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.vocabCount = count
+}
+
+func (m *MockVocabRepository) Reset() {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.words = make(map[string]*entities.VocabWord)
+	m.vocabCount = 0
+}
+
+func (m *MockVocabRepository) GetWordCount() int {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	return len(m.words)
 }

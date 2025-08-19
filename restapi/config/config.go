@@ -31,6 +31,7 @@ type Container struct {
 	UserService          *services.UserService
 	VocabService         *services.VocabService
 	VocabListService     *services.VocabListService
+	StatsService         *services.StatsService
 	UserHandler          *handlers.UserHandler
 	HealthHandler        *handlers.HealthHandler
 	SearchHandler        *handlers.SearchHandler
@@ -38,6 +39,7 @@ type Container struct {
 	VocabRequestHandler  *handlers.VocabRequestHandler
 	OAuthHandler         *handlers.OAuthHandler
 	SentryHandler        *handlers.SentryHandler
+	StatsHandler         *handlers.StatsHandler
 	DynamoDB             *dynamo.DB
 	SESClient            *ses.Client
 	SQSClient            *sqs.Client
@@ -157,6 +159,7 @@ func (c *Container) initServices() {
 	c.UserService = services.NewUserService(c.UserRepository, c.EmailService)
 	c.VocabService = services.NewVocabService(c.VocabRepository, c.VocabMediaRepository)
 	c.VocabListService = services.NewVocabListService(c.VocabListRepository, c.VocabRepository)
+	c.StatsService = services.NewStatsService(c.UserRepository, c.VocabListRepository, c.VocabRepository)
 }
 
 func (c *Container) initHandlers() {
@@ -166,6 +169,7 @@ func (c *Container) initHandlers() {
 	c.VocabRequestHandler = handlers.NewVocabRequestHandler(c.SQSClient, c.UserRepository)
 	c.OAuthHandler = handlers.NewOAuthHandler(c.UserService, c.GoogleOAuthConfig.Config)
 	c.SentryHandler = handlers.NewSentryHandler(c.SentryConfig.Client)
+	c.StatsHandler = handlers.NewStatsHandler(c.StatsService)
 	// UserHandler will be set later in main.go after JWT middleware is created
 }
 

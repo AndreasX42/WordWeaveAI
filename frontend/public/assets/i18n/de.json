@@ -217,9 +217,9 @@
       "subtitle": "Erstelle individuelle Vokabellisten aus unserer Community-Datenbank oder sieh zu, wie unsere KI-Agenten in Echtzeit neue Wörter mit Audio, Bildern und Beispielen erzeugen. Meistere Englisch, Spanisch und Deutsch dank interaktiver Quizze und gemeinsamer Lernerfahrung.",
       "ctaButton": "Jetzt loslegen",
       "stats": {
-        "wordsCreated": "Wörter erstellt",
-        "publicLists": "Öffentliche Listen",
-        "activeUsers": "Aktive Nutzer"
+        "wordsCreated": "Wörter\nerstellt",
+        "publicLists": "Öffentliche\nListen",
+        "activeUsers": "Registrierte\nNutzer"
       }
     },
     "howItWorks": {

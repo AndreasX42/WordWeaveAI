@@ -55,6 +55,7 @@ import {
 } from './components/processing-stages';
 import { WordTabsComponent } from './components/word-tabs';
 import { WordDetailsComponent } from './components/word-details';
+import { SEOService } from '../../services/seo.service';
 
 interface WordRequestData {
   sourceWord: string;
@@ -143,6 +144,7 @@ export class WordCard implements OnInit, OnDestroy {
   private elementRef = inject(ElementRef);
   private renderer = inject(Renderer2);
   private destroyRef = inject(DestroyRef);
+  private seoService = inject(SEOService);
 
   word: VocabularyWord | null = null;
   loading = true;
@@ -367,6 +369,7 @@ export class WordCard implements OnInit, OnDestroy {
       this.word = wordFromState;
       this.langConfig = getLanguageConfig(this.word);
       this.setAllLoadingStates(false);
+      this.updateSEOForWord(this.word);
       this.loading = false;
       return;
     }
@@ -395,6 +398,8 @@ export class WordCard implements OnInit, OnDestroy {
     } catch {
       // Best effort cleanup; ignore disconnect failures
     }
+    // Reset SEO to default when leaving word page
+    this.seoService.resetToDefaultSEO();
   }
 
   constructor() {
@@ -1066,6 +1071,7 @@ export class WordCard implements OnInit, OnDestroy {
             this.word = data;
             this.langConfig = getLanguageConfig(this.word);
             this.setAllLoadingStates(false);
+            this.updateSEOForWord(this.word);
 
             if (isRedirect) {
               this.navigateToWordUrl();
@@ -1102,6 +1108,7 @@ export class WordCard implements OnInit, OnDestroy {
             this.word = data;
             this.langConfig = getLanguageConfig(this.word);
             this.setAllLoadingStates(false);
+            this.updateSEOForWord(this.word);
 
             if (isRedirect) {
               this.navigateToWordUrl();
@@ -1261,5 +1268,12 @@ export class WordCard implements OnInit, OnDestroy {
       return createdBy.split('-')[0];
     }
     return createdBy;
+  }
+
+  private updateSEOForWord(word: VocabularyWord): void {
+    // Only update SEO for actual word pages, not for request/error modes
+    if (!this.isRequestMode && word && word.source_word && word.target_word) {
+      this.seoService.updateWordPageSEO(word);
+    }
   }
 }

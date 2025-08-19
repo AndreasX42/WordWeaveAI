@@ -1,0 +1,25 @@
+User-agent: *
+
+# Allow crawling of main content
+Allow: /
+Allow: /home
+Allow: /search
+Allow: /words/*/
+
+# Disallow authentication and private pages
+Disallow: /login
+Disallow: /register
+Disallow: /profile
+Disallow: /verify
+Disallow: /forgot-password
+Disallow: /auth/
+
+# Disallow admin/health endpoints
+Disallow: /health
+
+# Allow common web assets
+Allow: /assets/
+Allow: /favicon.ico
+
+# Sitemap location
+Sitemap: https://wordweave.xyz/sitemap.xml

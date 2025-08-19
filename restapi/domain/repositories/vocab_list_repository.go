@@ -21,4 +21,8 @@ type VocabListRepository interface {
 	GetWordsInList(ctx context.Context, userID, listID string) ([]*entities.VocabListWord, error)
 	UpdateWordInList(ctx context.Context, word *entities.VocabListWord) error
 	WordExistsInList(ctx context.Context, userID, listID, vocabPK, vocabSK string) (bool, error)
+
+	// Count operations
+	GetTotalListCount(ctx context.Context) (int, error)
+	InitializeListCount(ctx context.Context) error
 }

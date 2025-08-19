@@ -24,6 +24,10 @@ type UserRepository interface {
 	EmailExists(ctx context.Context, email string) (bool, error)
 	UsernameExists(ctx context.Context, username string) (bool, error)
 	BatchValidateExistence(ctx context.Context, email, username string) (*ValidationResult, error)
+
+	// Count operations
+	GetTotalUserCount(ctx context.Context) (int, error)
+	InitializeUserCount(ctx context.Context) error
 }
 
 // EmailService defines the contract for email operations
