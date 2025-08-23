@@ -8,13 +8,14 @@ import (
 
 // VocabList represents a user's vocabulary list
 type VocabList struct {
-	ID          string
-	UserID      string
-	Name        string
-	Description string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	WordCount   int
+	ID           string
+	UserID       string
+	Name         string
+	Description  string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	WordCount    int
+	LearnedCount int
 }
 
 // VocabListWord represents a word in a user's vocabulary list
@@ -23,6 +24,7 @@ type VocabListWord struct {
 	UserID    string
 	VocabPK   string
 	VocabSK   string
+	MediaRef  string
 	AddedAt   time.Time
 	LearnedAt *time.Time
 	IsLearned bool
@@ -43,12 +45,13 @@ func NewVocabList(userID, name, description string) *VocabList {
 }
 
 // NewVocabListWord creates a new vocab list word entry
-func NewVocabListWord(listID, userID, vocabPK, vocabSK string) *VocabListWord {
+func NewVocabListWord(listID, userID, vocabPK, vocabSK, mediaRef string) *VocabListWord {
 	return &VocabListWord{
 		ListID:    listID,
 		UserID:    userID,
 		VocabPK:   vocabPK,
 		VocabSK:   vocabSK,
+		MediaRef:  mediaRef,
 		AddedAt:   time.Now(),
 		IsLearned: false,
 	}

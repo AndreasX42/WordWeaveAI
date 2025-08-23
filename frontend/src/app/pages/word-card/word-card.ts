@@ -19,6 +19,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatDialog } from '@angular/material/dialog';
 import { ThemeService } from '../../services/theme.service';
 import { TranslationService } from '../../services/translation.service';
 import { TranslatePipe } from '../../shared/pipes/translate.pipe';
@@ -56,6 +57,11 @@ import {
 import { WordTabsComponent } from './components/word-tabs';
 import { WordDetailsComponent } from './components/word-details';
 import { SEOService } from '../../services/seo.service';
+import {
+  ListSelectionDialogComponent,
+  ListSelectionDialogData,
+} from './components/list-selection-dialog';
+import { AuthService } from '../../services/auth.service';
 
 interface WordRequestData {
   sourceWord: string;
@@ -145,6 +151,8 @@ export class WordCard implements OnInit, OnDestroy {
   private renderer = inject(Renderer2);
   private destroyRef = inject(DestroyRef);
   private seoService = inject(SEOService);
+  private dialog = inject(MatDialog);
+  private authService = inject(AuthService);
 
   word: VocabularyWord | null = null;
   loading = true;
@@ -376,6 +384,22 @@ export class WordCard implements OnInit, OnDestroy {
 
     if (routeState && routeState['pk'] && routeState['sk']) {
       this.loadWordByPkSk(routeState['pk'], routeState['sk']);
+      return;
+    }
+
+    // Check for query parameters pk and sk
+    const queryParams = this.route.snapshot.queryParams;
+    if (queryParams['pk'] && queryParams['sk']) {
+      // Use optimized loading with media_ref if available
+      if (queryParams['media_ref']) {
+        this.loadWordByPkSkWithMedia(
+          queryParams['pk'],
+          queryParams['sk'],
+          queryParams['media_ref']
+        );
+      } else {
+        this.loadWordByPkSk(queryParams['pk'], queryParams['sk']);
+      }
       return;
     }
 
@@ -1036,7 +1060,13 @@ export class WordCard implements OnInit, OnDestroy {
         sk += `#POS#${normalizedPos}`;
       }
 
-      this.loadWordByPkSk(pk, sk);
+      // Check for media_ref query parameter for optimized loading
+      const mediaRef = this.route.snapshot.queryParams['media_ref'];
+      if (mediaRef) {
+        this.loadWordByPkSkWithMedia(pk, sk, mediaRef);
+      } else {
+        this.loadWordByPkSk(pk, sk);
+      }
     } else {
       this.error =
         'Invalid parameters: missing source language, target language, or word';
@@ -1231,6 +1261,38 @@ export class WordCard implements OnInit, OnDestroy {
         target: targetLanguageCode,
         autosearch: 'true',
       },
+    });
+  }
+
+  openAddToListDialog(): void {
+    if (!this.authService.isLoggedIn()) {
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    if (!this.word?.pk || !this.word?.sk) {
+      console.error('Cannot add word to list: missing pk or sk');
+      return;
+    }
+
+    const dialogData: ListSelectionDialogData = {
+      vocabPk: this.word.pk,
+      vocabSk: this.word.sk,
+      mediaRef: this.word.media_ref || '',
+      sourceWord: this.word.source_word || '',
+      targetWord: this.word.target_word || '',
+    };
+
+    const dialogRef = this.dialog.open(ListSelectionDialogComponent, {
+      width: '500px',
+      data: dialogData,
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result?.success) {
+        // Optional: Show success message or perform additional actions
+        console.log(`Word added to list: ${result.listName}`);
+      }
     });
   }
 

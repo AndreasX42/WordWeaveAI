@@ -12,7 +12,8 @@
     "signOut": "Abmelden",
     "register": "Registrieren",
     "guestUser": "Gast",
-    "notSignedIn": "Nicht angemeldet"
+    "notSignedIn": "Nicht angemeldet",
+    "vocabLists": "Vokabellisten"
   },
   "footer": {
     "brand": {
@@ -55,6 +56,7 @@
     "success": "Erfolgreich",
     "cancel": "Abbrechen",
     "confirm": "Bestätigen",
+    "create": "Erstellen",
     "save": "Speichern",
     "edit": "Bearbeiten",
     "delete": "Löschen",
@@ -218,7 +220,7 @@
       "ctaButton": "Jetzt loslegen",
       "stats": {
         "wordsCreated": "Wörter\nerstellt",
-        "publicLists": "Öffentliche\nListen",
+        "publicLists": "Listen\nerstellt",
         "activeUsers": "Registrierte\nNutzer"
       }
     },
@@ -296,6 +298,9 @@
     "notFound": "Das gesuchte Wort konnte nicht gefunden werden.",
     "loadError": "Das Wort konnte nicht geladen werden. Bitte versuchen Sie es später erneut.",
     "addToList": "Zur Liste hinzufügen",
+    "selectList": "Liste auswählen",
+    "noLists": "Keine Vokabellisten gefunden",
+    "createListFirst": "Erstellen Sie Ihre erste Vokabelliste, um Wörter hinzuzufügen",
     "dictionary": "Wörterbuch",
     "examples": "Beispiele",
     "pronunciation": "Aussprache",
@@ -372,6 +377,48 @@
       "pronunciation": "Audio",
       "conjugation": "Konjugation",
       "finalQuality": "Qualität"
+    }
+  },
+  "vocabLists": {
+    "title": "Meine Vokabellisten",
+    "subtitle": "Organisieren und verfolgen Sie Ihren Sprachlernfortschritt mit benutzerdefinierten Wortlisten",
+    "createList": "Liste erstellen",
+    "createFirstList": "Ihre erste Liste erstellen",
+    "editList": "Liste bearbeiten",
+    "deleteList": "Liste löschen",
+    "openList": "Liste öffnen",
+    "listName": "Listenname",
+    "listNamePlaceholder": "Geben Sie einen Namen für Ihre Liste ein",
+    "description": "Beschreibung",
+    "descriptionPlaceholder": "Beschreiben Sie, wofür diese Liste ist (optional)",
+    "words": "Wörter",
+    "created": "Erstellt",
+    "loading": "Ihre Vokabellisten werden geladen...",
+    "loadingWords": "Wörter werden geladen...",
+    "retry": "Erneut versuchen",
+    "viewWord": "Details anzeigen",
+    "removeWord": "Aus Liste entfernen",
+    "empty": {
+      "title": "Noch keine Listen",
+      "subtitle": "Beginnen Sie mit dem Aufbau Ihres Wortschatzes, indem Sie Ihre erste Liste erstellen!"
+    },
+    "emptyList": {
+      "title": "Liste ist leer",
+      "subtitle": "Fügen Sie Wörter zu dieser Liste hinzu, indem Sie nach ihnen suchen und die Option 'Zur Liste hinzufügen' verwenden."
+    },
+    "error": {
+      "title": "Listen können nicht geladen werden"
+    },
+    "validation": {
+      "nameRequired": "Listenname ist erforderlich",
+      "nameTooLong": "Name muss weniger als 100 Zeichen haben",
+      "descriptionTooLong": "Beschreibung muss weniger als 500 Zeichen haben"
+    },
+    "status": {
+      "learning": "Lernend",
+      "learned": "Gelernt",
+      "difficult": "Schwierig",
+      "mastered": "Beherrscht"
     }
   }
 }

@@ -158,7 +158,7 @@ func (c *Container) initServices() {
 	c.EmailService = infraServices.NewSESEmailService(c.SESClient)
 	c.UserService = services.NewUserService(c.UserRepository, c.EmailService)
 	c.VocabService = services.NewVocabService(c.VocabRepository, c.VocabMediaRepository)
-	c.VocabListService = services.NewVocabListService(c.VocabListRepository, c.VocabRepository)
+	c.VocabListService = services.NewVocabListService(c.VocabListRepository, c.VocabRepository, c.VocabMediaRepository)
 	c.StatsService = services.NewStatsService(c.UserRepository, c.VocabListRepository, c.VocabRepository)
 }
 

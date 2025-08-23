@@ -27,4 +27,21 @@ export class WordHeaderComponent {
   @Input() hasTargetSyllables!: boolean;
   @Input() hasValidPronunciation!: boolean;
   @Output() playCombinedAudio = new EventEmitter<void>();
+  @Output() addToList = new EventEmitter<void>();
+
+  get isWordComplete(): boolean {
+    return !!(
+      this.word?.pk &&
+      this.word?.sk &&
+      this.word?.source_word &&
+      this.word?.target_word &&
+      this.word?.media_ref
+    );
+  }
+
+  onAddToList(): void {
+    if (this.isWordComplete) {
+      this.addToList.emit();
+    }
+  }
 }

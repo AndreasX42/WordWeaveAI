@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/AndreasX42/restapi/domain/entities"
 	"github.com/AndreasX42/restapi/domain/repositories"
@@ -259,18 +260,24 @@ func (m *MockVocabListRepository) GetWordsInList(ctx context.Context, userID, li
 	return words, nil
 }
 
-func (m *MockVocabListRepository) UpdateWordInList(ctx context.Context, word *entities.VocabListWord) error {
+func (m *MockVocabListRepository) UpdateWordInList(ctx context.Context, userID, listID, vocabPK, vocabSK string, isLearned bool) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	wordKey := m.getWordKey(word.UserID, word.ListID, word.VocabPK, word.VocabSK)
-	if _, exists := m.words[wordKey]; !exists {
+	wordKey := m.getWordKey(userID, listID, vocabPK, vocabSK)
+	word, exists := m.words[wordKey]
+	if !exists {
 		return fmt.Errorf("word not found in list")
 	}
 
-	// Store copy to avoid data races
-	wordCopy := *word
-	m.words[wordKey] = &wordCopy
+	// Update the isLearned status and set LearnedAt timestamp if needed
+	word.IsLearned = isLearned
+	if isLearned {
+		now := time.Now()
+		word.LearnedAt = &now
+	} else {
+		word.LearnedAt = nil
+	}
 
 	return nil
 }

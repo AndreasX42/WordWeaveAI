@@ -1,0 +1,304 @@
+<div
+  class="word-lists-container"
+  [class.dark-theme]="themeService.isDarkMode()"
+>
+  <div
+    class="content-wrapper"
+    [class.showing-lists]="!selectedList()"
+    [class.showing-details]="selectedList() !== null"
+  >
+    <!-- Lists Section (Header + Lists Grid) -->
+    <div class="lists-section">
+      <!-- Header Section -->
+      <div class="page-header">
+        <div class="header-content">
+          <h1 class="page-title">{{ "vocabLists.title" | translate }}</h1>
+          <p class="page-subtitle">{{ "vocabLists.subtitle" | translate }}</p>
+        </div>
+
+        <div class="header-actions">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="openCreateListDialog()"
+            class="create-list-btn"
+          >
+            <mat-icon>add</mat-icon>
+            {{ "vocabLists.createList" | translate }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      @if (loading() && !lists().length) {
+      <div class="loading-container">
+        <mat-spinner diameter="50"></mat-spinner>
+        <p class="loading-text">{{ "vocabLists.loading" | translate }}</p>
+      </div>
+      }
+
+      <!-- Error State -->
+      @if (error() && !loading()) {
+      <div class="error-container">
+        <mat-icon color="warn" class="error-icon">error_outline</mat-icon>
+        <h3>{{ "vocabLists.error.title" | translate }}</h3>
+        <p>{{ error() }}</p>
+        <button mat-raised-button color="primary" (click)="loadLists()">
+          <mat-icon>refresh</mat-icon>
+          {{ "vocabLists.retry" | translate }}
+        </button>
+      </div>
+      }
+
+      <!-- Empty State -->
+      @if (!loading() && !error() && lists().length === 0) {
+      <div class="empty-state">
+        <mat-icon class="empty-icon">list_alt</mat-icon>
+        <h3>{{ "vocabLists.empty.title" | translate }}</h3>
+        <p>{{ "vocabLists.empty.subtitle" | translate }}</p>
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="openCreateListDialog()"
+          class="create-first-list-btn"
+        >
+          <mat-icon>add</mat-icon>
+          {{ "vocabLists.createFirstList" | translate }}
+        </button>
+      </div>
+      }
+
+      <!-- Lists Grid -->
+      @if (!loading() && !error() && lists().length > 0) {
+      <div class="lists-grid">
+        @for (list of lists(); track list.id; let i = $index) {
+        <div
+          class="list-card-container"
+          (click)="openList(list)"
+          (keyup.enter)="openList(list)"
+          (keyup.space)="openList(list)"
+          tabindex="0"
+          role="button"
+        >
+          <div
+            class="list-card"
+            [class.selected]="selectedListId() === list.id"
+          >
+            <!-- List Icon/Avatar -->
+            <div class="list-avatar" [style.background-color]="getListColor(i)">
+              <mat-icon>{{ getListIcon(list.name) }}</mat-icon>
+            </div>
+
+            <!-- List Content -->
+            <div class="list-content">
+              <div class="list-header">
+                <h3 class="list-title">{{ list.name }}</h3>
+                <button
+                  mat-icon-button
+                  [matMenuTriggerFor]="listMenu"
+                  [matMenuTriggerData]="{ list: list }"
+                  class="list-menu-btn"
+                  (click)="$event.stopPropagation()"
+                >
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+              </div>
+
+              @if (list.description) {
+              <p class="list-description">{{ list.description }}</p>
+              }
+
+              <!-- Compact meta info in one line -->
+              <div class="list-meta-compact">
+                <span class="word-count">{{ list.word_count || 0 }} words</span>
+                <span class="progress-text">{{ getProgressText(list) }}</span>
+                <span class="created-date">{{
+                  getFormattedDate(list.created_at)
+                }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        }
+      </div>
+      }
+
+      <!-- List Actions Menu -->
+      <mat-menu #listMenu="matMenu">
+        <ng-template matMenuContent let-list="list">
+          <button mat-menu-item (click)="openEditListDialog(list)">
+            <mat-icon>edit</mat-icon>
+            <span>{{ "vocabLists.editList" | translate }}</span>
+          </button>
+
+          <button
+            mat-menu-item
+            (click)="confirmDeleteList(list)"
+            class="delete-action"
+          >
+            <mat-icon color="warn">delete</mat-icon>
+            <span>{{ "vocabLists.deleteList" | translate }}</span>
+          </button>
+        </ng-template>
+      </mat-menu>
+    </div>
+    <!-- End of lists-section -->
+
+    <!-- Selected List Details -->
+    @if (selectedList()) {
+    <div class="list-details-panel" [class.expanded]="selectedList() !== null">
+      <div class="panel-header">
+        <div class="panel-title-section">
+          <button
+            mat-icon-button
+            (click)="closeListDetails()"
+            class="close-panel-btn"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+          <h2 class="panel-title">{{ selectedList()!.name }}</h2>
+          <span class="word-count-badge">
+            {{ selectedListWords()?.length || selectedList()?.word_count || 0 }}
+            {{ "vocabLists.words" | translate }}
+          </span>
+        </div>
+      </div>
+
+      <div class="panel-content">
+        <!-- Loading words -->
+        @if (loadingWords()) {
+        <div class="loading-words">
+          <mat-spinner diameter="30"></mat-spinner>
+          <p>{{ "vocabLists.loadingWords" | translate }}</p>
+        </div>
+        }
+
+        <!-- Error loading words -->
+        @if (wordsError() && !loadingWords()) {
+        <div class="words-error">
+          <mat-icon color="warn">error_outline</mat-icon>
+          <p>{{ wordsError() }}</p>
+          <button
+            mat-raised-button
+            (click)="loadWordsInList(selectedList()!.id)"
+          >
+            {{ "vocabLists.retry" | translate }}
+          </button>
+        </div>
+        }
+
+        <!-- Empty list -->
+        @if (!loadingWords() && !wordsError() && selectedListWords() &&
+        selectedListWords()!.length === 0) {
+        <div class="empty-words">
+          <mat-icon class="empty-words-icon">library_books</mat-icon>
+          <h3>{{ "vocabLists.emptyList.title" | translate }}</h3>
+          <p>{{ "vocabLists.emptyList.subtitle" | translate }}</p>
+        </div>
+        }
+
+        <!-- Words list -->
+        @if (!loadingWords() && !wordsError() && selectedListWords() &&
+        selectedListWords()!.length > 0) {
+        <div class="words-list">
+          @for (word of selectedListWords()!; track word.vocab_pk + '|' +
+          word.vocab_sk) {
+          <div
+            class="word-item"
+            (click)="viewWordDetails(word)"
+            (keyup.enter)="viewWordDetails(word)"
+            (keyup.space)="viewWordDetails(word)"
+            tabindex="0"
+            role="button"
+          >
+            <div class="word-media">
+              @if (getWordImageUrl(word)) {
+              <img
+                [src]="getWordImageUrl(word)"
+                [alt]="word.source_word || word.vocab_pk"
+                class="word-image"
+              />
+              } @else {
+              <div class="word-placeholder">
+                <mat-icon>image</mat-icon>
+              </div>
+              }
+            </div>
+
+            <div class="word-content">
+              <div class="word-main">
+                <div class="source-word-section">
+                  @if (word.source_language) {
+                  <img
+                    [src]="
+                      '/assets/icons/flags/' + word.source_language + '.svg'
+                    "
+                    [alt]="word.source_language"
+                    class="language-flag"
+                  />
+                  }
+                  <span class="source-word">{{
+                    word.source_word || word.vocab_pk
+                  }}</span>
+                </div>
+
+                <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+
+                <div class="target-word-section">
+                  @if (word.target_language) {
+                  <img
+                    [src]="
+                      '/assets/icons/flags/' + word.target_language + '.svg'
+                    "
+                    [alt]="word.target_language"
+                    class="language-flag"
+                  />
+                  }
+                  <span class="target-word">{{
+                    word.target_word || word.vocab_sk
+                  }}</span>
+                  <mat-icon
+                    class="status-icon"
+                    [class.learned]="word.is_learned"
+                    [class.learning]="!word.is_learned"
+                  >
+                    check_circle
+                  </mat-icon>
+                </div>
+              </div>
+
+              @if (word.source_definition && word.source_definition.length > 0)
+              {
+              <div class="word-definition">
+                <span class="definition-text">{{
+                  word.source_definition[0]
+                }}</span>
+              </div>
+              }
+            </div>
+
+            <div class="word-actions">
+              <button
+                mat-icon-button
+                (click)="
+                  confirmRemoveWordFromList(word); $event.stopPropagation()
+                "
+                class="word-delete-btn"
+                matTooltip="{{ 'vocabLists.removeWord' | translate }}"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+              <span class="added-date">
+                {{ getFormattedDate(word.added_at) }}
+              </span>
+            </div>
+          </div>
+          }
+        </div>
+        }
+      </div>
+    </div>
+
+    }
+  </div>
+</div>

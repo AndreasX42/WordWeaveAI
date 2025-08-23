@@ -111,8 +111,15 @@
   z-index: 1;
 }
 
-.add-to-list-button:hover {
+.add-to-list-button:hover:not(:disabled) {
   background-color: rgba(25, 118, 210, 0.1) !important;
+}
+
+.add-to-list-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  border-color: rgba(0, 0, 0, 0.26) !important;
+  color: rgba(0, 0, 0, 0.26) !important;
 }
 
 .add-to-list-button mat-icon {
@@ -166,8 +173,15 @@
     color: var(--primary-light, #64b5f6);
     border-color: var(--primary-light, #64b5f6) !important;
 
-    &:hover {
+    &:hover:not(:disabled) {
       background-color: rgba(100, 181, 246, 0.1) !important;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      border-color: rgba(255, 255, 255, 0.3) !important;
+      color: rgba(255, 255, 255, 0.3) !important;
     }
   }
 }

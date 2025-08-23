@@ -26,6 +26,18 @@
       <mat-icon>search</mat-icon>
     </button>
 
+    <!-- Vocabulary Lists button (authenticated users only) -->
+    @if (authService.isLoggedIn()) {
+    <button
+      mat-icon-button
+      class="header-button"
+      (click)="onVocabLists()"
+      [matTooltip]="'header.vocabLists' | translate"
+    >
+      <mat-icon>list_alt</mat-icon>
+    </button>
+    }
+
     <!-- Notifications -->
     <button
       mat-icon-button

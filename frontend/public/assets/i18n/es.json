@@ -12,7 +12,8 @@
     "signOut": "Cerrar sesión",
     "register": "Registrarse",
     "guestUser": "Invitado",
-    "notSignedIn": "No has iniciado sesión"
+    "notSignedIn": "No has iniciado sesión",
+    "vocabLists": "Listas de Vocabulario"
   },
   "footer": {
     "brand": {
@@ -55,6 +56,7 @@
     "success": "Éxito",
     "cancel": "Cancelar",
     "confirm": "Confirmar",
+    "create": "Crear",
     "save": "Guardar",
     "edit": "Editar",
     "delete": "Eliminar",
@@ -217,7 +219,7 @@
       "ctaButton": "Empieza ahora",
       "stats": {
         "wordsCreated": "Palabras\ncreadas",
-        "publicLists": "Listas\npúblicas",
+        "publicLists": "Listas\ncreadas",
         "activeUsers": "Usuarios\nregistrados"
       }
     },
@@ -295,6 +297,9 @@
     "notFound": "No se pudo encontrar la palabra que buscaba.",
     "loadError": "No se pudo cargar la palabra. Por favor, inténtelo de nuevo más tarde.",
     "addToList": "Agregar a lista",
+    "selectList": "Seleccionar una lista",
+    "noLists": "No se encontraron listas de vocabulario",
+    "createListFirst": "Cree su primera lista de vocabulario para comenzar a agregar palabras",
     "dictionary": "Diccionario",
     "examples": "Ejemplos",
     "pronunciation": "Pronunciación",
@@ -371,6 +376,48 @@
       "pronunciation": "Audio",
       "conjugation": "Conjugación",
       "finalQuality": "Calidad"
+    }
+  },
+  "vocabLists": {
+    "title": "Mis Listas de Vocabulario",
+    "subtitle": "Organiza y sigue tu progreso de aprendizaje de idiomas con listas de palabras personalizadas",
+    "createList": "Crear Lista",
+    "createFirstList": "Crear Tu Primera Lista",
+    "editList": "Editar Lista",
+    "deleteList": "Eliminar Lista",
+    "openList": "Abrir Lista",
+    "listName": "Nombre de la Lista",
+    "listNamePlaceholder": "Ingresa un nombre para tu lista",
+    "description": "Descripción",
+    "descriptionPlaceholder": "Describe para qué es esta lista (opcional)",
+    "words": "palabras",
+    "created": "Creado",
+    "loading": "Cargando tus listas de vocabulario...",
+    "loadingWords": "Cargando palabras...",
+    "retry": "Intentar de Nuevo",
+    "viewWord": "Ver Detalles",
+    "removeWord": "Quitar de la Lista",
+    "empty": {
+      "title": "Aún No Hay Listas",
+      "subtitle": "¡Comienza a construir tu vocabulario creando tu primera lista!"
+    },
+    "emptyList": {
+      "title": "La Lista Está Vacía",
+      "subtitle": "Agrega palabras a esta lista buscándolas y usando la opción 'Agregar a Lista'."
+    },
+    "error": {
+      "title": "No Se Pueden Cargar las Listas"
+    },
+    "validation": {
+      "nameRequired": "El nombre de la lista es requerido",
+      "nameTooLong": "El nombre debe tener menos de 100 caracteres",
+      "descriptionTooLong": "La descripción debe tener menos de 500 caracteres"
+    },
+    "status": {
+      "learning": "Aprendiendo",
+      "learned": "Aprendido",
+      "difficult": "Difícil",
+      "mastered": "Dominado"
     }
   }
 }

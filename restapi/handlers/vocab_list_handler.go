@@ -21,37 +21,40 @@ func NewVocabListHandler(vocabListService *services.VocabListService) *VocabList
 
 // Request types
 type CreateVocabListRequest struct {
-	Name        string `json:"name" binding:"required,min=1,max=100"`
+	Name        string `json:"name" binding:"required,min=1,max=200"`
 	Description string `json:"description" binding:"omitempty,max=500"`
 }
 
 type UpdateVocabListRequest struct {
-	Name        string `json:"name" binding:"omitempty,min=1,max=100"`
+	Name        string `json:"name" binding:"omitempty,min=1,max=200"`
 	Description string `json:"description" binding:"omitempty,max=500"`
 }
 
 type AddWordRequest struct {
-	VocabPK string `json:"vocab_pk" binding:"required"`
-	VocabSK string `json:"vocab_sk" binding:"required"`
+	VocabPK  string `json:"vocab_pk" binding:"required"`
+	VocabSK  string `json:"vocab_sk" binding:"required"`
+	MediaRef string `json:"media_ref" binding:"omitempty"`
 }
 
 type UpdateWordStatusRequest struct {
-	IsLearned bool `json:"is_learned" binding:"required"`
+	IsLearned bool `json:"is_learned"`
 }
 
 // Response types
 type VocabListResponse struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	WordCount   int       `json:"word_count"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	Description  string    `json:"description"`
+	WordCount    int       `json:"word_count"`
+	LearnedCount int       `json:"learned_count"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 type VocabListWordResponse struct {
 	VocabPK   string     `json:"vocab_pk"`
 	VocabSK   string     `json:"vocab_sk"`
+	MediaRef  string     `json:"media_ref"`
 	AddedAt   time.Time  `json:"added_at"`
 	LearnedAt *time.Time `json:"learned_at,omitempty"`
 	IsLearned bool       `json:"is_learned"`
@@ -265,10 +268,11 @@ func (h *VocabListHandler) AddWordToList(c *gin.Context) {
 	}
 
 	serviceReq := services.AddWordToListRequest{
-		UserID:  user.ID,
-		ListID:  listID,
-		VocabPK: req.VocabPK,
-		VocabSK: req.VocabSK,
+		UserID:   user.ID,
+		ListID:   listID,
+		VocabPK:  req.VocabPK,
+		VocabSK:  req.VocabSK,
+		MediaRef: req.MediaRef,
 	}
 
 	err = h.vocabListService.AddWordToList(c.Request.Context(), serviceReq)
@@ -316,8 +320,9 @@ func (h *VocabListHandler) RemoveWordFromList(c *gin.Context) {
 	})
 }
 
+// TODO: Probably not necessary return the full vocab data
 // GetWordsInList retrieves all words in a vocabulary list
-func (h *VocabListHandler) GetWordsInList(c *gin.Context) {
+func (h *VocabListHandler) GetWordsInListWithData(c *gin.Context) {
 	listID := c.Param("listId")
 	if listID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "List ID is required"})
@@ -342,6 +347,41 @@ func (h *VocabListHandler) GetWordsInList(c *gin.Context) {
 	responses := make([]VocabListWordWithDataResponse, len(words))
 	for i, word := range words {
 		responses[i] = h.toWordWithDataResponse(word)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Words retrieved successfully",
+		"data":    responses,
+		"count":   len(responses),
+	})
+}
+
+// GetWordsInList retrieves all words in a vocabulary list
+func (h *VocabListHandler) GetWordsInList(c *gin.Context) {
+	listID := c.Param("listId")
+	if listID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "List ID is required"})
+		return
+	}
+
+	user, err := GetPrincipal(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
+
+	words, err := h.vocabListService.GetWordsInList(c.Request.Context(), user.ID, listID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"message": "Failed to retrieve words",
+			"details": gin.H{"error": err.Error()},
+		})
+		return
+	}
+
+	responses := make([]VocabListWordResponse, len(words))
+	for i, word := range words {
+		responses[i] = h.toWordResponse(word)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -399,12 +439,13 @@ func (h *VocabListHandler) UpdateWordStatus(c *gin.Context) {
 // Helper methods
 func (h *VocabListHandler) toListResponse(list *entities.VocabList) VocabListResponse {
 	return VocabListResponse{
-		ID:          list.ID,
-		Name:        list.Name,
-		Description: list.Description,
-		WordCount:   list.WordCount,
-		CreatedAt:   list.CreatedAt,
-		UpdatedAt:   list.UpdatedAt,
+		ID:           list.ID,
+		Name:         list.Name,
+		Description:  list.Description,
+		WordCount:    list.WordCount,
+		LearnedCount: list.LearnedCount,
+		CreatedAt:    list.CreatedAt,
+		UpdatedAt:    list.UpdatedAt,
 	}
 }
 
@@ -412,6 +453,7 @@ func (h *VocabListHandler) toWordResponse(word *entities.VocabListWord) VocabLis
 	return VocabListWordResponse{
 		VocabPK:   word.VocabPK,
 		VocabSK:   word.VocabSK,
+		MediaRef:  word.MediaRef,
 		AddedAt:   word.AddedAt,
 		LearnedAt: word.LearnedAt,
 		IsLearned: word.IsLearned,

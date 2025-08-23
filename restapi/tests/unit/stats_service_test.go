@@ -31,7 +31,7 @@ func TestStatsService_GetSystemStats(t *testing.T) {
 		listRepo.CreateList(ctx, list)
 
 		// Execute - this should automatically initialize counts
-		stats, err := statsService.GetSystemStats(ctx)
+		stats, err := statsService.GetAppStats(ctx)
 
 		// Verify
 		if err != nil {
@@ -68,7 +68,7 @@ func TestStatsService_GetSystemStats(t *testing.T) {
 		statsService := services.NewStatsService(userRepo, listRepo, vocabRepo)
 
 		// First call - should fetch fresh data
-		stats1, err := statsService.GetSystemStats(ctx)
+		stats1, err := statsService.GetAppStats(ctx)
 		if err != nil {
 			t.Errorf("First GetSystemStats failed: %v", err)
 		}
@@ -83,7 +83,7 @@ func TestStatsService_GetSystemStats(t *testing.T) {
 		userRepo.Create(ctx, user)
 
 		// Second call immediately - should return cached data
-		stats2, err := statsService.GetSystemStats(ctx)
+		stats2, err := statsService.GetAppStats(ctx)
 		if err != nil {
 			t.Errorf("Second GetSystemStats failed: %v", err)
 		}
@@ -109,7 +109,7 @@ func TestStatsService_GetSystemStats(t *testing.T) {
 		statsService := services.NewStatsService(userRepo, listRepo, vocabRepo)
 
 		// Execute - should automatically initialize and return zeros
-		stats, err := statsService.GetSystemStats(ctx)
+		stats, err := statsService.GetAppStats(ctx)
 
 		// Verify
 		if err != nil {
@@ -128,41 +128,6 @@ func TestStatsService_GetSystemStats(t *testing.T) {
 			t.Errorf("Expected 0 vocab words, got %d", stats.TotalVocabWords)
 		}
 	})
-
-	t.Run("force refresh bypasses cache", func(t *testing.T) {
-		// Setup
-		userRepo := mocks.NewMockUserRepository().(*mocks.MockUserRepository)
-		listRepo := mocks.NewMockVocabListRepository().(*mocks.MockVocabListRepository)
-		vocabRepo := mocks.NewMockVocabRepository().(*mocks.MockVocabRepository)
-
-		statsService := services.NewStatsService(userRepo, listRepo, vocabRepo)
-
-		// First call to populate cache
-		stats1, err := statsService.GetSystemStats(ctx)
-		if err != nil {
-			t.Errorf("First GetSystemStats failed: %v", err)
-		}
-
-		// Create additional data
-		user, _ := entities.NewUser("user1", "testuser", "test@example.com", "hash", "code")
-		userRepo.Create(ctx, user)
-
-		// Force refresh - should see new data
-		stats2, err := statsService.ForceRefresh(ctx)
-		if err != nil {
-			t.Errorf("ForceRefresh failed: %v", err)
-		}
-
-		// Should reflect new user
-		if stats2.TotalUsers != stats1.TotalUsers+1 {
-			t.Errorf("Expected user count to increase by 1, got %d -> %d", stats1.TotalUsers, stats2.TotalUsers)
-		}
-
-		// Should have newer timestamp
-		if !stats2.LastUpdated.After(stats1.LastUpdated) {
-			t.Error("Expected newer timestamp after force refresh")
-		}
-	})
 }
 
 func TestStatsService_CacheBehavior(t *testing.T) {
@@ -177,7 +142,7 @@ func TestStatsService_CacheBehavior(t *testing.T) {
 		statsService := services.NewStatsService(userRepo, listRepo, vocabRepo)
 
 		// First call to populate cache
-		stats1, err := statsService.GetSystemStats(ctx)
+		stats1, err := statsService.GetAppStats(ctx)
 		if err != nil {
 			t.Errorf("First GetSystemStats failed: %v", err)
 		}
@@ -190,7 +155,7 @@ func TestStatsService_CacheBehavior(t *testing.T) {
 		userRepo.Create(ctx, user)
 
 		// Second call should fetch fresh data (not cached)
-		stats2, err := statsService.GetSystemStats(ctx)
+		stats2, err := statsService.GetAppStats(ctx)
 		if err != nil {
 			t.Errorf("Second GetSystemStats failed: %v", err)
 		}

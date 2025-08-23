@@ -12,9 +12,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupVocabListService() (*services.VocabListService, *mocks.MockVocabListRepository, *mocks.MockVocabRepository) {
+func setupVocabListService() (*services.VocabListService, *mocks.MockVocabListRepository, *mocks.MockVocabRepository, *mocks.MockVocabMediaRepository) {
 	mockVocabListRepo := mocks.NewMockVocabListRepository().(*mocks.MockVocabListRepository)
 	mockVocabRepo := mocks.NewMockVocabRepository().(*mocks.MockVocabRepository)
+	mockVocabMediaRepo := mocks.NewMockVocabMediaRepository()
 
 	// Add some test vocabulary data
 	mockVocabRepo.AddTestWord("SRC#en#hello", "TGT#es#hola", &entities.VocabWord{
@@ -50,13 +51,13 @@ func setupVocabListService() (*services.VocabListService, *mocks.MockVocabListRe
 		EnglishWord:      "thank you",
 	})
 
-	service := services.NewVocabListService(mockVocabListRepo, mockVocabRepo)
-	return service, mockVocabListRepo, mockVocabRepo
+	service := services.NewVocabListService(mockVocabListRepo, mockVocabRepo, mockVocabMediaRepo)
+	return service, mockVocabListRepo, mockVocabRepo, mockVocabMediaRepo
 }
 
 func TestVocabListService_CreateList(t *testing.T) {
 	ctx := context.Background()
-	service, _, _ := setupVocabListService()
+	service, _, _, _ := setupVocabListService()
 
 	tests := []struct {
 		name    string
@@ -105,7 +106,7 @@ func TestVocabListService_CreateList(t *testing.T) {
 
 func TestVocabListService_GetListsByUser(t *testing.T) {
 	ctx := context.Background()
-	service, _, _ := setupVocabListService()
+	service, _, _, _ := setupVocabListService()
 
 	userID := "user123"
 
@@ -141,7 +142,7 @@ func TestVocabListService_GetListsByUser(t *testing.T) {
 
 func TestVocabListService_GetList(t *testing.T) {
 	ctx := context.Background()
-	service, _, _ := setupVocabListService()
+	service, _, _, _ := setupVocabListService()
 
 	userID := "user123"
 	list, _ := service.CreateList(ctx, services.CreateListRequest{
@@ -197,7 +198,7 @@ func TestVocabListService_GetList(t *testing.T) {
 
 func TestVocabListService_UpdateList(t *testing.T) {
 	ctx := context.Background()
-	service, _, _ := setupVocabListService()
+	service, _, _, _ := setupVocabListService()
 
 	userID := "user123"
 	list, _ := service.CreateList(ctx, services.CreateListRequest{
@@ -262,7 +263,7 @@ func TestVocabListService_UpdateList(t *testing.T) {
 
 func TestVocabListService_DeleteList(t *testing.T) {
 	ctx := context.Background()
-	service, _, _ := setupVocabListService()
+	service, _, _, _ := setupVocabListService()
 
 	userID := "user123"
 	list, _ := service.CreateList(ctx, services.CreateListRequest{
@@ -316,7 +317,7 @@ func TestVocabListService_DeleteList(t *testing.T) {
 
 func TestVocabListService_AddWordToList(t *testing.T) {
 	ctx := context.Background()
-	service, mockVocabListRepo, _ := setupVocabListService()
+	service, mockVocabListRepo, _, _ := setupVocabListService()
 
 	userID := "user123"
 	list, _ := service.CreateList(ctx, services.CreateListRequest{
@@ -382,7 +383,7 @@ func TestVocabListService_AddWordToList(t *testing.T) {
 
 func TestVocabListService_GetWordsInList(t *testing.T) {
 	ctx := context.Background()
-	service, _, _ := setupVocabListService()
+	service, _, _, _ := setupVocabListService()
 
 	userID := "user123"
 	list, _ := service.CreateList(ctx, services.CreateListRequest{
@@ -459,7 +460,7 @@ func TestVocabListService_GetWordsInList(t *testing.T) {
 
 func TestVocabListService_RemoveWordFromList(t *testing.T) {
 	ctx := context.Background()
-	service, mockVocabListRepo, _ := setupVocabListService()
+	service, mockVocabListRepo, _, _ := setupVocabListService()
 
 	userID := "user123"
 	list, _ := service.CreateList(ctx, services.CreateListRequest{
@@ -532,7 +533,7 @@ func TestVocabListService_RemoveWordFromList(t *testing.T) {
 
 func TestVocabListService_UpdateWordStatus(t *testing.T) {
 	ctx := context.Background()
-	service, _, _ := setupVocabListService()
+	service, _, _, _ := setupVocabListService()
 
 	userID := "user123"
 	list, _ := service.CreateList(ctx, services.CreateListRequest{
@@ -639,7 +640,7 @@ func TestVocabListService_UpdateWordStatus(t *testing.T) {
 func TestVocabListService_Integration(t *testing.T) {
 	// Integration test that exercises multiple service methods together
 	ctx := context.Background()
-	service, _, _ := setupVocabListService()
+	service, _, _, _ := setupVocabListService()
 
 	userID := "user123"
 
@@ -745,7 +746,8 @@ func TestVocabListService_CountingIntegration(t *testing.T) {
 		// Setup
 		vocabListRepo := mocks.NewMockVocabListRepository().(*mocks.MockVocabListRepository)
 		vocabRepo := mocks.NewMockVocabRepository()
-		service := services.NewVocabListService(vocabListRepo, vocabRepo)
+		vocabMediaRepo := mocks.NewMockVocabMediaRepository()
+		service := services.NewVocabListService(vocabListRepo, vocabRepo, vocabMediaRepo)
 
 		// Initialize count
 		err := vocabListRepo.InitializeListCount(ctx)
@@ -786,7 +788,8 @@ func TestVocabListService_CountingIntegration(t *testing.T) {
 		// Setup
 		vocabListRepo := mocks.NewMockVocabListRepository().(*mocks.MockVocabListRepository)
 		vocabRepo := mocks.NewMockVocabRepository()
-		service := services.NewVocabListService(vocabListRepo, vocabRepo)
+		vocabMediaRepo := mocks.NewMockVocabMediaRepository()
+		service := services.NewVocabListService(vocabListRepo, vocabRepo, vocabMediaRepo)
 
 		vocabListRepo.InitializeListCount(ctx)
 

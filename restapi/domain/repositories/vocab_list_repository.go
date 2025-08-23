@@ -19,7 +19,7 @@ type VocabListRepository interface {
 	AddWordToList(ctx context.Context, word *entities.VocabListWord) error
 	RemoveWordFromList(ctx context.Context, userID, listID, vocabPK, vocabSK string) error
 	GetWordsInList(ctx context.Context, userID, listID string) ([]*entities.VocabListWord, error)
-	UpdateWordInList(ctx context.Context, word *entities.VocabListWord) error
+	UpdateWordInList(ctx context.Context, userID, listID, vocabPK, vocabSK string, isLearned bool) error
 	WordExistsInList(ctx context.Context, userID, listID, vocabPK, vocabSK string) (bool, error)
 
 	// Count operations

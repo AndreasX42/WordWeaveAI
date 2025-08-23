@@ -12,7 +12,8 @@
     "signOut": "Sign Out",
     "register": "Register",
     "guestUser": "Guest User",
-    "notSignedIn": "Not Signed In"
+    "notSignedIn": "Not Signed In",
+    "vocabLists": "Vocabulary Lists"
   },
   "footer": {
     "brand": {
@@ -55,6 +56,7 @@
     "success": "Success",
     "cancel": "Cancel",
     "confirm": "Confirm",
+    "create": "Create",
     "save": "Save",
     "edit": "Edit",
     "delete": "Delete",
@@ -217,7 +219,7 @@
       "ctaButton": "Start building",
       "stats": {
         "wordsCreated": "Words\nCreated",
-        "publicLists": "Public\nLists",
+        "publicLists": "Lists\nCreated",
         "activeUsers": "Registered\nUsers"
       }
     },
@@ -297,6 +299,9 @@
     "notFound": "The word you were looking for could not be found.",
     "loadError": "Could not load the word. Please try again later.",
     "addToList": "Add to list",
+    "selectList": "Select a list",
+    "noLists": "No vocabulary lists found",
+    "createListFirst": "Create your first vocabulary list to start adding words",
     "dictionary": "Dictionary",
     "examples": "Examples",
     "pronunciation": "Pronunciation",
@@ -373,6 +378,48 @@
       "title": "Issue with Requested Word",
       "detectedLanguage": "Detected Language",
       "suggestions": "Suggestions"
+    }
+  },
+  "vocabLists": {
+    "title": "My Vocabulary Lists",
+    "subtitle": "Organize and track your language learning progress with custom word lists",
+    "createList": "Create List",
+    "createFirstList": "Create Your First List",
+    "editList": "Edit List",
+    "deleteList": "Delete List",
+    "openList": "Open List",
+    "listName": "List Name",
+    "listNamePlaceholder": "Enter a name for your list",
+    "description": "Description",
+    "descriptionPlaceholder": "Describe what this list is for (optional)",
+    "words": "words",
+    "created": "Created",
+    "loading": "Loading your vocabulary lists...",
+    "loadingWords": "Loading words...",
+    "retry": "Try Again",
+    "viewWord": "View Details",
+    "removeWord": "Remove from List",
+    "empty": {
+      "title": "No Lists Yet",
+      "subtitle": "Start building your vocabulary by creating your first list!"
+    },
+    "emptyList": {
+      "title": "List is Empty",
+      "subtitle": "Add words to this list by searching for them and using the 'Add to List' option."
+    },
+    "error": {
+      "title": "Unable to Load Lists"
+    },
+    "validation": {
+      "nameRequired": "List name is required",
+      "nameTooLong": "Name must be less than 100 characters",
+      "descriptionTooLong": "Description must be less than 500 characters"
+    },
+    "status": {
+      "learning": "Learning",
+      "learned": "Learned",
+      "difficult": "Difficult",
+      "mastered": "Mastered"
     }
   }
 }

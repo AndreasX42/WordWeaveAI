@@ -63,12 +63,12 @@ func TestVocabAPI_Integration(t *testing.T) {
 		// Test create list validation
 		testCreateListValidationError(t, server, userToken, map[string]string{}, "Field Name failed on the 'required' rule")
 		testCreateListValidationError(t, server, userToken, map[string]string{"name": ""}, "Field Name failed on the 'required' rule")
-		testCreateListValidationError(t, server, userToken, map[string]string{"name": strings.Repeat("a", 101)}, "Field Name failed on the 'max' rule")
+		testCreateListValidationError(t, server, userToken, map[string]string{"name": strings.Repeat("a", 201)}, "Field Name failed on the 'max' rule")
 		testCreateListValidationError(t, server, userToken, map[string]string{"name": "test", "description": strings.Repeat("a", 501)}, "Field Description failed on the 'max' rule")
 
 		// Test update list validation
 		listID := testCreateVocabList(t, server, userToken)
-		testUpdateListValidationError(t, server, userToken, listID, map[string]string{"name": strings.Repeat("a", 101)}, "Field Name failed on the 'max' rule")
+		testUpdateListValidationError(t, server, userToken, listID, map[string]string{"name": strings.Repeat("a", 201)}, "Field Name failed on the 'max' rule")
 	})
 
 	t.Run("word management validation errors", func(t *testing.T) {
@@ -79,8 +79,6 @@ func TestVocabAPI_Integration(t *testing.T) {
 		testAddWordValidationError(t, server, userToken, listID, map[string]string{}, "Field VocabPK failed on the 'required' rule")
 		testAddWordValidationError(t, server, userToken, listID, map[string]string{"vocab_pk": "test"}, "Field VocabSK failed on the 'required' rule")
 
-		// Test update word status validation
-		testUpdateWordStatusValidationError(t, server, userToken, listID, map[string]any{}, "Field IsLearned failed on the 'required' rule")
 	})
 
 	t.Run("unauthorized access", func(t *testing.T) {
@@ -127,6 +125,7 @@ func setupVocabTestServer(t *testing.T) (*gin.Engine, string) {
 	userRepo := mocks.NewMockUserRepository()
 	vocabRepo := mocks.NewMockVocabRepository()
 	vocabListRepo := mocks.NewMockVocabListRepository()
+	vocabMediaRepo := mocks.NewMockVocabMediaRepository()
 	emailService := mocks.NewMockEmailService()
 
 	// Add test vocabulary data
@@ -136,7 +135,7 @@ func setupVocabTestServer(t *testing.T) (*gin.Engine, string) {
 	userService := services.NewUserService(userRepo, emailService)
 	// Create service with mock repository
 	vocabService := services.NewVocabService(vocabRepo, nil) // Pass nil for media repository in tests
-	vocabListService := services.NewVocabListService(vocabListRepo, vocabRepo)
+	vocabListService := services.NewVocabListService(vocabListRepo, vocabRepo, vocabMediaRepo)
 
 	// Create JWT middleware for testing
 	authMiddleware, err := middlewares.JWTMiddleware(userService)

@@ -27,7 +27,7 @@ func NewDynamoVocabListRepository(table dynamo.Table) repositories.VocabListRepo
 // VocabListRecord represents the DynamoDB storage format for vocabulary list metadata
 type VocabListRecord struct {
 	PK          string    `dynamo:"PK,hash"`  // USER#{userId}
-	SK          string    `dynamo:"SK,range"` // LIST#{listId}#META
+	SK          string    `dynamo:"SK,range"` // META#{listId}
 	ListID      string    `dynamo:"list_id"`
 	UserID      string    `dynamo:"user_id"`
 	Name        string    `dynamo:"name"`
@@ -45,6 +45,7 @@ type VocabListWordRecord struct {
 	UserID    string     `dynamo:"user_id"`
 	VocabPK   string     `dynamo:"vocab_pk"` // Reference to vocabulary table PK
 	VocabSK   string     `dynamo:"vocab_sk"` // Reference to vocabulary table SK
+	MediaRef  string     `dynamo:"media_ref"`
 	AddedAt   time.Time  `dynamo:"added_at"`
 	LearnedAt *time.Time `dynamo:"learned_at,omitempty"`
 	IsLearned bool       `dynamo:"is_learned"`
@@ -95,7 +96,7 @@ func (r *DynamoVocabListRepository) CreateList(ctx context.Context, list *entiti
 func (r *DynamoVocabListRepository) GetListByID(ctx context.Context, userID, listID string) (*entities.VocabList, error) {
 	var record VocabListRecord
 	pk := "USER#" + userID
-	sk := "LIST#" + listID + "#META"
+	sk := "META#" + listID
 
 	err := r.table.Get("PK", pk).Range("SK", dynamo.Equal, sk).One(ctx, &record)
 	if err != nil {
@@ -109,16 +110,18 @@ func (r *DynamoVocabListRepository) GetListByID(ctx context.Context, userID, lis
 
 // GetListsByUserID retrieves all vocabulary lists for a user
 func (r *DynamoVocabListRepository) GetListsByUserID(ctx context.Context, userID string) ([]*entities.VocabList, error) {
-	var records []VocabListRecord
+	var allRecords []VocabListRecord
 	pk := "USER#" + userID
+	skPrefix := "META#"
 
-	err := r.table.Get("PK", pk).Range("SK", dynamo.BeginsWith, "LIST#").Filter("ends_with(SK, ?)", "#META").All(ctx, &records)
+	// Get all records that begin with "META#"
+	err := r.table.Get("PK", pk).Range("SK", dynamo.BeginsWith, skPrefix).All(ctx, &allRecords)
 	if err != nil {
 		return nil, err
 	}
 
-	lists := make([]*entities.VocabList, len(records))
-	for i, record := range records {
+	lists := make([]*entities.VocabList, len(allRecords))
+	for i, record := range allRecords {
 		lists[i] = r.toListEntity(record)
 	}
 	return lists, nil
@@ -136,49 +139,63 @@ func (r *DynamoVocabListRepository) UpdateList(ctx context.Context, list *entiti
 // DeleteList deletes a vocabulary list and all its words using batch operations
 func (r *DynamoVocabListRepository) DeleteList(ctx context.Context, userID, listID string) error {
 	pk := "USER#" + userID
+	skMetaPrefix := "META#" + listID
+	skListPrefix := "LIST#" + listID
 
 	// First, check if the list exists and get all items
-	var items []struct {
+	var listItems []struct {
 		PK string `dynamo:"PK"`
 		SK string `dynamo:"SK"`
 	}
 
-	err := r.table.Get("PK", pk).Range("SK", dynamo.BeginsWith, "LIST#"+listID).All(ctx, &items)
+	var metaItems struct {
+		PK string `dynamo:"PK"`
+		SK string `dynamo:"SK"`
+	}
+
+	err := r.table.Get("PK", pk).Range("SK", dynamo.BeginsWith, skMetaPrefix).One(ctx, &metaItems)
 	if err != nil {
+		if errors.Is(err, dynamo.ErrNotFound) {
+			return nil
+		}
 		return err
 	}
 
-	if len(items) == 0 {
-		return nil // Nothing to delete
-	}
-
-	// Check if we have a list metadata record (to decrement count)
-	hasListMeta := false
-	for _, item := range items {
-		if strings.HasSuffix(item.SK, "#META") {
-			hasListMeta = true
-			break
+	err = r.table.Get("PK", pk).Range("SK", dynamo.BeginsWith, skListPrefix).All(ctx, &listItems)
+	if err != nil {
+		if errors.Is(err, dynamo.ErrNotFound) {
+			return nil
 		}
+		return err
 	}
 
-	// Delete items in parallel to avoid sequential bottleneck
-	errChan := make(chan error, len(items))
-	for _, item := range items {
+	// Delete items in parallel
+	errChan := make(chan error, len(listItems))
+	for _, item := range listItems {
 		go func(pk, sk string) {
 			err := r.table.Delete("PK", pk).Range("SK", sk).Run(ctx)
-			errChan <- err
+			if err != nil && !errors.Is(err, dynamo.ErrNotFound) {
+				errChan <- err
+			} else {
+				errChan <- nil
+			}
 		}(item.PK, item.SK)
 	}
 
 	// Wait for all deletes to complete
-	for i := 0; i < len(items); i++ {
+	for i := 0; i < len(listItems); i++ {
 		if err := <-errChan; err != nil {
 			return err
 		}
 	}
 
-	// If we deleted a list metadata record, decrement the count
-	if hasListMeta {
+	// Finally delete the list metadata record
+	if metaItems.PK != "" {
+		if err = r.table.Delete("PK", metaItems.PK).Range("SK", metaItems.SK).Run(ctx); err != nil {
+			if !errors.Is(err, dynamo.ErrNotFound) {
+				return err
+			}
+		}
 		return r.incrementListCount(ctx, -1)
 	}
 
@@ -199,11 +216,11 @@ func (r *DynamoVocabListRepository) AddWordToList(ctx context.Context, word *ent
 
 	// Atomically increment the word count in the list metadata
 	listPK := "USER#" + word.UserID
-	listSK := "LIST#" + word.ListID + "#META"
+	listSK := "META#" + word.ListID
 
 	err = r.table.Update("PK", listPK).Range("SK", listSK).
-		Set("word_count = word_count + ?", 1).
-		Set("updated_at = ?", time.Now()).
+		Add("word_count", 1).
+		Set("updated_at", time.Now()).
 		Run(ctx)
 
 	return err
@@ -220,17 +237,21 @@ func (r *DynamoVocabListRepository) RemoveWordFromList(ctx context.Context, user
 		If("attribute_exists(PK) AND attribute_exists(SK)").
 		Run(ctx)
 	if err != nil {
+		if errors.Is(err, dynamo.ErrNotFound) ||
+			strings.Contains(err.Error(), "ConditionalCheckFailedException") {
+			return nil
+		}
 		return err
 	}
 
 	// Atomically decrement the word count in the list metadata
 	listPK := "USER#" + userID
-	listSK := "LIST#" + listID + "#META"
+	listSK := "META#" + listID
 
 	err = r.table.Update("PK", listPK).Range("SK", listSK).
-		Set("word_count = word_count - ?", 1).
-		Set("updated_at = ?", time.Now()).
-		If("word_count > ?", 0). // Prevent negative counts
+		Add("word_count", -1).
+		Set("updated_at", time.Now()).
+		If("word_count > ?", 0).
 		Run(ctx)
 
 	return err
@@ -255,9 +276,19 @@ func (r *DynamoVocabListRepository) GetWordsInList(ctx context.Context, userID, 
 }
 
 // UpdateWordInList updates a word in a vocabulary list
-func (r *DynamoVocabListRepository) UpdateWordInList(ctx context.Context, word *entities.VocabListWord) error {
-	record := r.toWordRecord(word)
-	return r.table.Put(record).
+func (r *DynamoVocabListRepository) UpdateWordInList(ctx context.Context, userID, listID, vocabPK, vocabSK string, isLearned bool) error {
+	pk := "USER#" + userID
+	encodedKey := encodeVocabKeys(vocabPK, vocabSK)
+	sk := "LIST#" + listID + "#WORD#" + encodedKey
+
+	var wordRecord VocabListWordRecord
+	err := r.table.Get("PK", pk).Range("SK", dynamo.Equal, sk).One(ctx, &wordRecord)
+	if err != nil {
+		return err
+	}
+
+	wordRecord.IsLearned = isLearned
+	return r.table.Put(wordRecord).
 		If("attribute_exists(PK) AND attribute_exists(SK)").
 		Run(ctx)
 }
@@ -279,7 +310,7 @@ func (r *DynamoVocabListRepository) WordExistsInList(ctx context.Context, userID
 func (r *DynamoVocabListRepository) toListRecord(list *entities.VocabList) VocabListRecord {
 	return VocabListRecord{
 		PK:          "USER#" + list.UserID,
-		SK:          "LIST#" + list.ID + "#META",
+		SK:          "META#" + list.ID,
 		ListID:      list.ID,
 		UserID:      list.UserID,
 		Name:        list.Name,
@@ -311,6 +342,7 @@ func (r *DynamoVocabListRepository) toWordRecord(word *entities.VocabListWord) V
 		UserID:    word.UserID,
 		VocabPK:   word.VocabPK,
 		VocabSK:   word.VocabSK,
+		MediaRef:  word.MediaRef,
 		AddedAt:   word.AddedAt,
 		LearnedAt: word.LearnedAt,
 		IsLearned: word.IsLearned,
@@ -323,6 +355,7 @@ func (r *DynamoVocabListRepository) toWordEntity(record VocabListWordRecord) *en
 		UserID:    record.UserID,
 		VocabPK:   record.VocabPK,
 		VocabSK:   record.VocabSK,
+		MediaRef:  record.MediaRef,
 		AddedAt:   record.AddedAt,
 		LearnedAt: record.LearnedAt,
 		IsLearned: record.IsLearned,

@@ -42,7 +42,7 @@ type SystemStats struct {
 }
 
 // GetSystemStats retrieves comprehensive system statistics with automatic initialization and caching
-func (s *StatsService) GetSystemStats(ctx context.Context) (*SystemStats, error) {
+func (s *StatsService) GetAppStats(ctx context.Context) (*SystemStats, error) {
 	// Check cache first (read lock)
 	s.mutex.RLock()
 	if s.cachedStats != nil && time.Now().Before(s.cacheExpiry) {
@@ -125,9 +125,9 @@ func (s *StatsService) GetSystemStats(ctx context.Context) (*SystemStats, error)
 		LastUpdated:     time.Now(),
 	}
 
-	// Cache the result for 1 hour
+	// Cache the result for 1 minute
 	s.cachedStats = stats
-	s.cacheExpiry = time.Now().Add(1 * time.Hour)
+	s.cacheExpiry = time.Now().Add(1 * time.Minute)
 
 	// Return a copy to avoid external modifications
 	result := *stats
@@ -164,10 +164,4 @@ func (s *StatsService) ClearCache() {
 	defer s.mutex.Unlock()
 	s.cachedStats = nil
 	s.cacheExpiry = time.Time{}
-}
-
-// ForceRefresh forces a refresh of statistics bypassing the cache
-func (s *StatsService) ForceRefresh(ctx context.Context) (*SystemStats, error) {
-	s.ClearCache()
-	return s.GetSystemStats(ctx)
 }

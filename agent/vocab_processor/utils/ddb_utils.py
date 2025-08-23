@@ -547,6 +547,9 @@ async def store_result(result: dict[str, Any], req: VocabProcessRequestDto):
         logger.info("ddb_put_ok", pk=pk, sk=sk, search_words=normalized_search_words)
         metrics.add_metric("VocabStored", MetricUnit.Count, 1)
 
+        # Increment vocab count only if this is a new item
+        await increment_vocab_count()
+
         # Store media in separate table if new media was fetched or adapted to a new language
         media_adapted = result.get("media_adapted", False)
         media_reused = result.get("media_reused", False)
@@ -569,6 +572,23 @@ async def store_result(result: dict[str, Any], req: VocabProcessRequestDto):
             logger.exception("ddb_put_failed", err=str(err))
             metrics.add_metric("VocabStoreFailed", MetricUnit.Count, 1)
             raise
+
+
+async def increment_vocab_count():
+    """
+    Atomically increment the total vocab count.
+    """
+    try:
+        await asyncio.to_thread(
+            get_vocab_table().update_item,
+            Key={"PK": "COUNT#vocab", "SK": "COUNT"},
+            UpdateExpression="ADD #count :inc",
+            ExpressionAttributeNames={"#count": "count"},
+            ExpressionAttributeValues={":inc": 1},
+        )
+        logger.info("vocab_count_incremented")
+    except Exception as e:
+        logger.warning("failed_to_increment_vocab_count", error=str(e))
 
 
 async def get_media_usage_statistics() -> dict[str, Any]:

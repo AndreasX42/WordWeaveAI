@@ -89,7 +89,7 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 		api.GET("/health", container.HealthHandler.HealthCheck)
 
 		// Stats routes
-		api.GET("/stats", container.StatsHandler.GetSystemStats)
+		api.GET("/stats", container.StatsHandler.GetAppStats)
 
 		// Public routes
 		api.POST("/auth/register", container.UserHandler.Register)
@@ -125,6 +125,20 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 			userRoutes := authenticated.Group("/users")
 			userRoutes.DELETE("/delete", container.UserHandler.Delete)
 			userRoutes.PUT("/update", container.UserHandler.Update)
+
+			// Vocabulary list routes (authenticated)
+			listRoutes := authenticated.Group("/lists")
+			listRoutes.POST("", container.VocabListHandler.CreateList)
+			listRoutes.GET("", container.VocabListHandler.GetLists)
+			listRoutes.GET("/:listId", container.VocabListHandler.GetList)
+			listRoutes.PUT("/:listId", container.VocabListHandler.UpdateList)
+			listRoutes.DELETE("/:listId", container.VocabListHandler.DeleteList)
+
+			// Word management routes within lists (authenticated)
+			listRoutes.POST("/:listId/words", container.VocabListHandler.AddWordToList)
+			listRoutes.DELETE("/:listId/words", container.VocabListHandler.RemoveWordFromList)
+			listRoutes.GET("/:listId/words", container.VocabListHandler.GetWordsInListWithData)
+			listRoutes.PUT("/:listId/words/status", container.VocabListHandler.UpdateWordStatus)
 
 			// Vocabulary request routes (authenticated)
 			authenticated.POST("/vocabs/request", container.VocabRequestHandler.RequestVocab)

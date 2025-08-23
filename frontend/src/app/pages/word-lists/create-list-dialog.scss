@@ -1,0 +1,171 @@
+::ng-deep {
+  .mat-mdc-dialog-surface {
+    background-color: var(--card-background, #ffffff) !important;
+    color: var(--text-primary, #333333) !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 4px 20px rgba(0, 0, 0, 0.08),
+      0 2px 8px rgba(0, 0, 0, 0.05) !important;
+    border-radius: 16px !important;
+    border: 1px solid var(--border-color, rgba(0, 0, 0, 0.06)) !important;
+  }
+
+  .mat-mdc-dialog-title {
+    color: var(--text-primary, #333333) !important;
+    font-size: 24px !important;
+    font-weight: 600 !important;
+    margin-bottom: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+
+    mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+      color: #1976d2;
+    }
+  }
+}
+
+// --- Component Layout ---
+
+.dialog-container {
+  min-width: 400px;
+}
+
+mat-dialog-content {
+  padding: 24px 24px 16px 24px !important;
+}
+
+.full-width {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+// --- Action Buttons ---
+
+mat-dialog-actions {
+  gap: 8px;
+  padding: 8px 24px 24px 24px !important;
+
+  .mat-mdc-button {
+    height: 48px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 12px;
+    text-transform: none;
+    letter-spacing: 0.25px;
+    transition: all 0.3s ease;
+    padding: 0 24px;
+  }
+
+  .mat-mdc-raised-button:not(:disabled) {
+    background-color: var(--card-background, #ffffff) !important;
+    color: var(--text-primary, #333333) !important;
+    border: 1px solid var(--border-color, #dadce0) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+
+    &:hover {
+      background-color: var(--surface-color, #f8f9fa) !important;
+      border-color: var(--border-color, #c6c6c6) !important;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+
+  .mat-mdc-raised-button:disabled {
+    background-color: #f5f5f5 !important;
+    color: #999999 !important;
+    border: 1px solid #e0e0e0 !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+
+    mat-icon {
+      opacity: 0.5 !important;
+    }
+  }
+}
+
+button mat-spinner {
+  margin-right: 8px;
+}
+
+button mat-icon {
+  margin-right: 8px;
+}
+
+// --- Dark Theme Overrides ---
+
+:host-context(body.dark-theme) {
+  // Override dialog container styles for dark mode
+  ::ng-deep .mat-mdc-dialog-surface {
+    background-color: var(--card-background) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: 0 12px 45px rgba(0, 0, 0, 0.4), 0 6px 25px rgba(0, 0, 0, 0.25),
+      0 3px 12px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  // Form field overrides for dark mode
+  ::ng-deep .mat-mdc-form-field {
+    .mat-mdc-text-field-wrapper {
+      background-color: rgba(255, 255, 255, 0.05) !important;
+    }
+    .mat-mdc-form-field-flex {
+      color: var(--text-primary) !important;
+    }
+    .mat-mdc-input-element {
+      color: var(--text-primary) !important;
+      caret-color: var(--text-primary) !important;
+    }
+    .mat-mdc-form-field-label {
+      color: var(--text-secondary) !important;
+    }
+    .mat-mdc-form-field-label.mdc-floating-label--float-above {
+      color: var(--primary-light) !important;
+    }
+    .mdc-floating-label {
+      color: var(--text-secondary) !important;
+    }
+    &.mat-focused .mdc-floating-label {
+      color: var(--primary-light) !important;
+    }
+    .mat-mdc-form-field-subscript-wrapper {
+      color: var(--text-secondary) !important;
+    }
+    .mat-mdc-form-field-outline {
+      color: var(--border-color) !important;
+    }
+    &.mat-focused .mat-mdc-form-field-outline {
+      color: var(--primary-light) !important;
+    }
+
+    // Error messages
+    mat-error {
+      color: var(--warn-color) !important;
+    }
+  }
+
+  // Override button styles for dark mode
+  mat-dialog-actions {
+    .mat-mdc-raised-button:not(:disabled) {
+      background-color: var(--card-background, #2d3748) !important;
+      color: var(--text-primary, #ffffff) !important;
+      border: 1px solid var(--border-color, #4a5568) !important;
+
+      &:hover {
+        background-color: var(--surface-color, #374151) !important;
+        border-color: var(--border-color, #4a5568) !important;
+      }
+    }
+
+    .mat-mdc-raised-button:disabled {
+      background-color: #404040 !important;
+      color: #aaaaaa !important;
+      border: 1px solid #666666 !important;
+    }
+  }
+}

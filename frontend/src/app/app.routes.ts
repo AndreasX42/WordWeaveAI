@@ -30,6 +30,11 @@ export const routes: Routes = [
       import('./pages/word-card/word-card').then((mod) => mod.WordCard),
   },
   {
+    path: 'words',
+    loadComponent: () =>
+      import('./pages/word-card/word-card').then((mod) => mod.WordCard),
+  },
+  {
     path: 'words/:sourceLanguage/:targetLanguage/:pos/:word',
     loadComponent: () =>
       import('./pages/word-card/word-card').then((mod) => mod.WordCard),
@@ -73,5 +78,13 @@ export const routes: Routes = [
       import('./health/health-dashboard').then(
         (mod) => mod.HealthDashboardComponent
       ),
+  },
+  {
+    path: 'word-lists',
+    loadComponent: () =>
+      import('./pages/word-lists/word-lists').then(
+        (mod) => mod.WordListsComponent
+      ),
+    canActivate: [AuthGuard],
   },
 ];

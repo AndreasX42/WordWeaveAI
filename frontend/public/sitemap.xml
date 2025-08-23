@@ -1,60 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
-  
+
   <!-- Main Pages -->
   <url>
     <loc>https://wordweave.xyz/</loc>
-    <lastmod>2025-08-19</lastmod>
+    <lastmod>2025-08-21</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
-
   </url>
 
   <url>
     <loc>https://wordweave.xyz/home</loc>
-    <lastmod>2025-08-19</lastmod>
+    <lastmod>2025-08-21</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
-
   </url>
 
   <url>
     <loc>https://wordweave.xyz/search</loc>
-    <lastmod>2025-08-19</lastmod>
+    <lastmod>2025-08-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-
   </url>
 
   <!-- Example Word Definition Pages -->
   <!-- Note: In production, you should dynamically generate these URLs -->
   <!-- based on your actual word database content -->
-  
   <url>
     <loc>https://wordweave.xyz/words/de/es/noun/haus</loc>
-    <lastmod>2025-08-19</lastmod>
+    <lastmod>2025-08-21</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <url>
     <loc>https://wordweave.xyz/words/es/en/noun/muro</loc>
-    <lastmod>2025-08-19</lastmod>
+    <lastmod>2025-08-21</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <url>
     <loc>https://wordweave.xyz/words/en/es/noun/bike</loc>
-    <lastmod>2025-08-19</lastmod>
+    <lastmod>2025-08-21</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <url>
     <loc>https://wordweave.xyz/words/en/es/noun/house</loc>
-    <lastmod>2025-08-19</lastmod>
+    <lastmod>2025-08-21</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

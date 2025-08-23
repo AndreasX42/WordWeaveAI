@@ -1,0 +1,326 @@
+::ng-deep {
+  .mat-mdc-dialog-surface {
+    background-color: var(--card-background, #ffffff) !important;
+    color: var(--text-primary, #333333) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+    border-radius: 16px !important;
+    border: 1px solid var(--border-color, rgba(0, 0, 0, 0.06)) !important;
+    max-width: 90vw !important;
+    max-height: 85vh !important;
+    width: 450px !important;
+  }
+
+  .mat-mdc-dialog-title {
+    color: var(--text-primary, #333333) !important;
+    font-size: 20px !important;
+    font-weight: 600 !important;
+    margin-bottom: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 24px 24px 0 24px !important;
+
+    mat-icon {
+      font-size: 20px !important;
+      width: 20px !important;
+      height: 20px !important;
+      color: #1976d2 !important;
+    }
+  }
+
+  .mat-mdc-dialog-content {
+    overflow: visible !important;
+    max-height: none !important;
+    padding: 0 !important;
+  }
+
+  .mat-mdc-dialog-actions {
+    padding: 16px 24px 24px 24px !important;
+    margin: 0 !important;
+  }
+}
+
+// --- Component Layout ---
+
+.dialog-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 70vh;
+}
+
+.word-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 24px;
+  background-color: var(--surface-color, rgba(0, 0, 0, 0.02));
+  border-radius: 8px;
+  margin: 20px 24px 16px 24px;
+  flex-shrink: 0;
+}
+
+.source-word {
+  font-weight: 500;
+  font-size: 1.1rem;
+}
+
+.target-word {
+  font-weight: 500;
+  font-size: 1.1rem;
+  color: #1976d2;
+}
+
+.arrow-icon {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 1.2rem;
+}
+
+.loading-container,
+.error-container,
+.empty-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  gap: 16px;
+  text-align: center;
+  flex: 1;
+  min-height: 200px;
+
+  p {
+    margin: 0;
+    font-size: 0.95rem;
+  }
+}
+
+.empty-icon {
+  font-size: 2.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.4));
+  opacity: 0.7;
+}
+
+.empty-subtitle {
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.lists-container {
+  flex: 1;
+  overflow-y: auto;
+  margin: 0 24px;
+  padding: 0;
+  max-height: 300px;
+}
+
+.list-item {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  margin: 0 0 4px 0 !important;
+  padding: 6px 8px !important;
+  min-height: 32px !important;
+  background: var(--card-background, #fff);
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+
+  &:hover:not([disabled]) {
+    background-color: var(--surface-color, rgba(0, 0, 0, 0.03)) !important;
+    border-color: var(--primary-color, #1976d2) !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
+
+  &.adding {
+    background-color: rgba(25, 118, 210, 0.05) !important;
+    border-color: var(--primary-color, #1976d2) !important;
+    cursor: not-allowed;
+  }
+
+  &[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &:last-child {
+    margin-bottom: 0 !important;
+  }
+}
+
+.list-meta {
+  display: none !important;
+}
+
+// --- Dialog Content & Actions ---
+
+mat-dialog-content {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+}
+
+.mat-mdc-button {
+  height: 40px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  border-radius: 8px !important;
+  text-transform: none !important;
+  padding: 0 20px !important;
+  min-width: 80px !important;
+}
+
+// --- Material Design overrides for clear list names ---
+::ng-deep .mat-mdc-list-item {
+  color: var(--text-primary) !important;
+
+  .mdc-list-item__primary-text,
+  .mat-mdc-list-item-title,
+  [matListItemTitle] {
+    color: var(--text-primary) !important;
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    line-height: 1.2 !important;
+    opacity: 1 !important;
+  }
+
+  .mdc-list-item__secondary-text,
+  .mat-mdc-list-item-line,
+  [matListItemLine] {
+    display: none !important;
+  }
+}
+
+::ng-deep .mat-mdc-list-item-icon {
+  color: var(--text-secondary) !important;
+  margin-right: 6px !important;
+  font-size: 16px !important;
+  width: 16px !important;
+  height: 16px !important;
+}
+
+::ng-deep .mat-mdc-list-item-meta {
+  color: var(--text-secondary) !important;
+  margin-left: 6px !important;
+  font-size: 16px !important;
+  width: 16px !important;
+  height: 16px !important;
+}
+
+// --- Dark Theme Overrides ---
+
+:host-context(body.dark-theme) {
+  // Override dialog container styles for dark mode
+  ::ng-deep .mat-mdc-dialog-surface {
+    background-color: var(--card-background) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: 0 12px 45px rgba(0, 0, 0, 0.4), 0 6px 25px rgba(0, 0, 0, 0.25),
+      0 3px 12px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .dialog-container {
+    background-color: var(--card-background);
+    color: var(--text-primary);
+  }
+
+  .word-preview {
+    background-color: var(--surface-color) !important;
+  }
+
+  .source-word {
+    color: var(--text-primary);
+  }
+
+  .target-word {
+    color: var(--primary-light);
+  }
+
+  .arrow-icon {
+    color: var(--text-secondary);
+  }
+
+  .empty-icon {
+    color: var(--text-secondary);
+  }
+
+  .empty-subtitle {
+    color: var(--text-secondary);
+  }
+
+  .loading-container,
+  .error-container,
+  .empty-container {
+    color: var(--text-primary);
+
+    p {
+      color: var(--text-secondary);
+    }
+  }
+
+  .list-item {
+    background: var(--card-background) !important;
+    border-color: var(--border-color) !important;
+
+    &:hover:not([disabled]) {
+      background-color: var(--surface-color) !important;
+      border-color: var(--primary-color) !important;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    &.adding {
+      background-color: rgba(100, 181, 246, 0.1) !important;
+      border-color: var(--primary-color) !important;
+    }
+  }
+
+  .list-meta {
+    color: var(--text-secondary);
+  }
+
+  // Material Design component overrides - AGGRESSIVE
+  ::ng-deep .mat-mdc-list-item {
+    color: var(--text-primary) !important;
+
+    .mdc-list-item__primary-text,
+    .mat-mdc-list-item-title,
+    [matListItemTitle] {
+      color: var(--text-primary) !important;
+      font-size: 0.85rem !important;
+      line-height: 1.2 !important;
+    }
+
+    .mdc-list-item__secondary-text,
+    .mat-mdc-list-item-line,
+    [matListItemLine] {
+      display: none !important;
+    }
+  }
+
+  ::ng-deep .mat-mdc-list-item-icon {
+    color: var(--text-secondary) !important;
+    margin-right: 6px !important;
+    font-size: 16px !important;
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  ::ng-deep .mat-mdc-list-item-meta {
+    color: var(--text-secondary) !important;
+    margin-left: 6px !important;
+    font-size: 16px !important;
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  // Button overrides for dark mode
+  mat-dialog-actions {
+    .mat-mdc-button {
+      color: var(--text-primary) !important;
+    }
+  }
+}

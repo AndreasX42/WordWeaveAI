@@ -628,6 +628,14 @@
             border-color: rgba(244, 67, 54, 0.4);
           }
         }
+
+        .header-status-actions {
+          button[mat-icon-button] {
+            mat-icon {
+              color: #c0c0c0 !important;
+            }
+          }
+        }
       }
     }
 

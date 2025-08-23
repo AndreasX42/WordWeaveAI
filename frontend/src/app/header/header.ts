@@ -109,6 +109,10 @@ export class Header implements OnInit, OnDestroy {
     this.router.navigate(['/search']);
   }
 
+  onVocabLists(): void {
+    this.router.navigate(['/word-lists']);
+  }
+
   changeLanguage(languageCode: string): void {
     this.translationService.changeLanguage(languageCode);
   }

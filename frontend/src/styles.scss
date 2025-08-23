@@ -228,7 +228,7 @@ body {
   src: url("/assets/fonts/roboto-400.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
-  font-display: optional;
+  font-display: swap;
 }
 
 @font-face {
@@ -236,7 +236,7 @@ body {
   src: url("/assets/fonts/roboto-500.woff2") format("woff2");
   font-weight: 500;
   font-style: normal;
-  font-display: optional;
+  font-display: swap;
 }
 
 @font-face {
@@ -244,7 +244,7 @@ body {
   src: url("/assets/fonts/roboto-700.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
-  font-display: optional;
+  font-display: swap;
 }
 
 /* Mobile-first responsive optimizations */

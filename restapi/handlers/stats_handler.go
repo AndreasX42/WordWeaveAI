@@ -28,14 +28,14 @@ type StatsResponse struct {
 }
 
 // GetSystemStats returns app statistics
-func (h *StatsHandler) GetSystemStats(c *gin.Context) {
+func (h *StatsHandler) GetAppStats(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultRequestTimeout)
 	defer cancel()
 
 	startTime := time.Now()
 
 	// Get system statistics
-	stats, err := h.statsService.GetSystemStats(ctx)
+	stats, err := h.statsService.GetAppStats(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "error",

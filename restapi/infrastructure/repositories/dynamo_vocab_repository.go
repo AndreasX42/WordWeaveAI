@@ -534,6 +534,12 @@ func (r *DynamoVocabRepository) GetByKeysBatch(ctx context.Context, keys []entit
 	var records []VocabRecord
 	err := r.table.Batch("PK", "SK").Get(dynamoKeys...).All(ctx, &records)
 	if err != nil {
+		// Handle the case where no items are found gracefully
+		errStr := err.Error()
+		if errors.Is(err, dynamo.ErrNotFound) || strings.Contains(errStr, "no item found") {
+			// Return empty map instead of error when no vocabulary entries exist
+			return make(map[string]*entities.VocabWord), nil
+		}
 		return nil, fmt.Errorf("failed to batch get vocabulary entries: %w", err)
 	}
 
