@@ -355,7 +355,7 @@ export class SearchComponent implements OnInit {
         state: {
           pk: word.pk,
           sk: word.sk,
-          word: word,
+          media_ref: word.media_ref,
         },
       }
     );

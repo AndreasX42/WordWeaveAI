@@ -46,6 +46,7 @@ import {
   CreateWordListRequest,
   UpdateWordListRequest,
 } from '../../models/word-list.model';
+import { QuizDialogComponent, QuizDialogData } from './quiz-dialog.component';
 
 interface CreateListDialogData {
   name: string;
@@ -432,21 +433,13 @@ export class WordListsComponent implements OnInit {
     const sourceWord = word.source_word || this.parseWordFromPk(word.vocab_pk);
 
     if (sourceLanguage && targetLanguage && sourceWord) {
-      const mappedWord = {
-        ...word,
-        pk: word.vocab_pk,
-        sk: word.vocab_sk,
-        source_language: word.source_language || sourceLanguage,
-        target_language: word.target_language || targetLanguage,
-      };
-
       this.router.navigate(
         ['/words', sourceLanguage, targetLanguage, pos, sourceWord],
         {
           state: {
             pk: word.vocab_pk,
             sk: word.vocab_sk,
-            word: mappedWord,
+            media_ref: word.media_ref,
           },
         }
       );
@@ -564,15 +557,32 @@ export class WordListsComponent implements OnInit {
 
       // Show hours if less than 1 day
       if (diffHours < 24) {
-        if (diffHours === 0) return 'now';
-        if (diffHours === 1) return '1h ago';
-        return `${diffHours}h ago`;
+        if (diffHours === 0)
+          return this.translationService.translate('vocabLists.timeAgo.now');
+        return this.translationService.translate(
+          'vocabLists.timeAgo.hoursAgo',
+          { count: diffHours.toString() }
+        );
       }
 
-      if (diffDays === 1) return '1d ago';
-      if (diffDays < 7) return `${diffDays}d ago`;
-      if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
-      if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
+      if (diffDays === 1)
+        return this.translationService.translate('vocabLists.timeAgo.daysAgo', {
+          count: '1',
+        });
+      if (diffDays < 7)
+        return this.translationService.translate('vocabLists.timeAgo.daysAgo', {
+          count: diffDays.toString(),
+        });
+      if (diffDays < 30)
+        return this.translationService.translate(
+          'vocabLists.timeAgo.weeksAgo',
+          { count: Math.floor(diffDays / 7).toString() }
+        );
+      if (diffDays < 365)
+        return this.translationService.translate(
+          'vocabLists.timeAgo.monthsAgo',
+          { count: Math.floor(diffDays / 30).toString() }
+        );
 
       return date.toLocaleDateString('en-US', {
         month: 'short',
@@ -639,7 +649,9 @@ export class WordListsComponent implements OnInit {
     const totalWords = list.word_count || 0;
     const learnedWords = list.learned_count || 0;
 
-    return `${learnedWords}/${totalWords} learned`;
+    return `${learnedWords}/${totalWords} ${this.translationService.translate(
+      'vocabLists.progress.learned'
+    )}`;
   }
 
   getWordImageUrl(word: WordListWord): string | null {
@@ -661,6 +673,66 @@ export class WordListsComponent implements OnInit {
     }
 
     return null;
+  }
+
+  canStartQuiz(): boolean {
+    const words = this.selectedListWords();
+    return words !== null && words.length >= 5;
+  }
+
+  getQuizButtonTooltip(): string {
+    const words = this.selectedListWords();
+    const wordCount = words?.length || 0;
+
+    if (this.loadingWords()) {
+      return this.translationService.translate('vocabLists.loadingWords');
+    }
+
+    if (wordCount < 5) {
+      return this.translationService.translate('vocabLists.quiz.needMinWords');
+    }
+
+    return this.translationService.translate('vocabLists.quiz.startQuiz');
+  }
+
+  startQuiz(): void {
+    const selectedList = this.selectedList();
+    const selectedWords = this.selectedListWords();
+
+    if (!selectedList || !selectedWords || selectedWords.length < 5) {
+      this.snackBar.open(
+        this.translationService.translate('vocabLists.quiz.minWordsRequired', {
+          min: '5',
+        }),
+        'Close',
+        { duration: 3000 }
+      );
+      return;
+    }
+
+    const dialogData: QuizDialogData = {
+      listId: selectedList.id,
+      listName: selectedList.name,
+      words: selectedWords,
+    };
+
+    const dialogRef = this.dialog.open(QuizDialogComponent, {
+      width: '100%',
+      maxWidth: '600px',
+      height: 'auto',
+      maxHeight: '90vh',
+      data: dialogData,
+      disableClose: true,
+      panelClass: 'quiz-dialog-panel',
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        // Quiz was completed successfully
+        // Could potentially update word learning status here if needed
+        console.log('Quiz completed');
+      }
+    });
   }
 
   private getErrorMessage(error: unknown): string {

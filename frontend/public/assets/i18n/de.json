@@ -419,6 +419,41 @@
       "learned": "Gelernt",
       "difficult": "Schwierig",
       "mastered": "Beherrscht"
+    },
+    "timeAgo": {
+      "now": "jetzt",
+      "hoursAgo": "vor {{count}}h",
+      "daysAgo": "vor {{count}}d",
+      "weeksAgo": "vor {{count}}w",
+      "monthsAgo": "vor {{count}}m"
+    },
+    "quiz": {
+      "startQuiz": "Quiz starten",
+      "title": "Multiple-Choice-Quiz",
+      "round": "Runde {{current}} von {{total}}",
+      "question": "Was ist die Übersetzung von:",
+      "chooseAnswer": "Wählen Sie die richtige Übersetzung:",
+      "nextQuestion": "Nächste Frage",
+      "finishQuiz": "Quiz beenden",
+      "results": "Quiz-Ergebnisse",
+      "score": "Ihr Ergebnis: {{correct}} von {{total}}",
+      "percentage": "{{percentage}}%",
+      "excellent": "Ausgezeichnet!",
+      "good": "Gut gemacht!",
+      "needsPractice": "Weiter üben!",
+      "correct": "Richtig!",
+      "incorrect": "Falsch",
+      "correctAnswer": "Richtige Antwort: {{answer}}",
+      "reviewAnswers": "Antworten überprüfen",
+      "retakeQuiz": "Quiz wiederholen",
+      "backToList": "Zurück zur Liste",
+      "minWordsRequired": "Sie benötigen mindestens {{min}} Wörter in der Liste",
+      "needMinWords": "Mindestens 5 Wörter erforderlich für Quiz",
+      "preparing": "Quiz-Fragen werden vorbereitet...",
+      "loading": "Quiz wird geladen..."
+    },
+    "progress": {
+      "learned": "gelernt"
     }
   }
 }

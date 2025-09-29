@@ -418,6 +418,41 @@
       "learned": "Aprendido",
       "difficult": "Difícil",
       "mastered": "Dominado"
+    },
+    "timeAgo": {
+      "now": "ahora",
+      "hoursAgo": "hace {{count}}h",
+      "daysAgo": "hace {{count}}d",
+      "weeksAgo": "hace {{count}}s",
+      "monthsAgo": "hace {{count}}m"
+    },
+    "quiz": {
+      "startQuiz": "Comenzar Quiz",
+      "title": "Quiz de Opción Múltiple",
+      "round": "Ronda {{current}} de {{total}}",
+      "question": "¿Cuál es la traducción de:",
+      "chooseAnswer": "Elige la traducción correcta:",
+      "nextQuestion": "Siguiente Pregunta",
+      "finishQuiz": "Terminar Quiz",
+      "results": "Resultados del Quiz",
+      "score": "Tu Puntuación: {{correct}} de {{total}}",
+      "percentage": "{{percentage}}%",
+      "excellent": "¡Excelente!",
+      "good": "¡Buen trabajo!",
+      "needsPractice": "¡Sigue practicando!",
+      "correct": "¡Correcto!",
+      "incorrect": "Incorrecto",
+      "correctAnswer": "Respuesta correcta: {{answer}}",
+      "reviewAnswers": "Revisar Respuestas",
+      "retakeQuiz": "Repetir Quiz",
+      "backToList": "Volver a la Lista",
+      "minWordsRequired": "Necesitas al menos {{min}} palabras en la lista",
+      "needMinWords": "Se requieren al menos 5 palabras para el quiz",
+      "preparing": "Preparando preguntas del quiz...",
+      "loading": "Cargando quiz..."
+    },
+    "progress": {
+      "learned": "aprendidas"
     }
   }
 }

@@ -75,6 +75,7 @@ module "alb" {
 # WAF Module
 module "waf" {
   source = "../../modules/waf"
+  count = 0
 
   project_name                      = var.project_name
   environment                       = var.environment
@@ -149,6 +150,7 @@ module "lambda" {
 
 module "ecs" {
   source = "../../modules/ecs"
+  count = 0
 
   project_name              = var.project_name
   environment               = var.environment
@@ -203,6 +205,7 @@ module "ecs" {
 # CI/CD Pipeline Module
 module "cicd_pipeline" {
   source = "../../modules/cicd-pipeline"
+  count = 0
 
   project_name       = var.project_name
   environment        = var.environment
@@ -220,13 +223,13 @@ module "cicd_pipeline" {
   backend_ecr_repo_name  = data.terraform_remote_state.common.outputs.ecr_backend_repository_name
 
   # ECS Configuration (deployment targets)
-  ecs_cluster_name                     = module.ecs.cluster_name
-  frontend_service_name                = module.ecs.frontend_service_name
-  backend_service_name                 = module.ecs.backend_service_name
-  ecs_frontend_task_role_arn           = module.ecs.ecs_frontend_task_role_arn
-  ecs_backend_task_role_arn            = module.ecs.ecs_backend_task_role_arn
-  ecs_frontend_task_execution_role_arn = module.ecs.ecs_frontend_task_execution_role_arn
-  ecs_backend_task_execution_role_arn  = module.ecs.ecs_backend_task_execution_role_arn
+  ecs_cluster_name                     = try(module.ecs[0].cluster_name, null)
+  frontend_service_name                = try(module.ecs[0].frontend_service_name, null)
+  backend_service_name                 = try(module.ecs[0].backend_service_name, null)
+  ecs_frontend_task_role_arn           = try(module.ecs[0].ecs_frontend_task_role_arn, null)
+  ecs_backend_task_role_arn            = try(module.ecs[0].ecs_backend_task_role_arn, null)
+  ecs_frontend_task_execution_role_arn = try(module.ecs[0].ecs_frontend_task_execution_role_arn, null)
+  ecs_backend_task_execution_role_arn  = try(module.ecs[0].ecs_backend_task_execution_role_arn, null)
 
   # Frontend Configuration (URLs for build-time injection)
   backend_domain_name    = var.backend_domain_name

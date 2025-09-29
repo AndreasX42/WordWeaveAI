@@ -364,7 +364,6 @@ export class WordCard implements OnInit, OnDestroy {
 
     if (routeState && routeState['word']) {
       const wordFromState = routeState['word'] as VocabularyWord;
-
       if (wordFromState.media_ref && !wordFromState.media) {
         this.loadWordByPkSkWithMedia(
           wordFromState.pk,
@@ -383,7 +382,15 @@ export class WordCard implements OnInit, OnDestroy {
     }
 
     if (routeState && routeState['pk'] && routeState['sk']) {
-      this.loadWordByPkSk(routeState['pk'], routeState['sk']);
+      if (routeState['media_ref']) {
+        this.loadWordByPkSkWithMedia(
+          routeState['pk'],
+          routeState['sk'],
+          routeState['media_ref']
+        );
+      } else {
+        this.loadWordByPkSk(routeState['pk'], routeState['sk']);
+      }
       return;
     }
 

@@ -420,6 +420,41 @@
       "learned": "Learned",
       "difficult": "Difficult",
       "mastered": "Mastered"
+    },
+    "timeAgo": {
+      "now": "now",
+      "hoursAgo": "{{count}}h ago",
+      "daysAgo": "{{count}}d ago",
+      "weeksAgo": "{{count}}w ago",
+      "monthsAgo": "{{count}}mo ago"
+    },
+    "quiz": {
+      "startQuiz": "Start Quiz",
+      "title": "Multiple Choice Quiz",
+      "round": "Round {{current}} of {{total}}",
+      "question": "What is the translation of:",
+      "chooseAnswer": "Choose the correct translation:",
+      "nextQuestion": "Next Question",
+      "finishQuiz": "Finish Quiz",
+      "results": "Quiz Results",
+      "score": "Your Score: {{correct}} out of {{total}}",
+      "percentage": "{{percentage}}%",
+      "excellent": "Excellent!",
+      "good": "Good job!",
+      "needsPractice": "Keep practicing!",
+      "correct": "Correct!",
+      "incorrect": "Incorrect",
+      "correctAnswer": "Correct answer: {{answer}}",
+      "reviewAnswers": "Review Answers",
+      "retakeQuiz": "Retake Quiz",
+      "backToList": "Back to List",
+      "minWordsRequired": "You need at least {{min}} words in the list",
+      "needMinWords": "Need at least 5 words to start quiz",
+      "preparing": "Preparing quiz questions...",
+      "loading": "Loading quiz..."
+    },
+    "progress": {
+      "learned": "learned"
     }
   }
 }

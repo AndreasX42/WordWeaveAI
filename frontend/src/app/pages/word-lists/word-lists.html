@@ -110,7 +110,10 @@
 
               <!-- Compact meta info in one line -->
               <div class="list-meta-compact">
-                <span class="word-count">{{ list.word_count || 0 }} words</span>
+                <span class="word-count"
+                  >{{ list.word_count || 0 }}
+                  {{ "vocabLists.words" | translate }}</span
+                >
                 <span class="progress-text">{{ getProgressText(list) }}</span>
                 <span class="created-date">{{
                   getFormattedDate(list.created_at)
@@ -161,6 +164,28 @@
             {{ selectedListWords()?.length || selectedList()?.word_count || 0 }}
             {{ "vocabLists.words" | translate }}
           </span>
+        </div>
+
+        <div class="panel-actions">
+          <div class="quiz-btn-wrapper">
+            <button
+              mat-raised-button
+              color="primary"
+              [disabled]="!canStartQuiz() || loadingWords()"
+              (click)="startQuiz()"
+              class="quiz-btn"
+              [attr.title]="getQuizButtonTooltip()"
+              matTooltip="{{ getQuizButtonTooltip() }}"
+              matTooltipClass="quiz-tooltip"
+              [matTooltipDisabled]="false"
+              matTooltipShowDelay="0"
+              matTooltipHideDelay="0"
+              matTooltipPosition="above"
+            >
+              <mat-icon>quiz</mat-icon>
+              {{ "vocabLists.quiz.startQuiz" | translate }}
+            </button>
+          </div>
         </div>
       </div>
 
