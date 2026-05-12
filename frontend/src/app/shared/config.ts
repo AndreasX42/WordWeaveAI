@@ -33,5 +33,5 @@ export class Configs {
   static readonly SEARCH_URL = `${Configs.WORDS_BASE_URL}/search`;
 
   static readonly WEBSOCKET_URL =
-    'wss://eb4ck683ui.execute-api.us-east-1.amazonaws.com/prod/';
+    'wss://z2cdn2ua36.execute-api.us-east-1.amazonaws.com/prod/';
 }
