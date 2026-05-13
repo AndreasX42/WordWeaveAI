@@ -47,7 +47,7 @@ ENV WEBSOCKET_URL=$WEBSOCKET_URL
 
 # Replace placeholders in config file before build
 RUN sed -i "s|http://localhost:8080/api|${BASE_URL}|g" src/app/shared/config.ts && \
-    sed -i "s|wss://mcjihxssd4.execute-api.us-east-1.amazonaws.com/prod/|${WEBSOCKET_URL}|g" src/app/shared/config.ts
+    sed -i "s|wss://z2cdn2ua36.execute-api.us-east-1.amazonaws.com/prod/|${WEBSOCKET_URL}|g" src/app/shared/config.ts
 
 # Build the application
 RUN npm run build -- --configuration production
