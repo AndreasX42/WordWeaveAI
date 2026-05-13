@@ -11,7 +11,7 @@ export interface NotificationItem {
   seen: boolean;
   link?: string;
   icon?: string;
-  progress?: number; // 0-100 for progress notifications
+  progress?: number;
   sourceWord?: string;
   targetLanguage?: string;
   requestId?: string;
@@ -245,8 +245,8 @@ export class NotificationService {
       const pathOnly =
         trimmed.includes('://') || trimmed.startsWith('//')
           ? new URL(
-              trimmed.startsWith('//') ? `https:${trimmed}` : trimmed
-            ).pathname
+            trimmed.startsWith('//') ? `https:${trimmed}` : trimmed
+          ).pathname
           : trimmed.split(/[?#]/)[0];
 
       const segments = pathOnly.split('/').filter(Boolean);
