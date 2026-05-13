@@ -6,12 +6,12 @@
 
 import { normalizeWordForVocabLookup } from './word-normalize';
 
-export type WordRouteParams = {
+export interface WordRouteParams {
   sourceLanguage: string;
   targetLanguage: string;
   sourcePos: string;
   sourceWord: string;
-};
+}
 
 /** Same rules as legacy POS normalization (e.g. "neuter noun" → "noun"). */
 export function normalizePOSForWordRoute(pos: string): string {
