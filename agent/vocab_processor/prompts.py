@@ -1,5 +1,9 @@
 from typing import Optional
 
+from aws_lambda_powertools import Logger
+
+logger = Logger(service="vocab-processor-prompts")
+
 
 def add_quality_feedback_to_prompt(
     base_prompt: str,
@@ -35,14 +39,79 @@ def add_quality_feedback_to_prompt(
             )
 
     if suggestions or previous_issues:
-        print()
-        print("ISSUESS DETECTED" + "-" * 100)
-        print(suggestions)
-        print(previous_issues)
-        print("-" * 100)
-        print()
+        logger.debug(
+            "quality_feedback_retry_sections",
+            suggestions=suggestions,
+            previous_issues=previous_issues,
+        )
 
     return base_prompt + requirements_section + feedback_section
+
+
+def build_supervisor_tool_validation_prompt(
+    *,
+    source_word: str,
+    source_language_display: str,
+    target_word: str,
+    target_language_display: str,
+    tool_name: str,
+    schema_json_block: str,
+    assistant_prompt: str,
+    assistant_output_json: str,
+    quality_threshold: float,
+) -> str:
+    """Prompt for LLM supervisor that scores tool outputs against schema and instructions."""
+
+    return f"""
+            **VALIDATION TASK**
+            You are a language learning expert. Your task is to validate the work of a language learning assistant. The overall goal of the assistant is to create accurate and informative vocabulary learning materials.
+
+            Context:
+            Source word: '{source_word}' ('{source_language_display}')
+            Target word: '{target_word}' ('{target_language_display}')
+            Assistant used tool: {tool_name}
+
+            **Assistant's Role:**
+            The assistant is a language learning expert. It is tasked with creating accurate and informative vocabulary learning materials.
+
+            **Assistant's Output:**
+            The assistant's output is a JSON object that conforms to the expected schema.
+
+
+            **1. Expected Output Schema:**
+            The output MUST conform to this Pydantic model schema:
+            --- SCHEMA START ---
+            {schema_json_block}
+            --- SCHEMA END ---
+
+            **2. Input Prompt:**
+            This was the prompt given to the assistant:
+            --- PROMPT START ---
+            {assistant_prompt}
+            --- PROMPT END ---
+
+            **3. Assistant's Output:**
+            Here is the assistants output using the above Pydantic model schema:
+            --- JSON START ---
+            {assistant_output_json}
+            --- JSON END ---
+
+            **Instructions for you, the Supervisor:**
+            1.  **Schema Compliance:** First and foremost, check if the JSON output complies with the Pydantic schema. Are all required fields present? Are the data types correct? A stringified JSON output is also valid.
+
+            2.  **Requirement Adherence:** Carefully read the 'REQUIREMENTS' section in the prompt. Has the assistant followed all instructions?
+
+            3. **Content Quality:** The overall goal is to create an accurate and natural vocabulary learning material from '{source_word}' ('{source_language_display}') to the target word '{target_word}' ('{target_language_display}'). The content of the output should be accurate, informative and helpful for learning the target word.
+            
+            4. **Quality Score:** Rate the output on a scale of 1-10, where 10 is perfect. The score should reflect both schema compliance and adherence to the prompt's requirements as well as content quality. A low score should be given if either is not met.
+
+            5.  **Issues and Suggestions:**
+                - If the score is below {quality_threshold}, you MUST provide a list of found issues. Each issue should be a clear, concise statement describing a specific failure (e.g., "Field 'x' is missing", "Translation for 'y' is unnatural", "Source word "z" as a matter of fact does exist in the source language and is used in certain parts of the world").
+                - If there are issues, you MUST also provide a list of suggestions for the assistant to improve the output on the next attempt. Suggestions should be actionable and directly related to the issues found.
+
+            Your response MUST be a valid JSON object matching the ToolValidationResult schema.
+            The score should be between 1 and 10 and should reflect the accuracy and quality of the output based on the given conditions. If the score is {quality_threshold} or higher, don't provide any issues or suggestions, just return the score.
+            """
 
 
 class PromptTemplate:

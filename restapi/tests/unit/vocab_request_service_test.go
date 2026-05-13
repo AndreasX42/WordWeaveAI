@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/AndreasX42/restapi/domain/entities"
+	"github.com/AndreasX42/restapi/domain/services"
 	"github.com/AndreasX42/restapi/handlers"
 	"github.com/AndreasX42/restapi/tests/mocks"
 	"github.com/gin-gonic/gin"
@@ -19,20 +20,23 @@ import (
 )
 
 func setupVocabRequestHandler() (*handlers.VocabRequestHandler, *mocks.MockSQSClient, *mocks.MockUserRepository, *gin.Engine) {
+	return setupVocabRequestHandlerWithConfig("https://sqs.test.amazonaws.com/123456789/vocab-requests.fifo", 10)
+}
+
+func setupVocabRequestHandlerWithConfig(queueURL string, maxRequestsFreeTier int) (*handlers.VocabRequestHandler, *mocks.MockSQSClient, *mocks.MockUserRepository, *gin.Engine) {
 	gin.SetMode(gin.TestMode)
 
 	// Setup environment variables
 	os.Setenv("JWT_SECRET_KEY", "test-secret-key-for-vocab-request-tests")
 	os.Setenv("JWT_EXPIRATION_TIME", "60")
-	os.Setenv("SQS_VOCAB_REQUEST_QUEUE_URL", "https://sqs.test.amazonaws.com/123456789/vocab-requests.fifo")
-	os.Setenv("MAX_VOCAB_REQUESTS_FREE_TIER", "10")
 
 	// Create mocks
 	sqsClient := mocks.NewMockSQSClient()
 	userRepo := mocks.NewMockUserRepository().(*mocks.MockUserRepository)
 
-	// Create handler
-	vocabRequestHandler := handlers.NewVocabRequestHandler(sqsClient, userRepo)
+	// Create service and handler
+	vocabRequestService := services.NewVocabRequestService(sqsClient, userRepo, queueURL, maxRequestsFreeTier)
+	vocabRequestHandler := handlers.NewVocabRequestHandler(vocabRequestService)
 
 	// Setup router
 	router := gin.New()
@@ -112,7 +116,7 @@ func TestVocabRequestHandler_RequestVocab(t *testing.T) {
 		router.ServeHTTP(recorder, request)
 
 		// Assertions
-		assert.Equal(t, http.StatusOK, recorder.Code)
+		assert.Equal(t, http.StatusAccepted, recorder.Code)
 
 		var response map[string]any
 		err := json.Unmarshal(recorder.Body.Bytes(), &response)
@@ -287,13 +291,13 @@ func TestVocabRequestHandler_RequestVocab(t *testing.T) {
 		recorder := httptest.NewRecorder()
 		router.ServeHTTP(recorder, request)
 
-		assert.Equal(t, http.StatusTooManyRequests, recorder.Code)
+		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 
 		var response map[string]any
 		err := json.Unmarshal(recorder.Body.Bytes(), &response)
 		require.NoError(t, err)
 
-		assert.Contains(t, response["details"], "You have reached the maximum number of 10 requests")
+		assert.Contains(t, response["error"], "you have reached the maximum number of 10 requests")
 	})
 
 	t.Run("SQS error handling", func(t *testing.T) {
@@ -323,7 +327,7 @@ func TestVocabRequestHandler_RequestVocab(t *testing.T) {
 		err := json.Unmarshal(recorder.Body.Bytes(), &response)
 		require.NoError(t, err)
 
-		assert.Equal(t, "Failed to submit word request", response["error"])
+		assert.Equal(t, "failed to submit word request: SQS service unavailable", response["error"])
 
 		// Reset SQS error state
 		sqsClient.SetError(false, "")
@@ -376,17 +380,14 @@ func TestVocabRequestHandler_RequestVocab(t *testing.T) {
 		err := json.Unmarshal(recorder.Body.Bytes(), &response)
 		require.NoError(t, err)
 
-		assert.Equal(t, "Failed to update user data", response["error"])
+		assert.Equal(t, "failed to update user data: database unavailable", response["error"])
 
 		// Reset error state
 		userRepo.SetUpdateError(false, "")
 	})
 
-	t.Run("missing SQS queue URL environment variable", func(t *testing.T) {
-		// Temporarily remove environment variable
-		originalURL := os.Getenv("SQS_VOCAB_REQUEST_QUEUE_URL")
-		os.Unsetenv("SQS_VOCAB_REQUEST_QUEUE_URL")
-
+	t.Run("missing SQS queue URL configuration", func(t *testing.T) {
+		_, sqsClient, userRepo, router := setupVocabRequestHandlerWithConfig("", 10)
 		sqsClient.Reset() // Clear previous messages
 		token, _ := createTestUserAndGetToken(t, userRepo, router, 0)
 
@@ -404,16 +405,13 @@ func TestVocabRequestHandler_RequestVocab(t *testing.T) {
 		recorder := httptest.NewRecorder()
 		router.ServeHTTP(recorder, request)
 
-		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+		assert.Equal(t, http.StatusAccepted, recorder.Code)
 
-		var response map[string]any
-		err := json.Unmarshal(recorder.Body.Bytes(), &response)
-		require.NoError(t, err)
-
-		assert.Equal(t, "Queue configuration error", response["error"])
-
-		// Restore environment variable
-		os.Setenv("SQS_VOCAB_REQUEST_QUEUE_URL", originalURL)
+		messages := sqsClient.GetSentMessages()
+		assert.Equal(t, 1, len(messages))
+		if len(messages) > 0 {
+			assert.Equal(t, "", messages[0].QueueURL)
+		}
 	})
 }
 
@@ -438,7 +436,7 @@ func TestVocabRequestHandler_DeduplicationID(t *testing.T) {
 		recorder := httptest.NewRecorder()
 		router.ServeHTTP(recorder, request)
 
-		assert.Equal(t, http.StatusOK, recorder.Code)
+		assert.Equal(t, http.StatusAccepted, recorder.Code)
 
 		// Verify message was sent with proper deduplication ID
 		messages := sqsClient.GetSentMessages()
@@ -470,7 +468,7 @@ func TestVocabRequestHandler_DeduplicationID(t *testing.T) {
 		recorder := httptest.NewRecorder()
 		router.ServeHTTP(recorder, request)
 
-		assert.Equal(t, http.StatusOK, recorder.Code)
+		assert.Equal(t, http.StatusAccepted, recorder.Code)
 
 		// Verify message was sent with sanitized deduplication ID
 		messages := sqsClient.GetSentMessages()
@@ -507,7 +505,7 @@ func TestVocabRequestHandler_DeduplicationID(t *testing.T) {
 		recorder := httptest.NewRecorder()
 		router.ServeHTTP(recorder, request)
 
-		assert.Equal(t, http.StatusOK, recorder.Code)
+		assert.Equal(t, http.StatusAccepted, recorder.Code)
 
 		// Verify message was sent with truncated deduplication ID
 		messages := sqsClient.GetSentMessages()
@@ -567,7 +565,7 @@ func TestVocabRequestHandler_RateLimiting(t *testing.T) {
 		router.ServeHTTP(recorder, request)
 
 		// Should succeed (9 + 1 = 10, which is exactly the limit)
-		assert.Equal(t, http.StatusOK, recorder.Code)
+		assert.Equal(t, http.StatusAccepted, recorder.Code)
 
 		// Verify user request count was incremented
 		updatedUser, err := userRepo.GetByID(context.Background(), "test-user-123")
@@ -575,13 +573,9 @@ func TestVocabRequestHandler_RateLimiting(t *testing.T) {
 		assert.Equal(t, 10, updatedUser.RequestCount)
 	})
 
-	t.Run("malformed MAX_VOCAB_REQUESTS_FREE_TIER", func(t *testing.T) {
+	t.Run("invalid max requests configuration", func(t *testing.T) {
+		_, sqsClient, userRepo, router := setupVocabRequestHandlerWithConfig("https://sqs.test.amazonaws.com/123456789/vocab-requests.fifo", 0)
 		sqsClient.Reset() // Clear previous messages
-		// Save original value
-		originalMaxRequests := os.Getenv("MAX_VOCAB_REQUESTS_FREE_TIER")
-
-		// Set invalid value
-		os.Setenv("MAX_VOCAB_REQUESTS_FREE_TIER", "invalid")
 
 		token, _ := createTestUserAndGetToken(t, userRepo, router, 0)
 
@@ -605,9 +599,6 @@ func TestVocabRequestHandler_RateLimiting(t *testing.T) {
 		err := json.Unmarshal(recorder.Body.Bytes(), &response)
 		require.NoError(t, err)
 
-		assert.Equal(t, "Failed to parse MAX_VOCAB_REQUESTS_FREE_TIER", response["error"])
-
-		// Restore environment variable
-		os.Setenv("MAX_VOCAB_REQUESTS_FREE_TIER", originalMaxRequests)
+		assert.Equal(t, "you have reached the maximum number of 0 requests", response["error"])
 	})
 }

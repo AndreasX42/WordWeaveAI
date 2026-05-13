@@ -1,5 +1,9 @@
 from typing import Optional
 
+from aws_lambda_powertools import Logger
+
+logger = Logger(service="vocab-processor-prompts-simple")
+
 
 def add_quality_feedback_to_prompt(
     full_prompt: str,
@@ -24,17 +28,15 @@ def add_quality_feedback_to_prompt(
     if suggestions:
         suggestions_text = "\n".join(f"- {suggestion}" for suggestion in suggestions)
         feedback_section += (
-            f"\n**MUST FOLLOW THESE INSTRUCTION SET:**\n{suggestions_text}\n"
+            f"\n**MUST FOLLOW THESE INSTRUCTIONS:**\n{suggestions_text}\n"
         )
 
-    # Add debug printing like in original prompts.py
     if suggestions or previous_issues:
-        print()
-        print("ISSUES DETECTED" + "-" * 100)
-        print(suggestions)
-        print(previous_issues)
-        print("-" * 100)
-        print()
+        logger.debug(
+            "quality_feedback_retry_sections",
+            suggestions=suggestions,
+            previous_issues=previous_issues,
+        )
 
     return full_prompt + feedback_section
 
@@ -72,13 +74,13 @@ CLASSIFICATION_PROMPT_TEMPLATE = PromptTemplate(
 Part of speech: {part_of_speech_values}
 
 **Task:**
-1. Extract the base form, removing articles/prefixes/modifiers (if the source wourd is itself an article or some base form, leave it as is)
+1. Extract the base form, removing articles/prefixes/modifiers (if the source word is itself an article or some base form, leave it as is)
 2. If the word is in plural form, extract its singular form
 3. Provide 1-3 clear, natural, dictionary-style definitions in {source_language}
 4. Note any **highly important** context (slang, restricted regional usage, etc.) in {source_language}
 
 **CRITICAL LANGUAGE RULES:**
-- If the source word is German and vocals are given like "ue", "ae", or "oe", change them to "ä", "ä", or "ö"
+- If the source word is German with vowel substitutes "ue"/"ae"/"oe", prefer standard spelling with umlauts "ü"/"ä"/"ö" in output when appropriate (equivalent spellings refer to the same word)
 - Take into account the proper capitalisation of the source word in the language {source_language} when setting 'source_word', for example nouns in German are always capitalised
 
 **Articles:**
@@ -170,7 +172,7 @@ SYNONYMS_PROMPT_TEMPLATE = PromptTemplate(
 1. First, determine if common synonyms for '{target_word}' exist in {target_language}
 2. If possible, provide at least 1 to a maximum of 3 of the most commonly used words or concepts
 3. If there are no good synonyms, just return an empty list
-3. For each synonym, the explanation must be in {source_language} and clarify the nuances and differences compared to '{target_word}'. Make it clear and concise (maximum 3 sentences, no more than 100 words)
+4. For each synonym, the explanation must be in {source_language} and clarify the nuances and differences compared to '{target_word}'. Make it clear and concise (maximum 3 sentences, no more than 100 words each)
 
 **Task:**
 1. Determine if common synonyms exist
@@ -184,7 +186,7 @@ SYNONYMS_PROMPT_TEMPLATE = PromptTemplate(
 - If no good synonyms exist, return empty list
 - Focus on closest related concepts, not meta-commentary
 - If synonyms are uncommon but valid, mention this in the synonym's explanation
-- Explanations must concisely clarify subtle differences in meaning and usage and include special context, meaning, and regional usage, but must be concise (max 300 characters each)
+- Keep each explanation concise and within the limits above (3 sentences / 100 words max)
 """
 )
 
@@ -228,7 +230,7 @@ CONJUGATION_PROMPT_TEMPLATE = PromptTemplate(
 1. Include all essential forms for learners, imperative forms are not needed
 2. Follow standard conjugation patterns
 3. Output valid JSON matching expected schema
-4. No explications are needed, just the conjugation table
+4. No extra commentary—output only the conjugation table JSON
 
 **Quality Requirements:**
 - Follow natural, standard conjugation patterns for {target_language}
@@ -281,8 +283,8 @@ Possible languages: {possible_source_languages}
 1. If source_language is "unknown": You MUST detect which language the word belongs to from the possible source languages and set source_language to that detected language
 2. If source_language is provided (not "unknown"): Validate the word against that specific language only
 
-**CRITICAL GERMAN VOCALS/UMLAUTS RULE:**
-In the German language it is perfectly fine and allowed to use vocals/umlauts like "ue", "ae", or "oe" instead of "ü", "ä", or "ö" in the word.
+**CRITICAL GERMAN VOWELS / UMLAUT SPELLING:**
+German words may appear with vowel substitutions "ae"/"oe"/"ue" or with umlauts "ä"/"ö"/"ü"; treat these as equivalent orthography for validity (same word).
 
 **Task:**
 1. If source_language is "unknown": detect correct language
@@ -291,8 +293,6 @@ In the German language it is perfectly fine and allowed to use vocals/umlauts li
 4. Consider multiple parts of speech
 5. For invalid words: provide suggestions and clear message
 6. **ALWAYS set source_language to valid language (never "unknown")**
-
-**CRITICAL GERMAN RULES**: In the German language it is perfectly fine to use vocals/umlauts like "ue", "ae", or "oe" instead of "ü", "ä", or "ö" in the word.
 
 **Instructions:**
 - Keep the input exactly as provided by the user
@@ -303,7 +303,7 @@ In the German language it is perfectly fine and allowed to use vocals/umlauts li
 
 **Quality Requirements:**
 - **LANGUAGE DETECTION REQUIREMENT:** You MUST always return a valid language (English, Spanish, or German) – never "unknown"  
-- **GERMAN UMLAUT RULE:** Vocals/Umlauts in German are allowed to be written with "ue", "ae", or "oe" instead of the umlauts "ü", "ä", or "ö"
+- **GERMAN UMLAUT RULE:** Spellings using "ae"/"oe"/"ue" are equivalent to "ä"/"ö"/"ü"—do not mark a word invalid solely due to substitution vs umlaut
 - Proper language detection when needed
 - Accept regional/dialectal variants
 - Clear error messages in detected language

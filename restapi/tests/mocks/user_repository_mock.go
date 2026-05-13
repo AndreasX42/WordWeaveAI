@@ -2,6 +2,7 @@ package mocks
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -138,7 +139,7 @@ func (m *MockUserRepository) Update(ctx context.Context, user *entities.User) er
 
 	// Check if we should return an error for testing
 	if m.shouldUpdateError {
-		return fmt.Errorf(m.updateErrorMsg)
+		return errors.New(m.updateErrorMsg)
 	}
 
 	existingUser, exists := m.usersByID[user.ID]
@@ -166,6 +167,48 @@ func (m *MockUserRepository) Update(ctx context.Context, user *entities.User) er
 		m.googleIDIndex[user.GoogleID] = user.ID
 	}
 
+	return nil
+}
+
+func (m *MockUserRepository) IncrementRequestCountIfBelowLimit(ctx context.Context, userID string, maxRequests int) (bool, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if m.shouldUpdateError {
+		return false, errors.New(m.updateErrorMsg)
+	}
+
+	user, exists := m.usersByID[userID]
+	if !exists {
+		return false, fmt.Errorf("user not found")
+	}
+	if user.RequestCount >= maxRequests {
+		return false, nil
+	}
+
+	userCopy := *user
+	userCopy.RequestCount++
+	m.usersByID[userID] = &userCopy
+	m.users[userCopy.Email] = &userCopy
+	return true, nil
+}
+
+func (m *MockUserRepository) DecrementRequestCount(ctx context.Context, userID string) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	user, exists := m.usersByID[userID]
+	if !exists {
+		return fmt.Errorf("user not found")
+	}
+	if user.RequestCount == 0 {
+		return nil
+	}
+
+	userCopy := *user
+	userCopy.RequestCount--
+	m.usersByID[userID] = &userCopy
+	m.users[userCopy.Email] = &userCopy
 	return nil
 }
 

@@ -85,3 +85,4 @@ Thumbs.db
 restapi/test-build
 restapi/tmp/test-build
 restapi/tmp/main
+*/.cursor

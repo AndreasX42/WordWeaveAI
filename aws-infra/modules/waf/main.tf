@@ -12,7 +12,7 @@ resource "aws_wafv2_web_acl" "main" {
   custom_response_body {
     key          = "rate_limited_json"
     content_type = "APPLICATION_JSON"
-    content      = jsonencode({
+    content = jsonencode({
       error   = "rate_limited"
       message = var.rate_limit_response_message
       code    = "RATE_LIMIT_EXCEEDED"
@@ -23,7 +23,7 @@ resource "aws_wafv2_web_acl" "main" {
   custom_response_body {
     key          = "blocked_ip_json"
     content_type = "APPLICATION_JSON"
-    content      = jsonencode({
+    content = jsonencode({
       error   = "access_denied"
       message = "Access denied from this IP address."
       code    = "IP_BLOCKED"
@@ -302,7 +302,7 @@ resource "aws_cloudwatch_log_group" "waf_logs" {
 # Optional WAF Logging Configuration
 resource "aws_wafv2_web_acl_logging_configuration" "main" {
   count = var.enable_waf_logging ? 1 : 0
-  
+
   log_destination_configs = [aws_cloudwatch_log_group.waf_logs.arn]
   resource_arn            = aws_wafv2_web_acl.main.arn
 }

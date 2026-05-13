@@ -270,6 +270,14 @@ func (m *MockVocabListRepository) UpdateWordInList(ctx context.Context, userID, 
 		return fmt.Errorf("word not found in list")
 	}
 
+	wasLearned := word.IsLearned
+	learnedCountDelta := 0
+	if !wasLearned && isLearned {
+		learnedCountDelta = 1
+	} else if wasLearned && !isLearned {
+		learnedCountDelta = -1
+	}
+
 	// Update the isLearned status and set LearnedAt timestamp if needed
 	word.IsLearned = isLearned
 	if isLearned {
@@ -277,6 +285,21 @@ func (m *MockVocabListRepository) UpdateWordInList(ctx context.Context, userID, 
 		word.LearnedAt = &now
 	} else {
 		word.LearnedAt = nil
+	}
+
+	if learnedCountDelta != 0 {
+		listKey := m.getListKey(userID, listID)
+		if list, exists := m.lists[listKey]; exists {
+			list.LearnedCount += learnedCountDelta
+		}
+
+		userLists := m.listsByUser[userID]
+		for i, userList := range userLists {
+			if userList.ID == listID {
+				m.listsByUser[userID][i].LearnedCount += learnedCountDelta
+				break
+			}
+		}
 	}
 
 	return nil

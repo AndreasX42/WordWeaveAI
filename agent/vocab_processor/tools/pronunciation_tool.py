@@ -1,10 +1,12 @@
 import asyncio
 import os
 import random
+from collections.abc import AsyncIterator
 from typing import Optional
 
 import boto3
 from aws_lambda_powertools import Logger
+from botocore.exceptions import ClientError
 from elevenlabs import VoiceSettings
 from elevenlabs.client import AsyncElevenLabs
 from langchain_core.tools import tool
@@ -15,32 +17,76 @@ from vocab_processor.tools.base_tool import create_tool_error_response
 from vocab_processor.utils.core_utils import is_lambda_context
 from vocab_processor.utils.s3_utils import generate_vocab_s3_paths, upload_stream_to_s3
 
+
+def _env_float(key: str, default: float) -> float:
+    raw = os.getenv(key)
+    if raw is None or not str(raw).strip():
+        return default
+    return float(raw)
+
+
+def _env_bool(key: str, default: bool) -> bool:
+    raw = os.getenv(key)
+    if raw is None or not str(raw).strip():
+        return default
+    return raw.strip().lower() in ("1", "true", "yes", "on")
+
+
+def _voice_id_env(key: str, default: str) -> str:
+    raw = os.getenv(key)
+    if raw is None or not raw.strip():
+        return default
+    return raw.strip()
+
+
 # Audio file constants
 AUDIO_FILENAMES = {"pronunciation": "pronunciation.mp3", "syllables": "syllables.mp3"}
 
 # Voice configuration
-# Voice configuration
+_VOICE_IDS_DEFAULT = {
+    "es": _voice_id_env("ELEVENLABS_VOICE_ID_ES", "EXAVITQu4vr4xnSDxMaL"),
+    "en": _voice_id_env("ELEVENLABS_VOICE_ID_EN", "EXAVITQu4vr4xnSDxMaL"),
+    "de": _voice_id_env("ELEVENLABS_VOICE_ID_DE", "EXAVITQu4vr4xnSDxMaL"),
+}
+
 VOICE_CONFIG = {
-    "voice_id": os.getenv(
-        "ELEVENLABS_VOICE_ID", "94zOad0g7T7K4oa7zhDq"
-    ),  # Default: Mauricio
+    "voice_ids": _VOICE_IDS_DEFAULT,
     "model_id": os.getenv("ELEVENLABS_MODEL_ID", "eleven_flash_v2_5"),
-    "word_speed": 0.85,
-    "syllables_speed": 0.7,
+    "word_speed": _env_float("ELEVENLABS_WORD_SPEED", 0.85),
+    "syllables_speed": _env_float("ELEVENLABS_SYLLABLES_SPEED", 0.7),
     "voice_settings": {
-        "stability": 0.9,
-        "similarity_boost": 0.9,
-        "style": 0.9,
-        "use_speaker_boost": True,
+        "stability": _env_float("ELEVENLABS_VOICE_STABILITY", 0.9),
+        "similarity_boost": _env_float("ELEVENLABS_VOICE_SIMILARITY_BOOST", 0.9),
+        "style": _env_float("ELEVENLABS_VOICE_STYLE", 0.9),
+        "use_speaker_boost": _env_bool("ELEVENLABS_USE_SPEAKER_BOOST", True),
     },
 }
 
 logger = Logger(service="vocab-processor")
 
 # Configuration constants
-MAX_AUDIO_SIZE_MB = 5  # Maximum audio file size in MB
-MAX_AUDIO_RETRIES = 3  # Maximum retry attempts for failed audio generation
-AUDIO_TIMEOUT_SECONDS = 30  # Timeout for audio generation requests
+MAX_AUDIO_SIZE_MB = int(os.getenv("VOCAB_PRONUNCIATION_MAX_AUDIO_MB", "5"))
+MAX_AUDIO_RETRIES = int(os.getenv("VOCAB_PRONUNCIATION_MAX_RETRIES", "3"))
+AUDIO_TIMEOUT_SECONDS = int(os.getenv("VOCAB_PRONUNCIATION_AUDIO_TIMEOUT_SECONDS", "30"))
+
+
+def _voice_id_for_language(language_code: str) -> str:
+    """Resolve ElevenLabs voice id; fall back to English if unknown."""
+    vmap = VOICE_CONFIG["voice_ids"]
+    vid = vmap.get(language_code)
+    if isinstance(vid, str) and vid.strip():
+        return vid.strip()
+    en = vmap.get("en")
+    if isinstance(en, str) and en.strip():
+        return en.strip()
+    raise ValueError(
+        "No ElevenLabs voice configured"
+    )
+
+
+def _is_s3_not_found(exc: ClientError) -> bool:
+    code = exc.response.get("Error", {}).get("Code", "")
+    return code in ("404", "NoSuchKey", "NotFound")
 
 
 class Pronunciations(BaseModel):
@@ -61,7 +107,7 @@ async def generate_audio_with_retry(
     model_id: str,
     voice_settings: VoiceSettings,
     max_retries: int = MAX_AUDIO_RETRIES,
-) -> any:
+) -> AsyncIterator[bytes]:
     """Generate audio with retry logic and exponential backoff."""
 
     for attempt in range(max_retries):
@@ -131,9 +177,7 @@ async def generate_audio_with_retry(
             else:
                 raise e
 
-    # Instead of raising an exception, return None to indicate fallback should be used
-    logger.error(f"Max retries exceeded for audio generation - will use fallback")
-    return None
+    raise RuntimeError("Audio generation retries exhausted unexpectedly")
 
 
 def validate_audio_quality(chunks: list, text: str) -> bool:
@@ -180,8 +224,13 @@ async def _check_existing_audio_in_s3(
             s3_client.head_object(Bucket=bucket_name, Key=audio_paths.pronunciation_key)
             audio_url = audio_paths.get_s3_url(bucket_name, "pronunciation")
             logger.info(f"Found existing audio file: {audio_paths.pronunciation_key}")
-        except s3_client.exceptions.NoSuchKey:
-            logger.info(f"Audio file not found: {audio_paths.pronunciation_key}")
+        except ClientError as e:
+            if _is_s3_not_found(e):
+                logger.info(f"Audio file not found: {audio_paths.pronunciation_key}")
+            else:
+                logger.warning(
+                    f"Error checking audio file {audio_paths.pronunciation_key}: {str(e)}"
+                )
         except Exception as e:
             logger.warning(
                 f"Error checking audio file {audio_paths.pronunciation_key}: {str(e)}"
@@ -196,8 +245,13 @@ async def _check_existing_audio_in_s3(
                 logger.info(
                     f"Found existing syllables file: {audio_paths.syllables_key}"
                 )
-            except s3_client.exceptions.NoSuchKey:
-                logger.info(f"Syllables file not found: {audio_paths.syllables_key}")
+            except ClientError as e:
+                if _is_s3_not_found(e):
+                    logger.info(f"Syllables file not found: {audio_paths.syllables_key}")
+                else:
+                    logger.warning(
+                        f"Error checking syllables file {audio_paths.syllables_key}: {str(e)}"
+                    )
             except Exception as e:
                 logger.warning(
                     f"Error checking syllables file {audio_paths.syllables_key}: {str(e)}"
@@ -278,7 +332,6 @@ async def get_pronunciation(
         if existing_audio["audio"] and (
             not syllables_needed or existing_audio["syllables"]
         ):
-            print("existing_audio", existing_audio)
             logger.info(f"Reusing existing audio files for {target_word}")
             return Pronunciations(
                 audio=existing_audio["audio"], syllables=existing_audio["syllables"]
@@ -313,18 +366,11 @@ async def get_pronunciation(
             audio_generator = await generate_audio_with_retry(
                 client=client,
                 text=text,
-                voice_id=VOICE_CONFIG["voice_id"],
+                voice_id=_voice_id_for_language(language_code),
                 language_code=language_code,
                 model_id=VOICE_CONFIG["model_id"],
                 voice_settings=voice_settings,
             )
-
-            # Check if generation failed and return fallback
-            if audio_generator is None:
-                logger.warning(
-                    f"Audio generation failed for {text}, using fallback URL"
-                )
-                return f"ERROR: Audio generation failed for {text}, {file_type}, {'text' if not is_syllables else 'syllables'}"
 
             # Upload stream directly to S3
             return await upload_stream_to_s3(audio_generator, s3_key, "audio/mpeg")

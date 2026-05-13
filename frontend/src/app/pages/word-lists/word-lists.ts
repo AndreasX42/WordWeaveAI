@@ -40,6 +40,7 @@ import { NotificationService } from '../../services/notification.service';
 import { WordListService } from '../../services/word-list.service';
 import { AuthService } from '../../services/auth.service';
 import { TranslatePipe } from '../../shared/pipes/translate.pipe';
+import { wordRouteSegments } from '../../shared/word-route-url';
 import {
   WordList,
   WordListWord,
@@ -429,20 +430,24 @@ export class WordListsComponent implements OnInit {
       word.source_language || this.parseLanguageFromPk(word.vocab_pk);
     const targetLanguage =
       word.target_language || this.parseLanguageFromSk(word.vocab_sk);
-    const pos = this.parsePosFromSk(word.vocab_sk) || 'word';
-    const sourceWord = word.source_word || this.parseWordFromPk(word.vocab_pk);
+    const pos = this.parsePosFromSk(word.vocab_sk) || 'pending';
+    const slugInput =
+      this.parseWordFromPk(word.vocab_pk) ?? word.source_word ?? '';
 
-    if (sourceLanguage && targetLanguage && sourceWord) {
-      this.router.navigate(
-        ['/words', sourceLanguage, targetLanguage, pos, sourceWord],
-        {
-          state: {
-            pk: word.vocab_pk,
-            sk: word.vocab_sk,
-            media_ref: word.media_ref,
-          },
-        }
-      );
+    if (sourceLanguage && targetLanguage && slugInput) {
+      const segments = wordRouteSegments({
+        sourceLanguage,
+        targetLanguage,
+        sourcePos: pos,
+        sourceWord: slugInput,
+      });
+      this.router.navigate(['/words', ...segments], {
+        state: {
+          pk: word.vocab_pk,
+          sk: word.vocab_sk,
+          media_ref: word.media_ref,
+        },
+      });
     } else {
       // Fallback to query parameter format if we can't parse the URL components
       const queryParams: Record<string, string> = {

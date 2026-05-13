@@ -91,6 +91,12 @@ variable "s3_bucket_arn" {
 }
 
 # WebSocket API Configuration
+variable "enable_websocket_iam_policy" {
+  description = "Attach execute-api ManageConnections permissions. Set true when websocket_api_id is provided (must be literal true/false—not derived from websocket_api_id—so Terraform can plan count)."
+  type        = bool
+  default     = false
+}
+
 variable "websocket_api_id" {
   description = "ID of the WebSocket API"
   type        = string
@@ -101,4 +107,16 @@ variable "websocket_api_endpoint" {
   description = "Endpoint of the WebSocket API"
   type        = string
   default     = null
-} 
+}
+
+variable "vocab_llm_node_model" {
+  description = "OpenAI model ID for VOCAB_LLM_NODE_MODEL (Instructor node_executor)."
+  type        = string
+  default     = "gpt-4.1-mini-2025-04-14"
+}
+
+variable "vocab_llm_supervisor_model" {
+  description = "OpenAI model ID for VOCAB_LLM_SUPERVISOR_MODEL (supervisor router)."
+  type        = string
+  default     = "gpt-4.1-2025-04-14"
+}

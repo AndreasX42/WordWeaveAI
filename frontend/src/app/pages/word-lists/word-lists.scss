@@ -122,18 +122,6 @@
   padding: 64px 24px;
   min-height: 400px;
 
-  mat-icon {
-    font-size: 72px;
-    width: 72px;
-    height: 72px;
-    margin-bottom: 24px;
-
-    &.empty-icon {
-      color: var(--text-secondary);
-      opacity: 0.6;
-    }
-  }
-
   h3 {
     margin: 0 0 16px 0;
     font-weight: 500;
@@ -145,6 +133,50 @@
     color: var(--text-secondary);
     max-width: 400px;
   }
+}
+
+// Hero icons only — do not target mat-icons inside buttons (those inherit 72px otherwise)
+.empty-state > mat-icon.empty-icon,
+.error-container > mat-icon.error-icon {
+  font-size: 72px;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 24px;
+}
+
+.empty-state > mat-icon.empty-icon {
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+.empty-state .create-first-list-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-size: 0.95rem;
+  text-transform: none;
+  letter-spacing: 0;
+
+  mat-icon {
+    margin: 0;
+    flex-shrink: 0;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+  }
+}
+
+.error-container button mat-icon {
+  margin-right: 8px;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
 }
 
 // Lists Section (contains header + grid)

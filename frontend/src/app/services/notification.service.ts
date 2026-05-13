@@ -233,15 +233,44 @@ export class NotificationService {
   }
 
   /**
-   * Extract source language from notification link
+   * Extract source language code from a stored notification link.
+   * Supports path-only URLs (/words/src/tgt/pos/word) and absolute URLs;
+   * percent-encoded segments are decoded so src stays e.g. "de".
    */
   private extractSourceLanguageFromLink(link: string): string {
-    // Link format: /words/{sourceLanguage}/{targetLanguage}/{pos}/{word}
-    const parts = link.split('/');
-    if (parts.length >= 3) {
-      return parts[2];
+    const trimmed = link.trim();
+    if (!trimmed) return 'en';
+
+    try {
+      const pathOnly =
+        trimmed.includes('://') || trimmed.startsWith('//')
+          ? new URL(
+              trimmed.startsWith('//') ? `https:${trimmed}` : trimmed
+            ).pathname
+          : trimmed.split(/[?#]/)[0];
+
+      const segments = pathOnly.split('/').filter(Boolean);
+      if (segments[0] === 'words' && segments.length >= 2) {
+        try {
+          return decodeURIComponent(segments[1]);
+        } catch {
+          return segments[1];
+        }
+      }
+    } catch {
+      /* fall through */
     }
-    return 'en'; // fallback to English code
+
+    const legacy = trimmed.split('/');
+    if (legacy.length >= 3 && legacy[1] === 'words') {
+      try {
+        return decodeURIComponent(legacy[2]);
+      } catch {
+        return legacy[2];
+      }
+    }
+
+    return 'en';
   }
 
   /**

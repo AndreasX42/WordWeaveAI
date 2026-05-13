@@ -25,10 +25,22 @@
   </url>
 
   <!-- Example Word Definition Pages -->
-  <!-- Note: In production, you should dynamically generate these URLs -->
-  <!-- based on your actual word database content -->
+  <!-- Note: In production, generate these from your vocabulary index. -->
+  <!-- Word paths must match client routing: normalized slug + POS rules -->
+  <!-- (frontend/src/app/shared/word-normalize.ts, word-route-url.ts). -->
+  <!-- Dynamo PK uses the same normalization (e.g. Straße → strasse). -->
+  <!-- When emitting <loc>, apply encodeURIComponent per path segment if any -->
+  <!-- segment contains reserved or non-ASCII characters; canonical slugs -->
+  <!-- after normalization are usually plain [a-z0-9]. -->
   <url>
     <loc>https://wordweave.xyz/words/de/es/noun/haus</loc>
+    <lastmod>2025-08-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://wordweave.xyz/words/de/en/noun/strasse</loc>
     <lastmod>2025-08-21</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>

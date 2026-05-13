@@ -8,9 +8,14 @@ import (
 
 	"github.com/AndreasX42/restapi/config"
 	"github.com/AndreasX42/restapi/domain/entities"
+	"github.com/AndreasX42/restapi/utils"
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
 )
+
+func slowRequestThreshold() time.Duration {
+	return utils.EnvMilliseconds("SENTRY_SLOW_REQUEST_THRESHOLD_MS", 5000)
+}
 
 // SentryMiddleware creates a middleware that automatically captures errors and panics
 func SentryMiddleware(sentryConfig *config.SentryConfig) gin.HandlerFunc {
@@ -31,28 +36,19 @@ func SentryMiddleware(sentryConfig *config.SentryConfig) gin.HandlerFunc {
 		hub.Scope().SetTag("route", c.FullPath())
 		hub.Scope().SetTag("method", c.Request.Method)
 
-		// Get user information if available (from JWT claims)
-		if user, exists := c.Get("principal"); exists {
-			user, ok := user.(*entities.User)
-			if !ok {
-				return
-			}
-			hub.Scope().SetUser(sentry.User{
-				ID: user.ID,
-			})
-		}
-
 		// Add the hub to the request context
 		c.Request = c.Request.WithContext(sentry.SetHubOnContext(c.Request.Context(), hub))
 
 		// Panic recovery
 		defer func() {
 			if err := recover(); err != nil {
-				// Capture the panic
-				hub.RecoverWithContext(c.Request.Context(), err)
-
-				// Send stack trace as extra info
-				hub.Scope().SetExtra("stack_trace", string(debug.Stack()))
+				// Capture panic with stack trace context.
+				hub.WithScope(func(scope *sentry.Scope) {
+					scope.SetContext("panic", map[string]any{
+						"stack_trace": string(debug.Stack()),
+					})
+					hub.RecoverWithContext(c.Request.Context(), err)
+				})
 
 				// Return 500 error
 				c.JSON(http.StatusInternalServerError, gin.H{
@@ -67,12 +63,13 @@ func SentryMiddleware(sentryConfig *config.SentryConfig) gin.HandlerFunc {
 		start := time.Now()
 		c.Next()
 		duration := time.Since(start)
+		setSentryUserFromContext(c, hub)
 
 		// Capture errors based on status code
 		status := c.Writer.Status()
 		if status >= 400 {
 			hub.Scope().SetTag("status_code", fmt.Sprintf("%d", status))
-			hub.Scope().SetExtra("response_time", duration.String())
+			hub.Scope().SetTag("response_time", duration.String())
 
 			// Get any errors from the gin context
 			errors := c.Errors
@@ -97,12 +94,27 @@ func SentryMiddleware(sentryConfig *config.SentryConfig) gin.HandlerFunc {
 		}
 
 		// Log slow requests
-		if duration > 5*time.Second {
+		if duration > slowRequestThreshold() {
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetLevel(sentry.LevelWarning)
-				scope.SetExtra("response_time", duration.String())
+				scope.SetTag("response_time", duration.String())
 				hub.CaptureMessage(fmt.Sprintf("Slow request: %s %s took %s", c.Request.Method, c.Request.URL.Path, duration))
 			})
+		}
+	}
+}
+
+func setSentryUserFromContext(c *gin.Context, hub *sentry.Hub) {
+	if user, exists := c.Get("principal"); exists {
+		if entityUser, ok := user.(*entities.User); ok {
+			hub.Scope().SetUser(sentry.User{ID: entityUser.ID})
+			return
+		}
+	}
+
+	if user, exists := c.Get("user"); exists {
+		if entityUser, ok := user.(*entities.User); ok {
+			hub.Scope().SetUser(sentry.User{ID: entityUser.ID})
 		}
 	}
 }
@@ -121,8 +133,8 @@ func CaptureErrorFromContext(c *gin.Context, err error, tags map[string]string, 
 		}
 
 		// Add extra context
-		for key, value := range extra {
-			scope.SetExtra(key, value)
+		if len(extra) > 0 {
+			scope.SetContext("extra", extra)
 		}
 
 		hub.CaptureException(err)
@@ -145,8 +157,8 @@ func CaptureMessageFromContext(c *gin.Context, message string, level sentry.Leve
 		}
 
 		// Add extra context
-		for key, value := range extra {
-			scope.SetExtra(key, value)
+		if len(extra) > 0 {
+			scope.SetContext("extra", extra)
 		}
 
 		hub.CaptureMessage(message)

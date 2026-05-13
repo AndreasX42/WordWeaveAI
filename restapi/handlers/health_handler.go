@@ -34,16 +34,18 @@ type HealthResponse struct {
 
 // ServiceInfo represents the status of individual services
 type ServiceInfo struct {
-	Status       string `json:"status"`
-	ResponseTime string `json:"response_time,omitempty"`
-	Error        string `json:"error,omitempty"`
+	Status       string            `json:"status"`
+	ResponseTime string            `json:"response_time,omitempty"`
+	Message      string            `json:"message,omitempty"`
+	Error        string            `json:"error,omitempty"`
+	Details      map[string]string `json:"details,omitempty"`
 }
 
 var startTime = time.Now()
 
 // HealthCheck performs comprehensive health check including DynamoDB
 func (h *HealthHandler) HealthCheck(c *gin.Context) {
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultRequestTimeout)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), HealthRequestTimeout)
 	defer cancel()
 
 	startCheck := time.Now()
@@ -56,9 +58,12 @@ func (h *HealthHandler) HealthCheck(c *gin.Context) {
 	// Determine overall status
 	overallStatus := "healthy"
 	for _, service := range services {
-		if service.Status != "healthy" {
+		if service.Status == "unhealthy" {
 			overallStatus = "unhealthy"
 			break
+		}
+		if service.Status != "healthy" {
+			overallStatus = service.Status
 		}
 	}
 
@@ -72,7 +77,7 @@ func (h *HealthHandler) HealthCheck(c *gin.Context) {
 
 	// Set appropriate HTTP status code
 	statusCode := http.StatusOK
-	if overallStatus == "unhealthy" {
+	if overallStatus != "healthy" {
 		statusCode = http.StatusServiceUnavailable
 	}
 
@@ -88,12 +93,31 @@ func (h *HealthHandler) checkDynamoDB(ctx context.Context) ServiceInfo {
 	startTime := time.Now()
 
 	// Define all tables used by the application
-	tables := map[string]string{
-		"users":          utils.GetTableName(os.Getenv("DYNAMODB_USER_TABLE_NAME")),
-		"vocab":          utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_TABLE_NAME")),
-		"vocab_media":    utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_MEDIA_TABLE_NAME")),
-		"vocab_lists":    utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_LIST_TABLE_NAME")),
-		"ws_connections": utils.GetTableName(os.Getenv("DYNAMODB_CONNECTIONS_TABLE_NAME")),
+	tableConfigs := map[string]string{
+		"users":          "DYNAMODB_USER_TABLE_NAME",
+		"vocab":          "DYNAMODB_VOCAB_TABLE_NAME",
+		"vocab_media":    "DYNAMODB_VOCAB_MEDIA_TABLE_NAME",
+		"vocab_lists":    "DYNAMODB_VOCAB_LIST_TABLE_NAME",
+		"ws_connections": "DYNAMODB_CONNECTIONS_TABLE_NAME",
+	}
+
+	tables := make(map[string]string, len(tableConfigs))
+	var configErrors []string
+	for tableName, envKey := range tableConfigs {
+		baseName := os.Getenv(envKey)
+		if baseName == "" {
+			configErrors = append(configErrors, fmt.Sprintf("%s missing %s", tableName, envKey))
+			continue
+		}
+		tables[tableName] = utils.GetTableName(baseName)
+	}
+
+	if len(configErrors) > 0 {
+		return ServiceInfo{
+			Status:       "unhealthy",
+			ResponseTime: time.Since(startTime).String(),
+			Error:        fmt.Sprintf("DynamoDB table configuration issues: %s", strings.Join(configErrors, "; ")),
+		}
 	}
 
 	// Use channels to collect results from parallel checks
@@ -141,8 +165,8 @@ func (h *HealthHandler) checkDynamoDB(ctx context.Context) ServiceInfo {
 		return ServiceInfo{
 			Status:       "unhealthy",
 			ResponseTime: responseTime.String(),
-			Error: fmt.Sprintf("Table issues: %s. Statuses: %v",
-				strings.Join(errors, "; "), tableStatuses),
+			Error:        fmt.Sprintf("Table issues: %s", strings.Join(errors, "; ")),
+			Details:      tableStatuses,
 		}
 	}
 
@@ -152,8 +176,8 @@ func (h *HealthHandler) checkDynamoDB(ctx context.Context) ServiceInfo {
 			return ServiceInfo{
 				Status:       "degraded",
 				ResponseTime: responseTime.String(),
-				Error: fmt.Sprintf("Table %s is %s (not ACTIVE). All statuses: %v",
-					tableName, status, tableStatuses),
+				Message:      fmt.Sprintf("Table %s is %s (not ACTIVE)", tableName, status),
+				Details:      tableStatuses,
 			}
 		}
 	}
@@ -161,6 +185,7 @@ func (h *HealthHandler) checkDynamoDB(ctx context.Context) ServiceInfo {
 	return ServiceInfo{
 		Status:       "healthy",
 		ResponseTime: responseTime.String(),
-		Error:        fmt.Sprintf("All tables ACTIVE: %v", tableStatuses),
+		Message:      "All tables ACTIVE",
+		Details:      tableStatuses,
 	}
 }

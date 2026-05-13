@@ -57,8 +57,8 @@ def should_proceed_to_parallel_tasks(state: VocabState) -> str:
 # Conditional function to decide when to proceed to final quality check
 def should_proceed_to_final_quality_check(state: VocabState) -> str:
     """
-    Determines whether to proceed to final quality check based on task completion.
-    If all tasks are complete, proceeds to final quality check. Otherwise, continues join loop.
+    After `join_parallel_tasks`, proceed to the final supervisor if every expected
+    parallel branch is accounted for; otherwise end.
     """
     if state.parallel_tasks_complete is True:
         return "supervisor_final_quality_check"

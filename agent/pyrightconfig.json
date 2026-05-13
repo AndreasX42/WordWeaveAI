@@ -19,7 +19,7 @@
         "tests"
     ],
     "pythonPlatform": "Darwin",
-    "pythonVersion": "3.12",
+    "pythonVersion": "3.14",
     "typeshedPath": "typeshed",
     "reportMissingImports": "warning",
     "reportMissingTypeStubs": "none",

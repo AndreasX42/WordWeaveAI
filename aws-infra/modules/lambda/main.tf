@@ -147,7 +147,7 @@ resource "aws_iam_role_policy" "lambda_s3" {
 
 # WebSocket API permissions (if provided)
 resource "aws_iam_role_policy" "lambda_websocket" {
-  count = var.websocket_api_id != null ? 1 : 0
+  count = var.enable_websocket_iam_policy ? 1 : 0
 
   name = "${var.project_name}-lambda-websocket-policy"
   role = aws_iam_role.lambda.id
@@ -212,6 +212,10 @@ resource "aws_lambda_function" "vocab_processor" {
 
       # WebSocket API
       WEBSOCKET_API_ENDPOINT = var.websocket_api_endpoint
+
+      # Instructor
+      VOCAB_LLM_NODE_MODEL       = var.vocab_llm_node_model
+      VOCAB_LLM_SUPERVISOR_MODEL = var.vocab_llm_supervisor_model
     }
   }
 
@@ -243,4 +247,4 @@ resource "aws_cloudwatch_log_group" "lambda" {
 resource "aws_lambda_event_source_mapping" "sqs" {
   event_source_arn = var.sqs_queue_arn
   function_name    = aws_lambda_function.vocab_processor.arn
-} 
+}

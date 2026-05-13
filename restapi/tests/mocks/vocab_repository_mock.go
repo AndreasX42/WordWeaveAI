@@ -40,11 +40,11 @@ func (m *MockVocabRepository) AddTestWord(pk, sk string, word *entities.VocabWor
 }
 
 // SearchByNormalizedWord performs vocabulary search by normalized word
-func (m *MockVocabRepository) SearchByNormalizedWord(ctx context.Context, normalizedQuery string, supportedLanguages []string, limit int) ([]entities.VocabWord, error) {
+func (m *MockVocabRepository) SearchByNormalizedWord(ctx context.Context, normalizedQuery string, supportedLanguages []string, limit int) ([]*entities.VocabWord, error) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 
-	var results []entities.VocabWord
+	var results []*entities.VocabWord
 
 	for _, word := range m.words {
 		if len(results) >= limit {
@@ -54,7 +54,7 @@ func (m *MockVocabRepository) SearchByNormalizedWord(ctx context.Context, normal
 		// Simple matching logic for testing
 		if word.SourceWord == normalizedQuery || word.TargetWord == normalizedQuery {
 			wordCopy := *word
-			results = append(results, wordCopy)
+			results = append(results, &wordCopy)
 		}
 	}
 
@@ -97,11 +97,11 @@ func (m *MockVocabRepository) GetByKeysBatch(ctx context.Context, keys []entitie
 }
 
 // SearchByWordWithLanguages performs targeted vocabulary search when languages are specified
-func (m *MockVocabRepository) SearchByWordWithLanguages(ctx context.Context, normalizedQuery, sourceLang, targetLang string, limit int) ([]entities.VocabWord, error) {
+func (m *MockVocabRepository) SearchByWordWithLanguages(ctx context.Context, normalizedQuery, sourceLang, targetLang string, limit int) ([]*entities.VocabWord, error) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 
-	var results []entities.VocabWord
+	var results []*entities.VocabWord
 
 	for _, word := range m.words {
 		if len(results) >= limit {
@@ -115,7 +115,7 @@ func (m *MockVocabRepository) SearchByWordWithLanguages(ctx context.Context, nor
 
 		if sourceMatch && targetMatch && wordMatch {
 			wordCopy := *word
-			results = append(results, wordCopy)
+			results = append(results, &wordCopy)
 		}
 	}
 

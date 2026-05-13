@@ -7,15 +7,29 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/AndreasX42/restapi/domain/entities"
 	"github.com/AndreasX42/restapi/domain/repositories"
+	"github.com/AndreasX42/restapi/utils"
 	"github.com/guregu/dynamo/v2"
 	"golang.org/x/sync/errgroup"
 )
 
-// convertToString converts interface{} to string representation
-func convertToString(v interface{}) string {
+var (
+	vocabSearchScanTimeout  = 300 * time.Millisecond
+	vocabSearchScanPageSize = 250
+	vocabSearchScanMaxItems = 2000
+)
+
+func init() {
+	vocabSearchScanTimeout = utils.EnvMilliseconds("VOCAB_SEARCH_SCAN_TIMEOUT_MS", 300)
+	vocabSearchScanPageSize = utils.EnvPositiveInt("VOCAB_SEARCH_SCAN_PAGE_SIZE", 250)
+	vocabSearchScanMaxItems = utils.EnvPositiveInt("VOCAB_SEARCH_SCAN_MAX_ITEMS", 2000)
+}
+
+// convertToString converts any to string representation
+func convertToString(v any) string {
 	if v == nil {
 		return ""
 	}
@@ -36,32 +50,32 @@ type DynamoVocabRepository struct {
 
 // VocabRecord represents the DynamoDB storage format for vocabulary entries
 type VocabRecord struct {
-	PK               string      `dynamo:"PK,hash"`
-	SK               string      `dynamo:"SK,range"`
-	LKP              string      `dynamo:"LKP" index:"ReverseLookupIndex,hash"`
-	SrcLang          string      `dynamo:"SRC_LANG" index:"ReverseLookupIndex,range"`
-	ConjugationTable interface{} `dynamo:"conjugation_table"`
-	CreatedAt        string      `dynamo:"created_at"`
-	CreatedBy        string      `dynamo:"created_by"`
-	EnglishWord      string      `dynamo:"english_word" index:"EnglishMediaLookupIndex,hash"`
-	Examples         interface{} `dynamo:"examples"` // Can be JSON string or []map[string]string
-	MediaRef         string      `dynamo:"media_ref"`
-	Pronunciations   interface{} `dynamo:"pronunciations"` // Can be JSON string or map[string]string
-	PhoneticGuide    string      `dynamo:"target_phonetic_guide"`
-	SourceDefinition []string    `dynamo:"source_definition"`
-	SourceLanguage   string      `dynamo:"source_language"`
-	SourcePos        string      `dynamo:"source_pos"`
-	SourceWord       string      `dynamo:"source_word"`
-	SourceArticle    string      `dynamo:"source_article"`
-	Syllables        []string    `dynamo:"target_syllables"`
-	Synonyms         interface{} `dynamo:"synonyms"` // Can be string (JSON) or []map[string]string
-	TargetLanguage   string      `dynamo:"target_language"`
-	TargetPos        string      `dynamo:"target_pos"`
-	TargetWord       string      `dynamo:"target_word"`
-	TargetArticle    string      `dynamo:"target_article"`
-	SourceAddInfo    string      `dynamo:"source_additional_info"`
-	TargetAddInfo    string      `dynamo:"target_additional_info"`
-	TargetPluralForm string      `dynamo:"target_plural_form"`
+	PK               string   `dynamo:"PK,hash"`
+	SK               string   `dynamo:"SK,range"`
+	LKP              string   `dynamo:"LKP" index:"ReverseLookupIndex,hash"`
+	SrcLang          string   `dynamo:"SRC_LANG" index:"ReverseLookupIndex,range"`
+	ConjugationTable any      `dynamo:"conjugation_table"`
+	CreatedAt        string   `dynamo:"created_at"`
+	CreatedBy        string   `dynamo:"created_by"`
+	EnglishWord      string   `dynamo:"english_word" index:"EnglishMediaLookupIndex,hash"`
+	Examples         any      `dynamo:"examples"` // Can be JSON string or []map[string]string
+	MediaRef         string   `dynamo:"media_ref"`
+	Pronunciations   any      `dynamo:"pronunciations"` // Can be JSON string or map[string]string
+	PhoneticGuide    string   `dynamo:"target_phonetic_guide"`
+	SourceDefinition []string `dynamo:"source_definition"`
+	SourceLanguage   string   `dynamo:"source_language"`
+	SourcePos        string   `dynamo:"source_pos"`
+	SourceWord       string   `dynamo:"source_word"`
+	SourceArticle    string   `dynamo:"source_article"`
+	Syllables        []string `dynamo:"target_syllables"`
+	Synonyms         any      `dynamo:"synonyms"` // Can be string (JSON) or []map[string]string
+	TargetLanguage   string   `dynamo:"target_language"`
+	TargetPos        string   `dynamo:"target_pos"`
+	TargetWord       string   `dynamo:"target_word"`
+	TargetArticle    string   `dynamo:"target_article"`
+	SourceAddInfo    string   `dynamo:"source_additional_info"`
+	TargetAddInfo    string   `dynamo:"target_additional_info"`
+	TargetPluralForm string   `dynamo:"target_plural_form"`
 }
 
 // VocabCountRecord represents the DynamoDB storage format for vocabulary word counts
@@ -79,14 +93,14 @@ func NewDynamoVocabRepository(table dynamo.Table) repositories.VocabRepository {
 }
 
 // parseSynonyms parses both JSON string format and native array format to []map[string]string
-func parseSynonyms(synonymsData interface{}) []map[string]string {
+func parseSynonyms(synonymsData any) []map[string]string {
 	if synonymsData == nil {
 		return []map[string]string{}
 	}
 
 	// Handle JSON string format (from Python agent)
 	if synonymsStr, ok := synonymsData.(string); ok {
-		var synonymsJSON []map[string]interface{}
+		var synonymsJSON []map[string]any
 		if err := json.Unmarshal([]byte(synonymsStr), &synonymsJSON); err != nil {
 			return []map[string]string{}
 		}
@@ -110,11 +124,11 @@ func parseSynonyms(synonymsData interface{}) []map[string]string {
 		return synonymsArray
 	}
 
-	// Handle interface{} slice format that might come from DynamoDB
-	if synonymsInterface, ok := synonymsData.([]interface{}); ok {
+	// Handle any slice format that might come from DynamoDB
+	if synonymsInterface, ok := synonymsData.([]any); ok {
 		result := make([]map[string]string, 0, len(synonymsInterface))
 		for _, item := range synonymsInterface {
-			if itemMap, ok := item.(map[string]interface{}); ok {
+			if itemMap, ok := item.(map[string]any); ok {
 				synMap := make(map[string]string)
 				for k, v := range itemMap {
 					synMap[k] = fmt.Sprintf("%v", v)
@@ -129,14 +143,14 @@ func parseSynonyms(synonymsData interface{}) []map[string]string {
 }
 
 // parseExamples parses examples from JSON string or native format
-func parseExamples(examplesData interface{}) []map[string]string {
+func parseExamples(examplesData any) []map[string]string {
 	if examplesData == nil {
 		return []map[string]string{}
 	}
 
 	// Handle JSON string format
 	if examplesStr, ok := examplesData.(string); ok {
-		var examples []map[string]interface{}
+		var examples []map[string]any
 		if err := json.Unmarshal([]byte(examplesStr), &examples); err != nil {
 			return []map[string]string{}
 		}
@@ -157,11 +171,11 @@ func parseExamples(examplesData interface{}) []map[string]string {
 		return examplesArray
 	}
 
-	// Handle interface{} slice
-	if examplesInterface, ok := examplesData.([]interface{}); ok {
+	// Handle any slice
+	if examplesInterface, ok := examplesData.([]any); ok {
 		result := make([]map[string]string, 0, len(examplesInterface))
 		for _, item := range examplesInterface {
-			if itemMap, ok := item.(map[string]interface{}); ok {
+			if itemMap, ok := item.(map[string]any); ok {
 				exMap := make(map[string]string)
 				for k, v := range itemMap {
 					exMap[k] = fmt.Sprintf("%v", v)
@@ -176,14 +190,14 @@ func parseExamples(examplesData interface{}) []map[string]string {
 }
 
 // parsePronunciations parses pronunciations from JSON string or native format
-func parsePronunciations(pronunciationsData interface{}) map[string]string {
+func parsePronunciations(pronunciationsData any) map[string]string {
 	if pronunciationsData == nil {
 		return map[string]string{}
 	}
 
 	// Handle JSON string format
 	if pronunciationsStr, ok := pronunciationsData.(string); ok {
-		var pronunciations map[string]interface{}
+		var pronunciations map[string]any
 		if err := json.Unmarshal([]byte(pronunciationsStr), &pronunciations); err != nil {
 			return map[string]string{}
 		}
@@ -200,8 +214,8 @@ func parsePronunciations(pronunciationsData interface{}) map[string]string {
 		return pronunciationsMap
 	}
 
-	// Handle interface{} map
-	if pronunciationsInterface, ok := pronunciationsData.(map[string]interface{}); ok {
+	// Handle any map
+	if pronunciationsInterface, ok := pronunciationsData.(map[string]any); ok {
 		result := make(map[string]string)
 		for k, v := range pronunciationsInterface {
 			result[k] = fmt.Sprintf("%v", v)
@@ -214,12 +228,14 @@ func parsePronunciations(pronunciationsData interface{}) map[string]string {
 
 // toVocabRecord converts domain entity to DynamoDB record
 func (r *DynamoVocabRepository) toVocabRecord(vocab *entities.VocabWord) VocabRecord {
+	keys := utils.VocabKeys(vocab.SourceLanguage, vocab.SourceWord, vocab.TargetLanguage, vocab.TargetWord, vocab.SourcePos)
+
 	return VocabRecord{
 		// DynamoDB-specific fields
-		PK:      "SRC#" + vocab.SourceLanguage + "#" + strings.ToLower(vocab.SourceWord),
-		SK:      "TGT#" + vocab.TargetLanguage + "#POS#" + vocab.SourcePos,
-		LKP:     "LKP#" + vocab.TargetLanguage + "#" + strings.ToLower(vocab.TargetWord),
-		SrcLang: "SRC_LANG#" + vocab.SourceLanguage,
+		PK:      keys.PK,
+		SK:      keys.SK,
+		LKP:     keys.LKP,
+		SrcLang: keys.SrcLang,
 
 		// Business fields
 		SourceWord:       vocab.SourceWord,
@@ -280,18 +296,19 @@ func (r *DynamoVocabRepository) toEntity(record VocabRecord) *entities.VocabWord
 }
 
 // SearchByNormalizedWord performs comprehensive vocabulary search using parallel access patterns
-func (r *DynamoVocabRepository) SearchByNormalizedWord(ctx context.Context, normalizedQuery string, supportedLanguages []string, limit int) ([]entities.VocabWord, error) {
-	resultMap := make(map[string]entities.VocabWord)
+func (r *DynamoVocabRepository) SearchByNormalizedWord(ctx context.Context, normalizedQuery string, supportedLanguages []string, limit int) ([]*entities.VocabWord, error) {
+	resultMap := make(map[string]*entities.VocabWord)
 	var mu sync.Mutex
 
 	// Use error group for parallel execution with context cancellation
-	g, gCtx := errgroup.WithContext(ctx)
+	searchCtx, cancelSearch := context.WithCancel(ctx)
+	defer cancelSearch()
+	g, gCtx := errgroup.WithContext(searchCtx)
 
 	// Strategy 1: Parallel direct PK queries
 	for _, sourceLang := range supportedLanguages {
-		sourceLang := sourceLang // capture loop variable
 		g.Go(func() error {
-			pk := "SRC#" + sourceLang + "#" + normalizedQuery
+			pk := utils.VocabPK(sourceLang, normalizedQuery)
 			var records []VocabRecord
 
 			err := r.table.Get("PK", pk).Limit(limit).All(gCtx, &records)
@@ -299,13 +316,18 @@ func (r *DynamoVocabRepository) SearchByNormalizedWord(ctx context.Context, norm
 				mu.Lock()
 				for _, record := range records {
 					if len(resultMap) >= limit {
+						cancelSearch()
 						mu.Unlock()
 						return nil
 					}
 					key := record.PK + record.SK
 					if _, exists := resultMap[key]; !exists {
-						entity := r.toEntity(record)
-						resultMap[key] = *entity
+						resultMap[key] = r.toEntity(record)
+						if len(resultMap) >= limit {
+							cancelSearch()
+							mu.Unlock()
+							return nil
+						}
 					}
 				}
 				mu.Unlock()
@@ -316,9 +338,8 @@ func (r *DynamoVocabRepository) SearchByNormalizedWord(ctx context.Context, norm
 
 	// Strategy 2: Parallel reverse lookup GSI queries
 	for _, targetLang := range supportedLanguages {
-		targetLang := targetLang // capture loop variable
 		g.Go(func() error {
-			lkpKey := "LKP#" + targetLang + "#" + normalizedQuery
+			lkpKey := utils.VocabLKP(targetLang, normalizedQuery)
 			var records []VocabRecord
 
 			err := r.table.Get("LKP", lkpKey).Index("ReverseLookupIndex").Limit(limit).All(gCtx, &records)
@@ -326,13 +347,18 @@ func (r *DynamoVocabRepository) SearchByNormalizedWord(ctx context.Context, norm
 				mu.Lock()
 				for _, record := range records {
 					if len(resultMap) >= limit {
+						cancelSearch()
 						mu.Unlock()
 						return nil
 					}
 					key := record.PK + record.SK
 					if _, exists := resultMap[key]; !exists {
-						entity := r.toEntity(record)
-						resultMap[key] = *entity
+						resultMap[key] = r.toEntity(record)
+						if len(resultMap) >= limit {
+							cancelSearch()
+							mu.Unlock()
+							return nil
+						}
 					}
 				}
 				mu.Unlock()
@@ -349,13 +375,18 @@ func (r *DynamoVocabRepository) SearchByNormalizedWord(ctx context.Context, norm
 			mu.Lock()
 			for _, record := range records {
 				if len(resultMap) >= limit {
+					cancelSearch()
 					mu.Unlock()
 					return nil
 				}
 				key := record.PK + record.SK
 				if _, exists := resultMap[key]; !exists {
-					entity := r.toEntity(record)
-					resultMap[key] = *entity
+					resultMap[key] = r.toEntity(record)
+					if len(resultMap) >= limit {
+						cancelSearch()
+						mu.Unlock()
+						return nil
+					}
 				}
 			}
 			mu.Unlock()
@@ -368,19 +399,21 @@ func (r *DynamoVocabRepository) SearchByNormalizedWord(ctx context.Context, norm
 
 	// Strategy 4: Optimized batch scan with early termination
 	if len(resultMap) == 0 {
-		batchSize := 1000
-		maxBatches := 10
-		batchCount := 0
+		scanCtx, cancelScan := context.WithTimeout(ctx, vocabSearchScanTimeout)
+		defer cancelScan()
+
+		scannedItems := 0
 
 		// Use Scan with pagination for controlled batching
 		var lastEvaluatedKey dynamo.PagingKey
 
-		for batchCount < maxBatches && len(resultMap) < limit {
-			currentBatchSize := batchSize
-
+	scanLoop:
+		for scannedItems < vocabSearchScanMaxItems && len(resultMap) < limit {
 			scanOp := r.table.Scan().
 				Filter("(contains(source_word, ?) OR contains(target_word, ?))", normalizedQuery, normalizedQuery).
-				Limit(currentBatchSize)
+				Project("PK", "SK", "LKP", "SRC_LANG", "source_word", "source_language", "source_pos", "target_word", "target_language", "media_ref").
+				SearchLimit(vocabSearchScanPageSize).
+				Limit(limit - len(resultMap))
 
 			// Continue from where we left off
 			if lastEvaluatedKey != nil {
@@ -390,40 +423,35 @@ func (r *DynamoVocabRepository) SearchByNormalizedWord(ctx context.Context, norm
 			iter := scanOp.Iter()
 			var record VocabRecord
 
-			for iter.Next(ctx, &record) {
+			for iter.Next(scanCtx, &record) {
 				if len(resultMap) >= limit {
-					goto scanComplete // Early termination when we have enough results
+					break scanLoop // Early termination when we have enough results
 				}
 
 				key := record.PK + record.SK
 				if _, exists := resultMap[key]; !exists {
-					entity := r.toEntity(record)
-					resultMap[key] = *entity
+					resultMap[key] = r.toEntity(record)
 				}
 			}
 
-			batchCount++
+			scannedItems += vocabSearchScanPageSize
 
 			// Get the last evaluated key for pagination
-			lastEvaluatedKey, _ = iter.LastEvaluatedKey(ctx)
+			lastEvaluatedKey, _ = iter.LastEvaluatedKey(scanCtx)
+
+			if scanCtx.Err() != nil {
+				break
+			}
 
 			// Check if we've scanned all records (no more to scan)
 			if lastEvaluatedKey == nil {
 				break // No more records to scan
 			}
-
-			// If we have enough results, we can stop early
-			if len(resultMap) > limit {
-				break
-			}
 		}
-
-	scanComplete:
-		// Scan optimization complete
 	}
 
 	// Convert map to slice and apply final limit
-	var allResults []entities.VocabWord
+	var allResults []*entities.VocabWord
 	for _, result := range resultMap {
 		allResults = append(allResults, result)
 		if len(allResults) >= limit {
@@ -435,25 +463,24 @@ func (r *DynamoVocabRepository) SearchByNormalizedWord(ctx context.Context, norm
 }
 
 // SearchByWordWithLanguages performs targeted search when languages are specified
-func (r *DynamoVocabRepository) SearchByWordWithLanguages(ctx context.Context, normalizedQuery, sourceLang, targetLang string, limit int) ([]entities.VocabWord, error) {
-	var allResults []entities.VocabWord
-	resultMap := make(map[string]entities.VocabWord)
+func (r *DynamoVocabRepository) SearchByWordWithLanguages(ctx context.Context, normalizedQuery, sourceLang, targetLang string, limit int) ([]*entities.VocabWord, error) {
+	var allResults []*entities.VocabWord
+	resultMap := make(map[string]*entities.VocabWord)
 
 	// Strategy 1: Direct PK query if source language is specified
 	if sourceLang != "" {
-		pk := "SRC#" + sourceLang + "#" + normalizedQuery
+		pk := utils.VocabPK(sourceLang, normalizedQuery)
 		var records []VocabRecord
 
 		// If target language is also specified, query with SK prefix
 		if targetLang != "" {
-			skPrefix := "TGT#" + targetLang
+			skPrefix := utils.VocabSKPrefixForTarget(targetLang)
 			err := r.table.Get("PK", pk).Range("SK", dynamo.BeginsWith, skPrefix).Limit(limit).All(ctx, &records)
 			if err == nil {
 				for _, record := range records {
 					key := record.PK + record.SK
 					if _, exists := resultMap[key]; !exists {
-						entity := r.toEntity(record)
-						resultMap[key] = *entity
+						resultMap[key] = r.toEntity(record)
 					}
 				}
 			}
@@ -464,8 +491,7 @@ func (r *DynamoVocabRepository) SearchByWordWithLanguages(ctx context.Context, n
 				for _, record := range records {
 					key := record.PK + record.SK
 					if _, exists := resultMap[key]; !exists {
-						entity := r.toEntity(record)
-						resultMap[key] = *entity
+						resultMap[key] = r.toEntity(record)
 					}
 				}
 			}
@@ -474,7 +500,7 @@ func (r *DynamoVocabRepository) SearchByWordWithLanguages(ctx context.Context, n
 
 	// Strategy 2: Reverse lookup if target language is specified AND no results found yet
 	if targetLang != "" && len(resultMap) == 0 {
-		lkpKey := "LKP#" + targetLang + "#" + normalizedQuery
+		lkpKey := utils.VocabLKP(targetLang, normalizedQuery)
 		var records []VocabRecord
 
 		// Query the ReverseLookupIndex where LKP matches (hash key)
@@ -486,8 +512,7 @@ func (r *DynamoVocabRepository) SearchByWordWithLanguages(ctx context.Context, n
 			for _, record := range records {
 				key := record.PK + record.SK
 				if _, exists := resultMap[key]; !exists {
-					entity := r.toEntity(record)
-					resultMap[key] = *entity
+					resultMap[key] = r.toEntity(record)
 				}
 			}
 		}
@@ -556,8 +581,8 @@ func (r *DynamoVocabRepository) GetByKeysBatch(ctx context.Context, keys []entit
 // GetTotalVocabCount retrieves the total number of vocabulary words
 func (r *DynamoVocabRepository) GetTotalVocabCount(ctx context.Context) (int, error) {
 	var record VocabCountRecord
-	countPK := "COUNT#vocab"
-	countSK := "COUNT"
+	countPK := utils.VocabCountPK()
+	countSK := utils.CountSK
 
 	err := r.table.Get("PK", countPK).Range("SK", dynamo.Equal, countSK).One(ctx, &record)
 	if err != nil {
@@ -574,8 +599,8 @@ func (r *DynamoVocabRepository) GetTotalVocabCount(ctx context.Context) (int, er
 // InitializeVocabCount initializes the vocab count record if it doesn't exist
 func (r *DynamoVocabRepository) InitializeVocabCount(ctx context.Context) error {
 	countRecord := VocabCountRecord{
-		PK:    "COUNT#vocab",
-		SK:    "COUNT",
+		PK:    utils.VocabCountPK(),
+		SK:    utils.CountSK,
 		Count: 0,
 	}
 

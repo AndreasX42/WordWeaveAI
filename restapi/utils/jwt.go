@@ -9,11 +9,14 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var secretKey = os.Getenv("JWT_SECRET_KEY")
-
 func GenerateJWT(userId, username string) (string, error) {
+	secretKey := os.Getenv("JWT_SECRET_KEY")
+	if secretKey == "" || len(secretKey) < 32 {
+		return "", errors.New("JWT_SECRET_KEY environment variable is required and must be at least 32 characters long")
+	}
+
 	expirationMinutes, err := strconv.ParseInt(os.Getenv("JWT_EXPIRATION_TIME"), 10, 64)
-	if err != nil {
+	if err != nil || expirationMinutes <= 0 {
 		return "", errors.New("could not parse JWT_EXPIRATION_TIME")
 	}
 
@@ -29,6 +32,11 @@ func GenerateJWT(userId, username string) (string, error) {
 }
 
 func VerifyJWT(token string) (string, error) {
+	secretKey := os.Getenv("JWT_SECRET_KEY")
+	if secretKey == "" || len(secretKey) < 32 {
+		return "", errors.New("JWT_SECRET_KEY environment variable is required and must be at least 32 characters long")
+	}
+
 	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")

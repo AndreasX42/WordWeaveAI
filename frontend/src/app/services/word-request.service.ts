@@ -5,6 +5,11 @@ import { catchError, tap } from 'rxjs/operators';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { Configs } from '../shared/config';
+import { normalizeWordForVocabLookup } from '../shared/word-normalize';
+import {
+  normalizePOSForWordRoute,
+  wordShareUrlPath,
+} from '../shared/word-route-url';
 import { NotificationService } from './notification.service';
 import { MessageService } from './message.service';
 
@@ -515,43 +520,6 @@ export class WordRequestService implements OnDestroy {
   }
 
   /**
-   * Normalize POS for database compatibility (feminine/masculine/neuter noun -> noun)
-   */
-  private normalizePOS(pos: string): string {
-    if (!pos) return 'pending';
-    const posLower = pos.toLowerCase();
-    return posLower.includes('noun') ? 'noun' : posLower;
-  }
-
-  /**
-   * Normalize word for URL compatibility (umlauts and special characters to base characters)
-   */
-  private normalizeWord(word: string): string {
-    if (!word) return '';
-
-    // Step 1: lowercase and NFKC normalization
-    let s = word.toLowerCase();
-    try {
-      s = s.normalize('NFKC');
-    } catch {
-      // Normalization may not be supported; keep current value
-    }
-
-    // Step 2: NFD then remove combining marks (Mn)
-    try {
-      s = s.normalize('NFD');
-    } catch {
-      // Normalization may not be supported; keep current value
-    }
-    s = s.replace(/[\u0300-\u036f]/g, '');
-
-    // Step 3: keep only ascii letters and digits (backend removes non-alphanumeric)
-    s = s.replace(/[^a-z0-9]/g, '');
-
-    return s;
-  }
-
-  /**
    * Get language code from full language name or return as-is if already code
    */
   private getLanguageCode(language: string): string {
@@ -631,12 +599,12 @@ export class WordRequestService implements OnDestroy {
           }
         }
         // Normalize word for PK construction (database key) - removes umlauts, lowercase
-        const normalizedDbWord = this.normalizeWord(decodedWord);
+        const normalizedDbWord = normalizeWordForVocabLookup(decodedWord);
         pk = `SRC#${sourceLangCode}#${normalizedDbWord}`;
         sk = `TGT#${targetLangCode}`;
 
         if (targetPos && typeof targetPos === 'string') {
-          sk += `#POS#${this.normalizePOS(targetPos)}`;
+          sk += `#POS#${normalizePOSForWordRoute(targetPos)}`;
         }
       }
     }
@@ -660,7 +628,7 @@ export class WordRequestService implements OnDestroy {
         const posIndex = skParts.findIndex((part) => part === 'POS');
         if (posIndex !== -1 && posIndex + 1 < skParts.length) {
           const rawPos = skParts[posIndex + 1];
-          pos = this.normalizePOS(rawPos);
+          pos = normalizePOSForWordRoute(rawPos);
         }
 
         // Smart word handling: decode if needed, normalize umlauts, lowercase
@@ -676,9 +644,14 @@ export class WordRequestService implements OnDestroy {
         }
 
         // Normalize umlauts and special characters to base characters
-        finalWord = this.normalizeWord(finalWord);
+        finalWord = normalizeWordForVocabLookup(finalWord);
 
-        link = `/words/${sourceLanguage}/${targetLanguage}/${pos}/${finalWord}`;
+        link = wordShareUrlPath({
+          sourceLanguage,
+          targetLanguage,
+          sourcePos: pos,
+          sourceWord: finalWord,
+        });
       }
     }
 
@@ -738,12 +711,12 @@ export class WordRequestService implements OnDestroy {
           }
         }
         // Normalize word for PK construction (database key) - removes umlauts, lowercase
-        const normalizedDbWord = this.normalizeWord(decodedWord);
+        const normalizedDbWord = normalizeWordForVocabLookup(decodedWord);
         pk = `SRC#${sourceLangCode}#${normalizedDbWord}`;
         sk = `TGT#${targetLangCode}`;
 
         if (targetPos && typeof targetPos === 'string') {
-          sk += `#POS#${this.normalizePOS(targetPos)}`;
+          sk += `#POS#${normalizePOSForWordRoute(targetPos)}`;
         }
       }
     }
@@ -768,7 +741,7 @@ export class WordRequestService implements OnDestroy {
       const posIndex = skParts.findIndex((part) => part === 'POS');
       if (posIndex !== -1 && posIndex + 1 < skParts.length) {
         const rawPos = skParts[posIndex + 1];
-        pos = this.normalizePOS(rawPos);
+        pos = normalizePOSForWordRoute(rawPos);
       }
 
       // Smart word handling: decode if needed, normalize umlauts, lowercase
@@ -784,9 +757,14 @@ export class WordRequestService implements OnDestroy {
       }
 
       // Normalize umlauts and special characters to base characters
-      finalWord = this.normalizeWord(finalWord);
+      finalWord = normalizeWordForVocabLookup(finalWord);
 
-      return `/words/${sourceLanguage}/${targetLanguage}/${pos}/${finalWord}`;
+      return wordShareUrlPath({
+        sourceLanguage,
+        targetLanguage,
+        sourcePos: pos,
+        sourceWord: finalWord,
+      });
     }
 
     return '';

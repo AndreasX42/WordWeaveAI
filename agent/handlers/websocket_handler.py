@@ -13,10 +13,9 @@ from vocab_processor.utils.websocket_utils import (
 
 logger = Logger(service="vocab-processor-websocket")
 
-# DynamoDB setup
-dynamodb = boto3.resource("dynamodb")
+dynamodb: Any = boto3.resource("dynamodb")
 connections_table_name = os.getenv("DYNAMODB_CONNECTIONS_TABLE_NAME")
-connections_table = (
+connections_table: Optional[Any] = (
     dynamodb.Table(connections_table_name) if connections_table_name else None
 )
 
@@ -78,6 +77,9 @@ def create_connection_item(
 
 def store_connection(connection_item: dict[str, Any]) -> bool:
     """Store connection in DynamoDB."""
+    if not connections_table:
+        logger.error("store_connection_skipped", reason="DYNAMODB_CONNECTIONS_TABLE_NAME not set")
+        return False
     try:
         connections_table.put_item(Item=connection_item)
         return True
@@ -88,6 +90,9 @@ def store_connection(connection_item: dict[str, Any]) -> bool:
 
 def remove_connection(connection_id: str) -> bool:
     """Remove connection from DynamoDB."""
+    if not connections_table:
+        logger.error("remove_connection_skipped", reason="DYNAMODB_CONNECTIONS_TABLE_NAME not set")
+        return False
     try:
         connections_table.delete_item(Key={"connection_id": connection_id})
         return True
@@ -155,6 +160,9 @@ def handle_subscribe(connection_id: str, body: dict[str, Any]) -> dict[str, Any]
 
 def handle_unsubscribe(connection_id: str, body: dict[str, Any]) -> dict[str, Any]:
     """Handle unsubscription from word pair updates."""
+    if not connections_table:
+        logger.error("unsubscribe_skipped", reason="DYNAMODB_CONNECTIONS_TABLE_NAME not set")
+        return {"statusCode": 503, "body": "Connections table not configured"}
     try:
         connections_table.update_item(
             Key={"connection_id": connection_id},
@@ -173,6 +181,9 @@ def handle_unsubscribe(connection_id: str, body: dict[str, Any]) -> dict[str, An
 
 def handle_ping(connection_id: str) -> dict[str, Any]:
     """Handle ping messages to keep connection alive."""
+    if not connections_table:
+        logger.error("ping_skipped", reason="DYNAMODB_CONNECTIONS_TABLE_NAME not set")
+        return {"statusCode": 503, "body": "Connections table not configured"}
     try:
         connections_table.update_item(
             Key={"connection_id": connection_id},

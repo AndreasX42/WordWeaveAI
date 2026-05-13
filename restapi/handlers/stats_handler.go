@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"time"
 
@@ -29,7 +30,7 @@ type StatsResponse struct {
 
 // GetSystemStats returns app statistics
 func (h *StatsHandler) GetAppStats(c *gin.Context) {
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultRequestTimeout)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), DefaultRequestTimeout)
 	defer cancel()
 
 	startTime := time.Now()
@@ -37,10 +38,10 @@ func (h *StatsHandler) GetAppStats(c *gin.Context) {
 	// Get system statistics
 	stats, err := h.statsService.GetAppStats(ctx)
 	if err != nil {
+		log.Printf("Failed to retrieve system statistics: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "error",
 			"message": "Failed to retrieve system statistics",
-			"error":   err.Error(),
 		})
 		return
 	}

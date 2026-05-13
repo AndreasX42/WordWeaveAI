@@ -1,6 +1,6 @@
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from vocab_processor.constants import Language, PartOfSpeech
 from vocab_processor.schemas.media_model import Media
@@ -11,6 +11,8 @@ from vocab_processor.tools.validation_tool import SuggestedWordInfo
 
 
 class VocabState(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     # Inputs from user
     source_word: str = Field(..., description="The initial word provided by the user.")
     source_language: Optional[Language] = Field(
@@ -188,6 +190,3 @@ class VocabState(BaseModel):
     quality_checks_passed: Optional[int] = Field(None)
     quality_checks_failed: Optional[int] = Field(None)
     processing_complete: Optional[bool] = Field(None)
-
-    class Config:
-        arbitrary_types_allowed = True

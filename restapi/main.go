@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/AndreasX42/restapi/config"
 	"github.com/AndreasX42/restapi/middlewares"
+	"github.com/AndreasX42/restapi/utils"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -19,6 +21,11 @@ import (
 func main() {
 	// Initialize environment variables
 	initEnvs()
+
+	// Structured JSON logging (stdout -> CloudWatch)
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: utils.SlogLevel(),
+	})))
 
 	// Initialize dependency container
 	container := config.NewContainer()
@@ -29,21 +36,26 @@ func main() {
 	// Configure CORS middleware
 	server.Use(cors.New(middlewares.GetCORSConfig()))
 
+	// Structured request logging middleware
+	server.Use(middlewares.RequestLoggerMiddleware())
+
 	// Configure Sentry middleware
 	server.Use(middlewares.SentryMiddleware(container.SentryConfig))
 
 	// Register routes with dependency injection
 	registerRoutes(server, container)
 
+	addr := utils.HTTPListenPort()
+
 	// Create HTTP server
 	srv := &http.Server{
-		Addr:    ":8080",
+		Addr:    ":" + addr,
 		Handler: server,
 	}
 
 	// Start server in a goroutine
 	go func() {
-		log.Println("Starting server on :8080")
+		log.Println("Starting server on", addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %s\n", err)
 		}
@@ -61,8 +73,8 @@ func main() {
 		container.SentryConfig.Flush()
 	}
 
-	// Give a 5-second timeout for the server to finish handling requests
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	shutdownMs := utils.EnvPositiveInt("SHUTDOWN_TIMEOUT_MS", 5000)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(shutdownMs)*time.Millisecond)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
@@ -81,6 +93,7 @@ func registerRoutes(server *gin.Engine, container *config.Container) {
 
 	// Set handlers that need JWT middleware
 	container.SetUserHandler(authMiddleware)
+	container.SetOAuthHandler(authMiddleware)
 
 	// Create API route group
 	api := server.Group("/api")

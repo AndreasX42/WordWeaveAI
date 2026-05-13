@@ -42,6 +42,12 @@ import {
 import { ValidationErrorInfo } from '@/models/error.model';
 import { getLanguageConfig, LanguageConfig } from './conjugation.config';
 import { Configs } from '../../shared/config';
+import { normalizeWordForVocabLookup } from '../../shared/word-normalize';
+import {
+  normalizePOSForWordRoute,
+  wordRouteSegments,
+  wordShareUrlPath,
+} from '../../shared/word-route-url';
 import { Subscription } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Location } from '@angular/common';
@@ -537,7 +543,6 @@ export class WordCard implements OnInit, OnDestroy {
     const targetLanguage = this.getLanguageCode(
       this.word.target_language || 'es'
     );
-    // Use raw word and let router encode the URL; avoid double-encoding
     let sourceWord = this.word.source_word || '';
     try {
       sourceWord = decodeURIComponent(sourceWord);
@@ -545,12 +550,15 @@ export class WordCard implements OnInit, OnDestroy {
       // If decoding fails, keep original value
     }
     const rawPos = this.word.source_pos || 'pending';
-    const normalizedPos = this.normalizePOS(rawPos);
 
-    this.router.navigate(
-      ['/words', sourceLanguage, targetLanguage, normalizedPos, sourceWord],
-      { replaceUrl: true }
-    );
+    const segments = wordRouteSegments({
+      sourceLanguage,
+      targetLanguage,
+      sourcePos: rawPos,
+      sourceWord,
+    });
+
+    this.router.navigate(['/words', ...segments], { replaceUrl: true });
   }
 
   private navigateToErrorUrl(errorData: {
@@ -750,7 +758,7 @@ export class WordCard implements OnInit, OnDestroy {
     const tgtLang = this.getLanguageCode(targetLanguage);
     const notificationId = `word-request-${cleanedWord}-${srcLang}-${tgtLang}`;
 
-    const link = this.generateWordLink(pk, sk, sourceWord);
+    const link = this.generateWordLink(pk, sk);
 
     this.notificationService.addOrUpdateNotification(
       {
@@ -774,7 +782,7 @@ export class WordCard implements OnInit, OnDestroy {
     return this.translationService.getLanguageCode(language);
   }
 
-  private generateWordLink(pk: string, sk: string, sourceWord: string): string {
+  private generateWordLink(pk: string, sk: string): string {
     const pkParts = pk.split('#');
     const skParts = sk.split('#');
 
@@ -788,14 +796,13 @@ export class WordCard implements OnInit, OnDestroy {
         pos = skParts[posIndex + 1];
       }
 
-      // Avoid manual encoding; router will handle when navigating
-      let rawWord = sourceWord;
-      try {
-        rawWord = decodeURIComponent(sourceWord);
-      } catch {
-        // Keep original word if decoding fails
-      }
-      return `/words/${sourceLang}/${targetLang}/${pos}/${rawWord}`;
+      const slugFromPk = pkParts[2];
+      return wordShareUrlPath({
+        sourceLanguage: sourceLang,
+        targetLanguage: targetLang,
+        sourcePos: pos,
+        sourceWord: slugFromPk,
+      });
     }
 
     return '';
@@ -1058,12 +1065,12 @@ export class WordCard implements OnInit, OnDestroy {
       } catch {
         decodedWord = word;
       }
-      decodedWord = this.normalizeWord(decodedWord);
+      decodedWord = normalizeWordForVocabLookup(decodedWord);
 
       const pk = `SRC#${sourceLanguage}#${decodedWord}`;
       let sk = `TGT#${targetLanguage}`;
       if (pos && pos !== 'pending') {
-        const normalizedPos = this.normalizePOS(pos.trim());
+        const normalizedPos = normalizePOSForWordRoute(pos.trim());
         sk += `#POS#${normalizedPos}`;
       }
 
@@ -1079,21 +1086,6 @@ export class WordCard implements OnInit, OnDestroy {
         'Invalid parameters: missing source language, target language, or word';
       this.loading = false;
     }
-  }
-
-  // Match backend normalization: lowercase, NFKC, NFD, strip combining marks, keep [a-z0-9]
-  private normalizeWord(input: string): string {
-    if (!input) return '';
-    let s = input.toLowerCase();
-    try {
-      s = s.normalize('NFKC');
-      s = s.normalize('NFD');
-    } catch {
-      // Normalization not supported or failed; continue with current string
-    }
-    s = s.replace(/[\u0300-\u036f]/g, '');
-    s = s.replace(/[^a-z0-9]/g, '');
-    return s;
   }
 
   loadWordByPkSk(pk: string, sk: string, isRedirect = false) {
@@ -1321,12 +1313,6 @@ export class WordCard implements OnInit, OnDestroy {
     const cleanKey = key.startsWith('/') ? key.slice(1) : key;
 
     return `${Configs.S3_BASE_URL}${cleanKey}`;
-  }
-
-  private normalizePOS(pos: string): string {
-    if (!pos) return 'pending';
-    const posLower = pos.toLowerCase();
-    return posLower.includes('noun') ? 'noun' : posLower;
   }
 
   getDisplayCreatedBy(createdBy: string | undefined): string {

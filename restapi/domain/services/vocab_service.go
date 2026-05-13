@@ -3,13 +3,10 @@ package services
 import (
 	"context"
 	"fmt"
-	"regexp"
-	"strings"
-	"unicode"
 
 	"github.com/AndreasX42/restapi/domain/entities"
 	"github.com/AndreasX42/restapi/domain/repositories"
-	"golang.org/x/text/unicode/norm"
+	"github.com/AndreasX42/restapi/utils"
 )
 
 type VocabService struct {
@@ -24,8 +21,6 @@ type SearchVocabularyRequest struct {
 	TargetLang string // optional
 }
 
-var normalizeRgx = regexp.MustCompile(`[^a-z0-9]`)
-
 func NewVocabService(vocabRepo repositories.VocabRepository, vocabMediaRepo repositories.VocabMediaRepository) *VocabService {
 	return &VocabService{
 		vocabRepo:      vocabRepo,
@@ -33,16 +28,16 @@ func NewVocabService(vocabRepo repositories.VocabRepository, vocabMediaRepo repo
 	}
 }
 
-func (s *VocabService) SearchVocabulary(ctx context.Context, req SearchVocabularyRequest) ([]entities.VocabWord, error) {
+func (s *VocabService) SearchVocabulary(ctx context.Context, req SearchVocabularyRequest) ([]*entities.VocabWord, error) {
 	// Set defaults
 	if req.Limit == 0 || req.Limit > 10 {
-		req.Limit = 5
+		req.Limit = 10
 	}
 
 	// Normalize the query
 	normalizedQuery := s.NormalizeWord(req.Query)
 
-	var results []entities.VocabWord
+	var results []*entities.VocabWord
 	var err error
 
 	// If language(s) are specified, use primary and sort keys
@@ -72,10 +67,13 @@ func (s *VocabService) SearchVocabulary(ctx context.Context, req SearchVocabular
 	return results, nil
 }
 
-func filterByLanguages(results []entities.VocabWord, sourceLang string, targetLang string) []entities.VocabWord {
-	var filteredResults []entities.VocabWord
+func filterByLanguages(results []*entities.VocabWord, sourceLang string, targetLang string) []*entities.VocabWord {
+	var filteredResults []*entities.VocabWord
 
 	for _, result := range results {
+		if result == nil {
+			continue
+		}
 		sourceMatch := sourceLang == "" || result.SourceLanguage == sourceLang
 		targetMatch := targetLang == "" || result.TargetLanguage == targetLang
 
@@ -87,60 +85,9 @@ func filterByLanguages(results []entities.VocabWord, sourceLang string, targetLa
 	return filteredResults
 }
 
-// EnrichWithMedia fetches media data for vocab words that have media_ref (public method)
-func (s *VocabService) EnrichWithMedia(ctx context.Context, results []entities.VocabWord) ([]entities.VocabWord, error) {
-	return s.enrichWithMedia(ctx, results)
-}
-
-// enrichWithMedia fetches media data for vocab words that have media_ref (private method)
-func (s *VocabService) enrichWithMedia(ctx context.Context, results []entities.VocabWord) ([]entities.VocabWord, error) {
-	// Skip if no media repository (e.g., in tests)
-	if s.vocabMediaRepo == nil {
-		return results, nil
-	}
-
-	for i, result := range results {
-		// Skip if no media_ref included
-		if result.MediaRef == "" {
-			continue
-		}
-
-		// Fetch media data using media_ref
-		media, err := s.vocabMediaRepo.GetMediaByRef(ctx, result.MediaRef)
-		if err != nil {
-			// Log the error but don't fail the entire search
-			fmt.Printf("Warning: Failed to fetch media for ref %s: %v\n", result.MediaRef, err)
-			continue
-		}
-
-		if media != nil {
-			// Update the result with media data
-			results[i].Media = media
-		}
-	}
-
-	return results, nil
-}
-
-// NormalizeWord matches the Python normalize_word function exactly
+// NormalizeWord returns the canonical lookup key form for vocabulary searches.
 func (v *VocabService) NormalizeWord(word string) string {
-	// Step 1: NFKC normalization and lowercase
-	word = strings.ToLower(word)
-	word = norm.NFKC.String(word)
-
-	// Step 2: NFD normalization and remove combining marks
-	word = norm.NFD.String(word)
-	result := make([]rune, 0, len(word))
-	for _, r := range word {
-		if unicode.In(r, unicode.Mn) {
-			continue // Skip combining marks (category Mn)
-		}
-		result = append(result, r)
-	}
-	word = string(result)
-
-	// Step 3: Remove non-alphanumeric characters
-	return normalizeRgx.ReplaceAllString(word, "")
+	return utils.NormalizeWord(word)
 }
 
 // GetVocabularyByKeys fetches a single vocabulary word by its PK and SK, enriching with media if available
@@ -151,7 +98,7 @@ func (s *VocabService) GetVocabularyByKeys(ctx context.Context, pk, sk string) (
 	}
 
 	// Enrich with media if media_ref exists
-	if vocab.MediaRef != "" && s.vocabMediaRepo != nil {
+	if vocab.MediaRef != "" {
 		media, mediaErr := s.vocabMediaRepo.GetMediaByRef(ctx, vocab.MediaRef)
 		if mediaErr != nil {
 			fmt.Printf("Warning: Failed to fetch media for ref %s: %v\n", vocab.MediaRef, mediaErr)
@@ -163,21 +110,62 @@ func (s *VocabService) GetVocabularyByKeys(ctx context.Context, pk, sk string) (
 	return vocab, nil
 }
 
-// GetVocabularyByKeysWithoutMedia fetches a single vocabulary word by its PK and SK, without enriching with media if available
-func (s *VocabService) GetVocabularyByKeysWithoutMedia(ctx context.Context, pk, sk string) (*entities.VocabWord, error) {
-	vocab, err := s.vocabRepo.GetByKeys(ctx, pk, sk)
-	if err != nil {
-		return nil, err
+func (s *VocabService) GetVocabularyWithOptionalMedia(ctx context.Context, pk, sk, mediaRef string) (*entities.VocabWord, error) {
+	// Use channels for concurrent execution
+	type result struct {
+		vocab *entities.VocabWord
+		media map[string]any
+		err   error
 	}
 
-	return vocab, nil
+	vocabChan := make(chan result, 1)
+	mediaChan := make(chan result, 1)
+	// Fetch vocab word
+	go func() {
+		vocab, err := s.GetVocabularyByKeys(ctx, pk, sk)
+		vocabChan <- result{vocab: vocab, err: err}
+	}()
+
+	// Fetch media
+	if mediaRef != "" {
+		go func() {
+			media, err := s.GetMediaByRef(ctx, mediaRef)
+			mediaChan <- result{media: media, err: err}
+		}()
+	} else {
+		mediaChan <- result{media: nil, err: nil}
+	}
+
+	// Wait for both results
+	vocabResult := <-vocabChan
+	mediaResult := <-mediaChan
+
+	// Check for vocab error
+	if vocabResult.err != nil {
+		return nil, vocabResult.err
+	}
+
+	// Add media to vocab word (ignore media errors)
+	if mediaResult.err == nil && mediaResult.media != nil {
+		vocabResult.vocab.Media = mediaResult.media
+	}
+
+	return vocabResult.vocab, nil
+}
+
+// GetVocabularyByParams fetches a vocabulary word from URL route parameters.
+func (s *VocabService) GetVocabularyByParams(ctx context.Context, sourceLanguage, targetLanguage, word, pos string) (*entities.VocabWord, error) {
+	keys := utils.VocabKeysFromParams(sourceLanguage, targetLanguage, word, pos)
+
+	return s.GetVocabularyByKeys(ctx, keys.PK, keys.SK)
 }
 
 // GetMediaByRef fetches media data by media reference
 func (s *VocabService) GetMediaByRef(ctx context.Context, mediaRef string) (map[string]any, error) {
-	if s.vocabMediaRepo == nil {
-		return nil, fmt.Errorf("media repository not available")
+	media, err := s.vocabMediaRepo.GetMediaByRef(ctx, mediaRef)
+	if err != nil {
+		return nil, err
 	}
 
-	return s.vocabMediaRepo.GetMediaByRef(ctx, mediaRef)
+	return media, nil
 }

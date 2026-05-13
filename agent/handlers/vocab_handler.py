@@ -1,7 +1,7 @@
 import asyncio
 import os
 from asyncio import TimeoutError
-from typing import Any
+from typing import Any, Optional
 
 from aws_lambda_powertools import Logger, Metrics
 from aws_lambda_powertools.metrics import MetricUnit
@@ -10,6 +10,7 @@ from aws_lambda_powertools.utilities.batch import (
     EventType,
     async_process_partial_response,
 )
+from aws_lambda_powertools.utilities.batch.types import PartialItemFailureResponse
 from aws_lambda_powertools.utilities.parser import parse
 from aws_lambda_powertools.utilities.typing import LambdaContext
 
@@ -30,7 +31,9 @@ processor = AsyncBatchProcessor(
 
 
 @logger.inject_lambda_context()
-def lambda_handler(event: dict[str, Any], context: LambdaContext) -> dict[str, Any]:
+def lambda_handler(
+    event: dict[str, Any], context: LambdaContext
+) -> PartialItemFailureResponse:
     """Entrypoint for the Vocab Processor Lambda."""
     return async_process_partial_response(
         event=event,
@@ -82,7 +85,7 @@ async def _handle_request(req: VocabProcessRequestDto) -> dict[str, Any]:
         notifier.send_processing_started(req.source_word, req.target_language)
 
         # Process the word with the graph
-        result = await _process_word_with_graph(req, notifier)
+        result = await _process_word_with_graph(req, notifier) or {}
 
         # Evaluate final state and handle different outcomes
         final_result = await _evaluate_final_state(result, req, notifier)
@@ -203,8 +206,8 @@ def _build_ddb_hit_response(
 def _build_error_response(
     status: str,
     req: VocabProcessRequestDto,
-    error: str = None,
-    validation_result: dict[str, Any] = None,
+    error: Optional[str] = None,
+    validation_result: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Build standardized error response."""
     response = {
@@ -235,7 +238,7 @@ def _is_processing_complete(result: dict[str, Any]) -> bool:
 
 async def _process_word_with_graph(
     req: VocabProcessRequestDto, notifier: WebSocketNotifier
-) -> dict[str, Any]:
+) -> Optional[dict[str, Any]]:
     """Process the word using the vocab processing graph."""
     initial_state = {
         "source_word": req.source_word,

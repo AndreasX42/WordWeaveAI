@@ -6,11 +6,20 @@ terraform {
       version = "~> 6.0"
     }
   }
+
+  backend "s3" {}
 }
 
 provider "aws" {
   region  = var.aws_region
-  profile = "personal"
+  profile = var.aws_profile
+
+  dynamic "assume_role" {
+    for_each = var.terraform_assume_role_arn == null ? [] : [1]
+    content {
+      role_arn = var.terraform_assume_role_arn
+    }
+  }
 }
 
 # Data sources
@@ -21,9 +30,11 @@ data "aws_availability_zones" "available" {
 
 # Remote state for common environment
 data "terraform_remote_state" "common" {
-  backend = "local" # Change to "s3" if using S3 backend
+  backend = "s3"
   config = {
-    path = "../common/terraform.tfstate"
+    bucket = var.terraform_state_bucket
+    key    = var.terraform_common_state_key
+    region = var.aws_region
   }
 }
 
@@ -69,13 +80,14 @@ module "alb" {
   acm_certificate_arn  = try(data.terraform_remote_state.common.outputs.acm_certificate_arn, var.acm_certificate_arn)
   frontend_domain_name = var.frontend_domain_name
   backend_domain_name  = var.backend_domain_name
+  apex_domain_name     = var.apex_domain_name
   route53_zone_id      = try(data.terraform_remote_state.common.outputs.route53_zone_id, null)
 }
 
 # WAF Module
 module "waf" {
   source = "../../modules/waf"
-  count = 0
+  count  = 0
 
   project_name                      = var.project_name
   environment                       = var.environment
@@ -142,15 +154,17 @@ module "lambda" {
   dynamodb_connections_table_arn  = module.data.dynamodb_connections_table_arn
   s3_bucket_name                  = module.data.s3_vocab_bucket_id
   s3_bucket_arn                   = module.data.s3_vocab_bucket_arn
+  enable_websocket_iam_policy     = true
   websocket_api_id                = module.websocket_api.websocket_api_id
   websocket_api_endpoint          = module.websocket_api.websocket_api_endpoint
+  vocab_llm_node_model            = var.vocab_llm_node_model
+  vocab_llm_supervisor_model      = var.vocab_llm_supervisor_model
 
   depends_on = [module.sqs, module.data]
 }
 
 module "ecs" {
   source = "../../modules/ecs"
-  count = 0
 
   project_name              = var.project_name
   environment               = var.environment
@@ -178,19 +192,7 @@ module "ecs" {
     SENTRY_ENVIRONMENT              = "aws-${var.project_name}-${var.environment}"
   }
   # Provide SSM parameter paths (module will fetch, build secrets, and IAM scope)
-  backend_ssm_parameter_paths = {
-    GOOGLE_CLIENT_ID             = "/wordweave/${var.environment}/backend/google-client-id"
-    GOOGLE_CLIENT_SECRET         = "/wordweave/${var.environment}/backend/google-client-secret"
-    GOOGLE_REDIRECT_URL          = "/wordweave/${var.environment}/backend/google-redirect-url"
-    SENTRY_DSN                   = "/apikeys/SENTRY_DSN"
-    JWT_SECRET_KEY               = "/wordweave/${var.environment}/backend/jwt-secret-key"
-    JWT_EXPIRATION_TIME          = "/wordweave/${var.environment}/backend/jwt-expiration-time"
-    CORS_ALLOWED_ORIGINS         = "/wordweave/${var.environment}/backend/cors-allowed-origins"
-    FRONTEND_URL                 = "/wordweave/${var.environment}/backend/frontend-url"
-    MAX_VOCAB_REQUESTS_FREE_TIER = "/wordweave/${var.environment}/backend/max-vocab-requests-free-tier"
-    SES_FROM_EMAIL               = "/wordweave/${var.environment}/backend/ses-from-email"
-    SES_FROM_NAME                = "/wordweave/${var.environment}/backend/ses-from-name"
-  }
+  backend_ssm_parameter_paths = var.backend_ssm_parameter_paths
   desired_count               = var.desired_count
   ecs_tasks_security_group_id = module.alb.ecs_tasks_security_group_id
   public_subnet_ids           = module.vpc.public_subnet_ids
@@ -205,7 +207,6 @@ module "ecs" {
 # CI/CD Pipeline Module
 module "cicd_pipeline" {
   source = "../../modules/cicd-pipeline"
-  count = 0
 
   project_name       = var.project_name
   environment        = var.environment
@@ -223,15 +224,15 @@ module "cicd_pipeline" {
   backend_ecr_repo_name  = data.terraform_remote_state.common.outputs.ecr_backend_repository_name
 
   # ECS Configuration (deployment targets)
-  ecs_cluster_name                     = try(module.ecs[0].cluster_name, null)
-  frontend_service_name                = try(module.ecs[0].frontend_service_name, null)
-  backend_service_name                 = try(module.ecs[0].backend_service_name, null)
-  ecs_frontend_task_role_arn           = try(module.ecs[0].ecs_frontend_task_role_arn, null)
-  ecs_backend_task_role_arn            = try(module.ecs[0].ecs_backend_task_role_arn, null)
-  ecs_frontend_task_execution_role_arn = try(module.ecs[0].ecs_frontend_task_execution_role_arn, null)
-  ecs_backend_task_execution_role_arn  = try(module.ecs[0].ecs_backend_task_execution_role_arn, null)
+  ecs_cluster_name                     = module.ecs.cluster_name
+  frontend_service_name                = module.ecs.frontend_service_name
+  backend_service_name                 = module.ecs.backend_service_name
+  ecs_frontend_task_role_arn           = module.ecs.ecs_frontend_task_role_arn
+  ecs_backend_task_role_arn            = module.ecs.ecs_backend_task_role_arn
+  ecs_frontend_task_execution_role_arn = module.ecs.ecs_frontend_task_execution_role_arn
+  ecs_backend_task_execution_role_arn  = module.ecs.ecs_backend_task_execution_role_arn
 
   # Frontend Configuration (URLs for build-time injection)
   backend_domain_name    = var.backend_domain_name
   websocket_api_endpoint = module.websocket_api.websocket_api_endpoint
-} 
+}

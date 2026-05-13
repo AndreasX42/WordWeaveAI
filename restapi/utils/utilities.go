@@ -5,6 +5,19 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"regexp"
+	"strings"
+	"unicode"
+
+	"golang.org/x/text/unicode/norm"
+)
+
+var normalizeWordRgx = regexp.MustCompile(`[^a-z0-9]`)
+var germanTransliterator = strings.NewReplacer(
+	"ß", "ss",
+	"ä", "ae",
+	"ö", "oe",
+	"ü", "ue",
 )
 
 func GetTableName(baseName string) string {
@@ -37,4 +50,46 @@ func GetEnvWithDefault(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+// ParseCommaSeparatedList splits a comma-separated string into trimmed, non-empty entries.
+// Returns a copy of fallback when the input is blank or yields no valid entries.
+func ParseCommaSeparatedList(raw string, fallback []string) []string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return fallbackCopy(fallback)
+	}
+	out := make([]string, 0)
+	for _, part := range strings.Split(raw, ",") {
+		if t := strings.TrimSpace(part); t != "" {
+			out = append(out, t)
+		}
+	}
+	if len(out) == 0 {
+		return fallbackCopy(fallback)
+	}
+	return out
+}
+
+func fallbackCopy(src []string) []string {
+	dst := make([]string, len(src))
+	copy(dst, src)
+	return dst
+}
+
+func NormalizeWord(word string) string {
+	word = strings.ToLower(word)
+	word = norm.NFKC.String(word)
+	word = germanTransliterator.Replace(word)
+
+	word = norm.NFD.String(word)
+	result := make([]rune, 0, len(word))
+	for _, r := range word {
+		if unicode.In(r, unicode.Mn) {
+			continue
+		}
+		result = append(result, r)
+	}
+
+	return normalizeWordRgx.ReplaceAllString(string(result), "")
 }

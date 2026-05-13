@@ -112,35 +112,35 @@ output "ecs_tasks_security_group_id" {
 # CI/CD Pipeline Outputs
 output "pipeline_artifacts_bucket_name" {
   description = "Name of the pipeline artifacts S3 bucket"
-  value       = try(module.cicd_pipeline[0].pipeline_artifacts_bucket_name, null)
+  value       = module.cicd_pipeline.pipeline_artifacts_bucket_name
 }
 
 output "frontend_pipeline_name" {
   description = "Name of the frontend CodePipeline"
-  value       = try(module.cicd_pipeline[0].frontend_pipeline_name, null)
+  value       = module.cicd_pipeline.frontend_pipeline_name
 }
 
 output "backend_pipeline_name" {
   description = "Name of the backend CodePipeline"
-  value       = try(module.cicd_pipeline[0].backend_pipeline_name, null)
+  value       = module.cicd_pipeline.backend_pipeline_name
 }
 
 output "frontend_codebuild_project_name" {
   description = "Name of the frontend CodeBuild project"
-  value       = try(module.cicd_pipeline[0].frontend_codebuild_project_name, null)
+  value       = module.cicd_pipeline.frontend_codebuild_project_name
 }
 
 output "backend_codebuild_project_name" {
   description = "Name of the backend CodeBuild project"
-  value       = try(module.cicd_pipeline[0].backend_codebuild_project_name, null)
+  value       = module.cicd_pipeline.backend_codebuild_project_name
 }
 
 output "codepipeline_role_arn" {
   description = "ARN of the CodePipeline service role"
-  value       = try(module.cicd_pipeline[0].codepipeline_role_arn, null)
+  value       = module.cicd_pipeline.codepipeline_role_arn
 }
 
 output "codebuild_role_arn" {
   description = "ARN of the CodeBuild service role"
-  value       = try(module.cicd_pipeline[0].codebuild_role_arn, null)
+  value       = module.cicd_pipeline.codebuild_role_arn
 } 

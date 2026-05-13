@@ -1,10 +1,9 @@
-FROM public.ecr.aws/docker/library/golang:1.24.3-alpine
+FROM public.ecr.aws/docker/library/golang:1.26.1-alpine
 
 ENV GIN_MODE=debug
 
-RUN apk add --no-cache git ca-certificates tzdata curl unzip && \
-    curl -L https://github.com/cosmtrek/air/releases/download/v1.49.0/air_1.49.0_linux_amd64.tar.gz | tar -xz && \
-    mv air /usr/local/bin/air
+RUN apk add --no-cache git ca-certificates tzdata && \
+    go install github.com/air-verse/air@v1.65.1
 
 WORKDIR /app
 COPY . .

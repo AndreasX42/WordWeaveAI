@@ -7,14 +7,23 @@ import (
 	"time"
 
 	"github.com/AndreasX42/restapi/domain/entities"
+	"github.com/AndreasX42/restapi/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
-// Common timeout constants
-const (
-	DefaultRequestTimeout = 5 * time.Second
+// Common timeouts (configured via *_REQUEST_TIMEOUT_MS; defaults preserve prior constants).
+var (
+	DefaultRequestTimeout = 1 * time.Second
+	SearchRequestTimeout  = 1500 * time.Millisecond
+	HealthRequestTimeout  = 500 * time.Millisecond
 )
+
+func init() {
+	DefaultRequestTimeout = utils.EnvMilliseconds("DEFAULT_REQUEST_TIMEOUT_MS", 1000)
+	SearchRequestTimeout = utils.EnvMilliseconds("SEARCH_REQUEST_TIMEOUT_MS", 1500)
+	HealthRequestTimeout = utils.EnvMilliseconds("HEALTH_REQUEST_TIMEOUT_MS", 500)
+}
 
 // HandleValidationError handles validation errors consistently across all handlers
 func HandleValidationError(c *gin.Context, err error) {

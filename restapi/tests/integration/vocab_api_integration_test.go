@@ -21,7 +21,8 @@ import (
 
 func TestVocabAPI_Integration(t *testing.T) {
 	// Setup environment for JWT
-	os.Setenv("JWT_SECRET_KEY", "test-secret-key-for-vocab-tests")
+	// Must be >= 32 chars to satisfy middleware validation.
+	os.Setenv("JWT_SECRET_KEY", "test-secret-key-for-vocab-tests-32chars+")
 	os.Setenv("JWT_EXPIRATION_TIME", "60")
 
 	t.Run("complete vocabulary workflow", func(t *testing.T) {

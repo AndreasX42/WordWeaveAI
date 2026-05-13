@@ -27,7 +27,7 @@ func (m *MockVocabMediaRepository) GetMediaByRef(ctx context.Context, mediaRef s
 	defer m.mutex.RUnlock()
 
 	if m.shouldError {
-		return nil, fmt.Errorf(m.errorMsg)
+		return nil, fmt.Errorf("%s", m.errorMsg)
 	}
 
 	media, exists := m.mediaData[mediaRef]
@@ -44,13 +44,39 @@ func (m *MockVocabMediaRepository) GetMediaByRef(ctx context.Context, mediaRef s
 	return result, nil
 }
 
+// GetMediaByRefsBatch implements the media repository interface
+func (m *MockVocabMediaRepository) GetMediaByRefsBatch(ctx context.Context, mediaRefs []string) (map[string]map[string]any, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+
+	if m.shouldError {
+		return nil, fmt.Errorf("%s", m.errorMsg)
+	}
+
+	result := make(map[string]map[string]any)
+	for _, mediaRef := range mediaRefs {
+		media, exists := m.mediaData[mediaRef]
+		if !exists {
+			continue
+		}
+
+		mediaCopy := make(map[string]any)
+		for k, v := range media {
+			mediaCopy[k] = v
+		}
+		result[mediaRef] = mediaCopy
+	}
+
+	return result, nil
+}
+
 // GetMediaBySearchTerms implements the media repository interface
 func (m *MockVocabMediaRepository) GetMediaBySearchTerms(ctx context.Context, searchTerms []string) (map[string]any, error) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 
 	if m.shouldError {
-		return nil, fmt.Errorf(m.errorMsg)
+		return nil, fmt.Errorf("%s", m.errorMsg)
 	}
 
 	// Simple implementation for testing - just return empty result

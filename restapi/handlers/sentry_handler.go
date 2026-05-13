@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -154,16 +155,20 @@ func (h *SentryHandler) configureSentryScope(scope *sentry.Scope, req *LogReques
 
 func (h *SentryHandler) captureLog(hub *sentry.Hub, scope *sentry.Scope, req *LogRequest) {
 	level := h.getSentryLevel(req.Level)
+	if req.Error != nil && req.Level == "" {
+		// Treat structured frontend error payloads as errors by default.
+		level = sentry.LevelError
+	}
 	scope.SetLevel(level)
 
 	if level == sentry.LevelError && req.Error != nil {
-		errorName := safeGetString(req.Error, "name")
+		errorName := safeGetAsString(req.Error, "name")
 		if errorName == "" {
 			errorName = "FrontendError"
 		}
 
-		errorType := safeGetString(req.Error, "type")
-		errorMessage := safeGetString(req.Error, "message")
+		errorType := safeGetAsString(req.Error, "type")
+		errorMessage := safeGetAsString(req.Error, "message")
 		if errorMessage == "" {
 			errorMessage = errorType
 		}
@@ -176,7 +181,7 @@ func (h *SentryHandler) captureLog(hub *sentry.Hub, scope *sentry.Scope, req *Lo
 			displayType = errorName + ": " + errorType
 		}
 
-		stacktrace := parseJSStacktrace(safeGetString(req.Error, "stack"))
+		stacktrace := parseJSStacktrace(safeGetAsString(req.Error, "stack"))
 
 		hub.CaptureEvent(&sentry.Event{
 			Level:    sentry.LevelError,
@@ -195,10 +200,10 @@ func (h *SentryHandler) captureLog(hub *sentry.Hub, scope *sentry.Scope, req *Lo
 				errorName,
 				errorType,
 			},
-			Extra: map[string]interface{}{
+			Extra: map[string]any{
 				"error_name": errorName,
 				"error_type": errorType,
-				"url":        safeGetString(req.Error, "url"),
+				"url":        safeGetAsString(req.Error, "url"),
 			},
 		})
 	} else {
@@ -215,34 +220,63 @@ func parseJSStacktrace(stack string) *sentry.Stacktrace {
 		return nil
 	}
 
-	// Regex to capture function name, file path, line number, and column number
-	re := regexp.MustCompile(`(?m)^(.*)@(.*):(\d+):(\d+)`)
+	// Support both Firefox ("func@file:line:col") and Chromium ("at func (file:line:col)") stack formats.
+	firefoxRe := regexp.MustCompile(`^(.*?)@(.*):(\d+):(\d+)$`)
+	chromiumWithFnRe := regexp.MustCompile(`^\s*at\s+(.*?)\s+\((.*):(\d+):(\d+)\)\s*$`)
+	chromiumNoFnRe := regexp.MustCompile(`^\s*at\s+(.*):(\d+):(\d+)\s*$`)
 	lines := strings.Split(stack, "\n")
 	frames := []sentry.Frame{}
 
 	for _, line := range lines {
-		matches := re.FindStringSubmatch(line)
+		trimmedLine := strings.TrimSpace(line)
+		if trimmedLine == "" {
+			continue
+		}
 
-		if len(matches) == 5 {
+		if matches := firefoxRe.FindStringSubmatch(trimmedLine); len(matches) == 5 {
 			lineNo, _ := strconv.Atoi(matches[3])
 			colNo, _ := strconv.Atoi(matches[4])
-
-			frame := sentry.Frame{
-				Function: matches[1],
-				AbsPath:  matches[2],
+			frames = append(frames, sentry.Frame{
+				Function: strings.TrimSpace(matches[1]),
+				AbsPath:  strings.TrimSpace(matches[2]),
 				Lineno:   lineNo,
 				Colno:    colNo,
-				InApp:    true, // You might want to customize this based on file path
-			}
-			frames = append(frames, frame)
-		} else {
-			// Handle cases where the line doesn't match the expected format
-			// Could be a simple message line or a different format
-			frames = append(frames, sentry.Frame{
-				Function: line,
 				InApp:    true,
 			})
+			continue
 		}
+
+		if matches := chromiumWithFnRe.FindStringSubmatch(trimmedLine); len(matches) == 5 {
+			lineNo, _ := strconv.Atoi(matches[3])
+			colNo, _ := strconv.Atoi(matches[4])
+			frames = append(frames, sentry.Frame{
+				Function: strings.TrimSpace(matches[1]),
+				AbsPath:  strings.TrimSpace(matches[2]),
+				Lineno:   lineNo,
+				Colno:    colNo,
+				InApp:    true,
+			})
+			continue
+		}
+
+		if matches := chromiumNoFnRe.FindStringSubmatch(trimmedLine); len(matches) == 4 {
+			lineNo, _ := strconv.Atoi(matches[2])
+			colNo, _ := strconv.Atoi(matches[3])
+			frame := sentry.Frame{
+				Function: "(anonymous)",
+				AbsPath:  strings.TrimSpace(matches[1]),
+				Lineno:   lineNo,
+				Colno:    colNo,
+				InApp:    true,
+			}
+			frames = append(frames, frame)
+			continue
+		}
+
+		frames = append(frames, sentry.Frame{
+			Function: trimmedLine,
+			InApp:    true,
+		})
 	}
 	// Reverse frames to have the call stack in the correct order (oldest to newest)
 	for i, j := 0, len(frames)-1; i < j; i, j = i+1, j-1 {
@@ -278,10 +312,30 @@ func safeGetString(m map[string]any, key string) string {
 	return ""
 }
 
-// safeGetMap extracts a map[string]any from a map[string]any safely
-func safeGetMap(m map[string]any, key string) map[string]any {
-	if val, ok := m[key].(map[string]any); ok {
-		return val
+// safeGetAsString converts primitive values to a string representation.
+func safeGetAsString(m map[string]any, key string) string {
+	if m == nil {
+		return ""
 	}
-	return nil
+
+	switch val := m[key].(type) {
+	case string:
+		return val
+	case fmt.Stringer:
+		return val.String()
+	case float64:
+		return strconv.FormatFloat(val, 'f', -1, 64)
+	case float32:
+		return strconv.FormatFloat(float64(val), 'f', -1, 32)
+	case int:
+		return strconv.Itoa(val)
+	case int8, int16, int32, int64:
+		return fmt.Sprintf("%d", val)
+	case uint, uint8, uint16, uint32, uint64:
+		return fmt.Sprintf("%d", val)
+	case bool:
+		return strconv.FormatBool(val)
+	default:
+		return ""
+	}
 }

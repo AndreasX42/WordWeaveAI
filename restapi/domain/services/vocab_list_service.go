@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"errors"
-	"sync"
 	"time"
 
 	"github.com/AndreasX42/restapi/domain/entities"
@@ -84,19 +83,6 @@ func (s *VocabListService) GetListsByUser(ctx context.Context, userID string) ([
 		return nil, err
 	}
 
-	for _, list := range lists {
-		learnedCount := 0
-		words, err := s.vocabListRepo.GetWordsInList(ctx, userID, list.ID)
-		if err != nil {
-			continue
-		}
-		for _, word := range words {
-			if word.IsLearned {
-				learnedCount++
-			}
-		}
-		list.LearnedCount = learnedCount
-	}
 	return lists, nil
 }
 
@@ -190,49 +176,47 @@ func (s *VocabListService) GetWordsInListWithData(ctx context.Context, userID, l
 		return nil, err
 	}
 
-	// Combine list metadata with vocabulary data
-	result := make([]*VocabListWordWithData, 0, len(listWords))
-
-	chanWords := make(chan *VocabListWordWithData, len(listWords))
-	wg := sync.WaitGroup{}
-	wg.Add(len(listWords))
-
+	mediaRefs := make([]string, 0, len(listWords))
+	seenMediaRefs := make(map[string]struct{}, len(listWords))
 	for _, word := range listWords {
-		go func(word *entities.VocabListWord) {
-			defer wg.Done()
-			keyStr := word.VocabPK + "|" + word.VocabSK
-			vocabWord := vocabData[keyStr]
-
-			// If vocabulary word exists and has a MediaRef, fetch the media data
-			if vocabWord != nil && vocabWord.MediaRef != "" {
-				mediaData, err := s.vocabMediaRepo.GetMediaByRef(ctx, vocabWord.MediaRef)
-				if err == nil {
-					vocabWord.Media = mediaData
-				}
-			}
-
-			wordWithData := &VocabListWordWithData{
-				ListID:    word.ListID,
-				UserID:    word.UserID,
-				VocabPK:   word.VocabPK,
-				VocabSK:   word.VocabSK,
-				AddedAt:   word.AddedAt,
-				LearnedAt: word.LearnedAt,
-				IsLearned: word.IsLearned,
-				VocabWord: vocabWord,
-			}
-
-			chanWords <- wordWithData
-		}(word)
+		keyStr := word.VocabPK + "|" + word.VocabSK
+		vocabWord := vocabData[keyStr]
+		if vocabWord == nil || vocabWord.MediaRef == "" {
+			continue
+		}
+		if _, exists := seenMediaRefs[vocabWord.MediaRef]; exists {
+			continue
+		}
+		seenMediaRefs[vocabWord.MediaRef] = struct{}{}
+		mediaRefs = append(mediaRefs, vocabWord.MediaRef)
 	}
 
-	go func() {
-		wg.Wait()
-		close(chanWords)
-	}()
+	mediaDataByRef, err := s.vocabMediaRepo.GetMediaByRefsBatch(ctx, mediaRefs)
+	if err != nil {
+		return nil, err
+	}
 
-	for word := range chanWords {
-		result = append(result, word)
+	// Combine list metadata with vocabulary data, preserving list order.
+	result := make([]*VocabListWordWithData, 0, len(listWords))
+	for _, word := range listWords {
+		keyStr := word.VocabPK + "|" + word.VocabSK
+		vocabWord := vocabData[keyStr]
+		if vocabWord != nil && vocabWord.MediaRef != "" {
+			if mediaData, exists := mediaDataByRef[vocabWord.MediaRef]; exists {
+				vocabWord.Media = mediaData
+			}
+		}
+
+		result = append(result, &VocabListWordWithData{
+			ListID:    word.ListID,
+			UserID:    word.UserID,
+			VocabPK:   word.VocabPK,
+			VocabSK:   word.VocabSK,
+			AddedAt:   word.AddedAt,
+			LearnedAt: word.LearnedAt,
+			IsLearned: word.IsLearned,
+			VocabWord: vocabWord,
+		})
 	}
 
 	return result, nil

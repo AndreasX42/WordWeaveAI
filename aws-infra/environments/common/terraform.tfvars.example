@@ -1,5 +1,7 @@
 # AWS Configuration
 aws_region = "us-east-1"
+aws_profile = "personal"
+terraform_assume_role_arn = "arn:aws:iam::123456789012:role/wordweave-terraform"
 
 # Project Configuration
 project_name = "wordweave"
@@ -10,8 +12,3 @@ ecr_backend_repo_name  = "wordweave-restapi"
 
 # Domain Configuration
 domain_name = "example.com"  # Replace with your actual domain
-
-# CI/CD Configuration
-github_connection_arn = "arn:aws:codestar-connections:us-east-1:123456789012:connection/example-connection-id"
-github_repo          = "your-org/wordweave"
-github_branch        = "main" 

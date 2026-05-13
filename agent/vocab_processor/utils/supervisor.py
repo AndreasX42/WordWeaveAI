@@ -1,4 +1,6 @@
 import json
+import os
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
@@ -6,6 +8,7 @@ from aws_lambda_powertools import Logger
 from pydantic import BaseModel, Field
 
 from vocab_processor.constants import LLMVariant
+from vocab_processor.prompts import build_supervisor_tool_validation_prompt
 from vocab_processor.schemas.media_model import SearchQueryResult
 from vocab_processor.tools.base_tool import SystemMessages, create_llm_response
 from vocab_processor.tools.classification_tool import WordClassification
@@ -14,12 +17,24 @@ from vocab_processor.tools.examples_tool import Examples
 from vocab_processor.tools.syllables_tool import SyllableBreakdown
 from vocab_processor.tools.synonyms_tool import Synonyms
 from vocab_processor.tools.translation_tool import Translation
-
-# Import actual Pydantic models for schema-aware validation
 from vocab_processor.tools.validation_tool import WordValidationResult
 from vocab_processor.utils.state import VocabState
 
 logger = Logger(service="vocab-processor-supervisor")
+
+
+def _supervisor_float(key: str, default: float) -> float:
+    raw = os.getenv(key)
+    if raw is None or not str(raw).strip():
+        return default
+    return float(raw)
+
+
+def _supervisor_int(key: str, default: int) -> int:
+    raw = os.getenv(key)
+    if raw is None or not str(raw).strip():
+        return default
+    return int(raw)
 
 
 class TaskType(str, Enum):
@@ -35,6 +50,64 @@ class TaskType(str, Enum):
     CONJUGATION = "conjugation"
     MEDIA_SELECTION = "media_selection"
     CLASSIFICATION = "classification"
+
+
+TASKS_USING_SUPERVISOR_MODEL = frozenset(
+    {
+        TaskType.VALIDATION,
+        TaskType.QUALITY_CHECK,
+    }
+)
+
+TASKS_UPGRADING_MODEL_ON_RETRY = frozenset(
+    {
+        TaskType.CLASSIFICATION,
+        TaskType.TRANSLATION,
+        TaskType.EXAMPLES,
+        TaskType.SYNONYMS,
+        TaskType.SYLLABLES,
+        TaskType.CONJUGATION,
+        TaskType.MEDIA_SELECTION,
+    }
+)
+
+
+@dataclass(frozen=True)
+class QualityGatedToolSpec:
+    """Per-tool metadata for supervisor quality checks and retries."""
+
+    output_schema: type[BaseModel]
+    accepts_quality_feedback: bool = True
+
+
+QUALITY_GATED_TOOLS: dict[str, QualityGatedToolSpec] = {
+    "validation": QualityGatedToolSpec(WordValidationResult),
+    "classification": QualityGatedToolSpec(WordClassification),
+    "translation": QualityGatedToolSpec(Translation),
+    "examples": QualityGatedToolSpec(Examples),
+    "synonyms": QualityGatedToolSpec(Synonyms),
+    "syllables": QualityGatedToolSpec(SyllableBreakdown),
+    "conjugation": QualityGatedToolSpec(ConjugationResponse),
+    "media": QualityGatedToolSpec(SearchQueryResult),
+}
+
+TOOLS_SKIPPING_QUALITY_VALIDATION: frozenset[str] = frozenset({"pronunciation"})
+
+TOOLS_ACCEPTING_QUALITY_FEEDBACK: frozenset[str] = frozenset(
+    name for name, spec in QUALITY_GATED_TOOLS.items() if spec.accepts_quality_feedback
+)
+
+PARALLEL_TOOL_CORE: tuple[str, ...] = ("media", "examples", "synonyms", "syllables")
+
+
+def expected_parallel_task_names(state: VocabState) -> list[str]:
+    """Parallel branch ids that match `agent.build_vocab_graph` fan-out."""
+
+    names = list(PARALLEL_TOOL_CORE)
+    if state.target_part_of_speech and state.target_part_of_speech.is_conjugatable:
+        names.append("conjugation")
+    names.append("pronunciation")
+    return names
 
 
 class ToolValidationResult(BaseModel):
@@ -59,6 +132,43 @@ class RetryStrategy(BaseModel):
     adjusted_inputs: dict[str, Any] = Field(default={})
 
 
+def _is_pexels_photo_src_bundle(photos_src: dict[Any, Any]) -> bool:
+    return set(photos_src.keys()) == {"large2x", "large", "medium"} and all(
+        isinstance(v, str) and v.startswith("https://") and v.endswith(".jpg")
+        for v in photos_src.values()
+    )
+
+
+def _preflight_media_tool_validation(
+    result: Any,
+    prompt: str,
+) -> ToolValidationResult | tuple[Any, str]:
+    """Return a final validation result or (normalized_result, prompt) for LLM scoring."""
+
+    if isinstance(result, dict) and result.get("api_fallback"):
+        logger.info("Media tool used API fallback - accepting with good score")
+        return ToolValidationResult(score=10.0, issues=[], suggestions=[])
+
+    if isinstance(result, dict):
+        media = result.get("media")
+        photos_src = None
+        if hasattr(media, "src"):
+            photos_src = media.src
+        elif isinstance(media, dict):
+            photos_src = media.get("src")
+
+        if isinstance(photos_src, dict) and _is_pexels_photo_src_bundle(photos_src):
+            return ToolValidationResult(score=10.0, issues=[], suggestions=[])
+
+    if isinstance(result, dict) and "search_query" in result:
+        normalized_prompt = result.get("search_query_prompt") or prompt
+        wrapped = {"search_query": result["search_query"]}
+        return wrapped, normalized_prompt
+
+    logger.warning("Media tool output format unexpected, skipping validation.")
+    return ToolValidationResult(score=10.0, issues=[], suggestions=[])
+
+
 class LLMRouter:
     """Smart routing between expensive and cheap models."""
 
@@ -66,168 +176,80 @@ class LLMRouter:
     def get_model_for_task(task_type: TaskType, num_retries: int) -> LLMVariant:
         """Select appropriate LLM model based on task complexity."""
 
-        llm_variant = LLMVariant.NODE_EXECUTOR
-
-        # Use powerful model for supervisor decisions
-        if task_type in [
-            TaskType.VALIDATION,
-            TaskType.QUALITY_CHECK,
-        ]:
-            llm_variant = LLMVariant.SUPERVISOR
-
-        # Use cheaper model for routine tool execution, upgrade on retry
-        if task_type in [
-            TaskType.CLASSIFICATION,
-            TaskType.TRANSLATION,
-            TaskType.EXAMPLES,
-            TaskType.SYNONYMS,
-            TaskType.SYLLABLES,
-            TaskType.CONJUGATION,
-            TaskType.MEDIA_SELECTION,
-        ]:
-            llm_variant: LLMVariant | LLMVariant = (
-                LLMVariant.SUPERVISOR if num_retries > 1 else LLMVariant.NODE_EXECUTOR
+        if task_type in TASKS_USING_SUPERVISOR_MODEL:
+            return LLMVariant.SUPERVISOR
+        if task_type in TASKS_UPGRADING_MODEL_ON_RETRY:
+            return (
+                LLMVariant.SUPERVISOR
+                if num_retries > 1
+                else LLMVariant.NODE_EXECUTOR
             )
-
-        return llm_variant
+        return LLMVariant.NODE_EXECUTOR
 
 
 class VocabSupervisor:
     """Supervisor for vocabulary processing quality control."""
 
-    def __init__(self, quality_threshold: float = 7.5, max_retries: int = 2):
+    def __init__(
+        self,
+        quality_threshold: float,
+        max_retries: int,
+        final_attempt_min_score: float,
+    ):
         self.quality_threshold = quality_threshold
         self.max_retries = max_retries
+        self.final_attempt_min_score = final_attempt_min_score
         self.router = LLMRouter()
 
-        # Tools that should skip quality validation
-        self.skip_validation_tools = {"pronunciation"}
-
-        # Define expected schemas for each tool with actual Pydantic models
-        self.tool_schemas: dict[str, BaseModel] = {
-            "validation": WordValidationResult,
-            "classification": WordClassification,
-            "translation": Translation,
-            "examples": Examples,
-            "synonyms": Synonyms,
-            "syllables": SyllableBreakdown,
-            "conjugation": ConjugationResponse,
-            "media": SearchQueryResult,
+        self.skip_validation_tools = TOOLS_SKIPPING_QUALITY_VALIDATION
+        self.tool_schemas = {
+            name: spec.output_schema for name, spec in QUALITY_GATED_TOOLS.items()
         }
+
+    def _serialize_tool_result_for_prompt(self, result: Any) -> str:
+        if isinstance(result, BaseModel):
+            return result.model_dump_json(indent=2)
+        try:
+            return json.dumps(result, indent=2)
+        except TypeError:
+            return str(result)
 
     async def validate_tool_output(
         self, tool_name: str, result: Any, state: VocabState, prompt: str
     ) -> ToolValidationResult:
         """Schema-aware validation of tool outputs."""
 
-        # Skip validation for tools that don't need it
         if tool_name in self.skip_validation_tools:
             return ToolValidationResult(score=10.0, issues=[], suggestions=[])
 
-        # Special handling for media tool to validate only the search query part
         if tool_name == "media":
-            # Check if this is a fallback response (API failure)
-            if isinstance(result, dict) and result.get("api_fallback"):
-                logger.info("Media tool used API fallback - accepting with good score")
-                return ToolValidationResult(
-                    score=10.0,
-                    issues=[],
-                    suggestions=[],
-                )
+            media_outcome = _preflight_media_tool_validation(result, prompt)
+            if isinstance(media_outcome, ToolValidationResult):
+                return media_outcome
+            result, prompt = media_outcome
 
-            # If the media tool successfully retrieved photos, let it pass the quality check.
-            if isinstance(result, dict):
-                media = result.get("media")
-                photos_src = None
-                if hasattr(media, "src"):
-                    photos_src = media.src
-                elif isinstance(media, dict):
-                    photos_src = media.get("src")
-
-                if isinstance(photos_src, dict):
-                    if set(photos_src.keys()) == {"large2x", "large", "medium"} and all(
-                        v.startswith("https://") and v.endswith(".jpg")
-                        for v in photos_src.values()
-                    ):
-                        return ToolValidationResult(
-                            score=10.0, issues=[], suggestions=[]
-                        )
-
-            if isinstance(result, dict) and "search_query" in result:
-                # The prompt for search query generation is passed in the result dict
-                prompt = result.get("search_query_prompt")
-                # The result to validate is the search query list, wrapped for the model
-                result = {"search_query": result["search_query"]}
-            else:
-                logger.warning(
-                    "Media tool output format unexpected, skipping validation."
-                )
-                return ToolValidationResult(score=10.0, issues=[], suggestions=[])
-
-        # Get expected schema for the tool
-        expected_schema_class = self.tool_schemas.get(tool_name)
-        if not expected_schema_class:
+        spec = QUALITY_GATED_TOOLS.get(tool_name)
+        if spec is None:
             raise ValueError(f"Unknown tool: {tool_name}")
-        else:
-            # Serialize result to a JSON string for the prompt
-            if isinstance(result, BaseModel):
-                result_json_str = result.model_dump_json(indent=2)
-            else:
-                try:
-                    result_json_str = json.dumps(result, indent=2)
-                except TypeError:
-                    result_json_str = str(result)
 
-            validation_prompt = f"""
-            **VALIDATION TASK**
-            You are a language learning expert. Your task is to validate the work of a language learning assistant. The overall goal of the assistant is to create accurate and informative vocabulary learning materials.
+        schema_block = json.dumps(spec.output_schema.model_json_schema(), indent=2)
+        result_json_str = self._serialize_tool_result_for_prompt(result)
+        source_language_display = (
+            state.source_language.value if state.source_language else "unknown"
+        )
+        target_language_display = state.target_language.value
 
-            Context:
-            Source word: '{state.source_word}' ('{state.source_language.value if state.source_language else "unknown"}')
-            Target word: '{state.target_word}' ('{state.target_language.value}')
-            Assistant used tool: {tool_name}
-
-            **Assistant's Role:**
-            The assistant is a language learning expert. It is tasked with creating accurate and informative vocabulary learning materials.
-
-            **Assistant's Output:**
-            The assistant's output is a JSON object that conforms to the expected schema.
-
-
-            **1. Expected Output Schema:**
-            The output MUST conform to this Pydantic model schema:
-            --- SCHEMA START ---
-            {expected_schema_class.model_json_schema()}
-            --- SCHEMA END ---
-
-            **2. Input Prompt:**
-            This was the prompt given to the assistant:
-            --- PROMPT START ---
-            {prompt}
-            --- PROMPT END ---
-
-            **3. Assistant's Output:**
-            Here is the assistants output using the above Pydantic model schema:
-            --- JSON START ---
-            {result_json_str}
-            --- JSON END ---
-
-            **Instructions for you, the Supervisor:**
-            1.  **Schema Compliance:** First and foremost, check if the JSON output complies with the Pydantic schema. Are all required fields present? Are the data types correct? A stringified JSON output is also valid.
-
-            2.  **Requirement Adherence:** Carefully read the 'REQUIREMENTS' section in the prompt. Has the assistant followed all instructions?
-
-            3. **Content Quality:** The overall goal is to create an accurate and natural vocabulary learning material from the '{state.source_word}' ('{state.source_language}') to the target word '{state.target_word}' ('{state.target_language}'). The content of the output should be accurate, informative and helpful for learning the target word.
-            
-            4. **Quality Score:** Rate the output on a scale of 1-10, where 10 is perfect. The score should reflect both schema compliance and adherence to the prompt's requirements as well as content quality. A low score should be given if either is not met.
-
-            5.  **Issues and Suggestions:**
-                - If the score is below {self.quality_threshold}, you MUST provide a list of found issues. Each issue should be a clear, concise statement describing a specific failure (e.g., "Field 'x' is missing", "Translation for 'y' is unnatural", "Source word "z" as a matter of fact does exist in the source language and is used in certain parts of the world").
-                - If there are issues, you MUST also provide a list of suggestions for the assistant to improve the output on the next attempt. Suggestions should be actionable and directly related to the issues found.
-
-            Your response MUST be a valid JSON object matching the ToolValidationResult schema.
-            The score should be between 1 and 10 and should reflect the accuracy and quality of the output based on the given conditions. If the score is {self.quality_threshold} or higher, don't provide any issues or suggestions, just return the score.
-            """
+        validation_prompt = build_supervisor_tool_validation_prompt(
+            source_word=state.source_word,
+            source_language_display=source_language_display,
+            target_word=state.target_word or "",
+            target_language_display=target_language_display,
+            tool_name=tool_name,
+            schema_json_block=schema_block,
+            assistant_prompt=prompt,
+            assistant_output_json=result_json_str,
+            quality_threshold=self.quality_threshold,
+        )
 
         try:
             validation_result = await create_llm_response(
@@ -235,11 +257,11 @@ class VocabSupervisor:
                 user_prompt=validation_prompt,
                 system_message=SystemMessages.VALIDATION_SPECIALIST,
                 llm_provider=self.router.get_model_for_task(
-                    TaskType.QUALITY_CHECK, num_retries=0
+                    TaskType.QUALITY_CHECK,
+                    num_retries=0,
                 ),
             )
 
-            # For high scores, clear issues and suggestions
             if validation_result.score >= self.quality_threshold:
                 validation_result.issues = []
                 validation_result.suggestions = []
@@ -247,22 +269,23 @@ class VocabSupervisor:
             return validation_result
 
         except Exception as e:
-            logger.error(f"Quality validation failed for {tool_name}: {e}")
-            # Return default acceptable result to avoid blocking pipeline
-            return ToolValidationResult(
-                score=5.0,
-                issues=[f"Quality validation failed: {str(e)}"],
-                suggestions=["Manual review recommended"],
+            logger.error(
+                "supervisor_quality_llm_failed",
+                tool_name=tool_name,
+                error=str(e),
             )
+            return ToolValidationResult(score=10.0, issues=[], suggestions=[])
 
     async def plan_retry_strategy(
-        self, tool_name: str, validation_result: ToolValidationResult, state: VocabState
+        self,
+        tool_name: str,
+        validation_result: ToolValidationResult,
+        state: VocabState,
     ) -> RetryStrategy:
         """Determine retry strategy based on validation results."""
 
         retry_count = getattr(state, f"{tool_name}_retry_count", 0)
 
-        # Don't retry if score is high enough
         if validation_result.score >= self.quality_threshold:
             return RetryStrategy(
                 should_retry=False,
@@ -270,51 +293,40 @@ class VocabSupervisor:
                 adjusted_inputs={},
             )
 
-        # On final retry, accept if score is above 6
         if retry_count >= self.max_retries:
-            if validation_result.score >= 7.0:
+            if validation_result.score >= self.final_attempt_min_score:
                 return RetryStrategy(
                     should_retry=False,
-                    retry_reason="Final retry with acceptable score (>= 7.0)",
+                    retry_reason=(
+                        f"Final retry with acceptable score (>="
+                        f" {self.final_attempt_min_score})"
+                    ),
                     adjusted_inputs={},
                 )
-            else:
-                return RetryStrategy(
-                    should_retry=False,
-                    retry_reason="Maximum retries reached",
-                    adjusted_inputs={},
-                )
+            return RetryStrategy(
+                should_retry=False,
+                retry_reason="Maximum retries reached",
+                adjusted_inputs={},
+            )
 
-        # Create quality feedback for supported tools
         adjusted_inputs = {}
 
-        # Add quality feedback for tools that support it
-        if tool_name in [
-            "synonyms",
-            "examples",
-            "media",
-            "translation",
-            "validation",
-            "classification",
-            "syllables",
-            "conjugation",
-        ]:
-            # Only include quality feedback if we have issues or suggestions
+        if tool_name in TOOLS_ACCEPTING_QUALITY_FEEDBACK:
             if validation_result.issues or validation_result.suggestions:
                 adjusted_inputs["quality_feedback"] = (
-                    f"Quality score: {validation_result.score}/10. Please address the issues and follow the suggestions below."
+                    f"Quality score: {validation_result.score}/10. "
+                    "Please address the issues and follow the suggestions below."
                 )
                 adjusted_inputs["previous_issues"] = validation_result.issues
                 adjusted_inputs["suggestions"] = validation_result.suggestions
 
-        # Should retry if we haven't reached max retries and score is below threshold
-        should_retry = (
-            retry_count < self.max_retries
-            and validation_result.score < self.quality_threshold
+        should_retry = retry_count < self.max_retries and (
+            validation_result.score < self.quality_threshold
         )
 
         retry_reason = (
-            f"Quality score {validation_result.score} below threshold {self.quality_threshold}"
+            f"Quality score {validation_result.score} below threshold "
+            f"{self.quality_threshold}"
             + (
                 f". Issues: {'; '.join(validation_result.issues)}"
                 if validation_result.issues
@@ -331,7 +343,6 @@ class VocabSupervisor:
     async def should_proceed_with_parallel_execution(self, state: VocabState) -> bool:
         """Determine if state is ready for parallel tool execution."""
 
-        # Check if core sequential steps are complete with acceptable quality
         required_fields = [
             "source_word",
             "target_word",
@@ -346,7 +357,6 @@ class VocabSupervisor:
                 )
                 return False
 
-        # Check if previous steps passed quality gates
         quality_fields = [
             "validation_passed",
             "classification_quality_approved",
@@ -363,23 +373,14 @@ class VocabSupervisor:
     async def coordinate_parallel_tasks(self, state: VocabState) -> list[str]:
         """Determine which parallel tasks should be executed."""
 
-        tasks = []
-
-        # Always include these core tasks
-        tasks.extend(["media", "examples", "synonyms", "syllables"])
-
-        # Add conjugation only for verbs
-        if getattr(state, "target_part_of_speech", None) == "verb":
-            tasks.append("conjugation")
-
-        # Pronunciation runs after syllables (no quality gate needed)
-        tasks.append("pronunciation")
-
-        return tasks
+        return expected_parallel_task_names(state)
 
 
-# Global supervisor instance
-supervisor = VocabSupervisor()
+supervisor = VocabSupervisor(
+    quality_threshold=_supervisor_float("VOCAB_QUALITY_THRESHOLD", 7.5),
+    max_retries=_supervisor_int("VOCAB_QUALITY_MAX_RETRIES", 2),
+    final_attempt_min_score=_supervisor_float("VOCAB_QUALITY_FINAL_MIN_SCORE", 6.5),
+)
 
 
 def create_fallback_result(
@@ -389,7 +390,6 @@ def create_fallback_result(
 
     logger.error(f"Creating fallback result for {tool_name}: {error}")
 
-    # Return appropriate fallback based on tool type
     fallback_results = {
         "validation": {
             "is_valid": False,
@@ -404,13 +404,13 @@ def create_fallback_result(
             "source_article": None,
         },
         "translation": {
-            "target_word": "ERROR - Translation tool failed: {error}",
+            "target_word": f"ERROR - Translation tool failed: {error}",
             "target_part_of_speech": "verb",
             "target_article": None,
         },
         "media": {
             "media": {
-                "url": "ERROR - Media tool failed: {error}",
+                "url": f"ERROR - Media tool failed: {error}",
                 "alt": f"Image unavailable for {inputs.get('target_word', 'word')}",
                 "src": {"large2x": "", "large": "", "medium": ""},
                 "explanation": "Unable to generate image at this time.",
@@ -432,7 +432,7 @@ def create_fallback_result(
         "synonyms": {"synonyms": []},
         "syllables": {
             "syllables": [inputs.get("target_word", "word")],
-            "phonetic_guide": "ERROR - Syllables tool failed: {error}",
+            "phonetic_guide": f"ERROR - Syllables tool failed: {error}",
         },
         "pronunciation": {
             "pronunciations": {

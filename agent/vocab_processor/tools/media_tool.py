@@ -20,7 +20,6 @@ from vocab_processor.tools.base_tool import (
 )
 from vocab_processor.utils.ddb_utils import (
     get_existing_media_for_search_words,
-    lang_code,
     normalize_word,
 )
 from vocab_processor.utils.s3_utils import (
@@ -34,12 +33,12 @@ logger = Logger(service="vocab-processor")
 # Configuration constants
 PEXELS_API_KEY = os.getenv("PEXELS_API_KEY")
 PEXELS_PHOTO_SEARCH_URL = "https://api.pexels.com/v1/search"
-HTTP_TIMEOUT = 30
-PHOTOS_PER_PAGE = 10
+HTTP_TIMEOUT = int(os.getenv("VOCAB_MEDIA_HTTP_TIMEOUT", "30"))
+PHOTOS_PER_PAGE = int(os.getenv("VOCAB_MEDIA_PHOTOS_PER_PAGE", "10"))
 
 # S3 Upload configuration
-MAX_IMAGE_SIZE_MB = 5
-MAX_UPLOAD_RETRIES = 3
+MAX_IMAGE_SIZE_MB = int(os.getenv("VOCAB_MEDIA_MAX_IMAGE_MB", "5"))
+MAX_UPLOAD_RETRIES = int(os.getenv("VOCAB_MEDIA_MAX_UPLOAD_RETRIES", "3"))
 
 # HTTP session configuration
 _session_config = aiohttp.ClientTimeout(total=HTTP_TIMEOUT, connect=5)
@@ -60,7 +59,7 @@ async def fetch_photos(query: str | list[str], per_page: int = 3) -> list[PhotoO
     async with aiohttp.ClientSession(timeout=_session_config) as session:
         async with session.get(
             PEXELS_PHOTO_SEARCH_URL,
-            headers={"Authorization": PEXELS_API_KEY},
+            headers={"Authorization": PEXELS_API_KEY}, # type: ignore
             params={
                 "query": search_query,
                 "orientation": "landscape",
@@ -317,7 +316,7 @@ async def _adapt_existing_media(
 ) -> dict[str, Any]:
     """Adapt existing media for the current word."""
     matched_word = existing_media.get("matched_word", "unknown")
-    requested_lang = lang_code(source_language)
+    requested_lang = source_language.code
 
     logger.info(
         f"Found existing Media object for search word '{matched_word}' (from query {search_query_result.search_query})"
@@ -458,7 +457,7 @@ async def _create_new_media(
     search_terms_key = "_".join(
         sorted([normalize_word(term) for term in search_query_result.search_query])
     )
-    media_ref = f"MEDIA#{lang_code(source_language)}#{search_terms_key}"
+    media_ref = f"MEDIA#{source_language.code}#{search_terms_key}"
 
     logger.info(
         f"Generated new media_ref for new media: {media_ref} from search terms: {search_query_result.search_query}"
@@ -572,7 +571,7 @@ async def _upload_media_to_s3(
                 if isinstance(result, Exception):
                     failed_uploads.append((size_name, str(result)))
                     logger.error(f"S3_upload_failed_{size_name}", error=str(result))
-                elif not result.startswith("Error"):
+                elif not result.startswith("Error"): # type: ignore
                     successful_uploads[size_name] = result
                 else:
                     failed_uploads.append((size_name, result))

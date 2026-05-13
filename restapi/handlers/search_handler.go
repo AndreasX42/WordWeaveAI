@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"net/http"
-	"strings"
 
 	"github.com/AndreasX42/restapi/domain/entities"
 	"github.com/AndreasX42/restapi/domain/services"
@@ -52,7 +51,7 @@ func (h *SearchHandler) SearchVocabulary(c *gin.Context) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultRequestTimeout)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), SearchRequestTimeout)
 	defer cancel()
 
 	// Create service request
@@ -77,6 +76,9 @@ func (h *SearchHandler) SearchVocabulary(c *gin.Context) {
 	// Convert domain entities to search results
 	var results []VocabularySearchResult
 	for _, vocab := range vocabularies {
+		if vocab == nil {
+			continue
+		}
 		result := h.convertToSearchResult(vocab)
 		results = append(results, result)
 	}
@@ -101,58 +103,10 @@ func (h *SearchHandler) GetVocabularyByPkSk(c *gin.Context) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultRequestTimeout)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), DefaultRequestTimeout)
 	defer cancel()
 
-	// If media_ref is provided, fetch both vocab word and media concurrently
-	if mediaRef != "" {
-		// Use channels for concurrent execution
-		type result struct {
-			vocab *entities.VocabWord
-			media map[string]any
-			err   error
-		}
-
-		vocabChan := make(chan result, 1)
-		mediaChan := make(chan result, 1)
-
-		// Fetch vocab word
-		go func() {
-			vocab, err := h.vocabService.GetVocabularyByKeysWithoutMedia(ctx, pk, sk)
-			vocabChan <- result{vocab: vocab, err: err}
-		}()
-
-		// Fetch media
-		go func() {
-			media, err := h.vocabService.GetMediaByRef(ctx, mediaRef)
-			mediaChan <- result{media: media, err: err}
-		}()
-
-		// Wait for both results
-		vocabResult := <-vocabChan
-		mediaResult := <-mediaChan
-
-		// Check for vocab error
-		if vocabResult.err != nil {
-			c.JSON(http.StatusNotFound, gin.H{
-				"message": "Vocabulary not found",
-				"details": gin.H{"error": vocabResult.err.Error()},
-			})
-			return
-		}
-
-		// Add media to vocab word (ignore media errors)
-		if mediaResult.err == nil && mediaResult.media != nil {
-			vocabResult.vocab.Media = mediaResult.media
-		}
-
-		c.JSON(http.StatusOK, vocabResult.vocab)
-		return
-	}
-
-	// Original logic for PK/SK only with subsequent media fetch
-	vocab, err := h.vocabService.GetVocabularyByKeys(ctx, pk, sk)
-
+	vocab, err := h.vocabService.GetVocabularyWithOptionalMedia(ctx, pk, sk, mediaRef)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"message": "Vocabulary not found",
@@ -176,17 +130,10 @@ func (h *SearchHandler) GetVocabularyByParams(c *gin.Context) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultRequestTimeout)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), DefaultRequestTimeout)
 	defer cancel()
 
-	// Use direct repository access for better performance and multiple results
-	normalizedWord := h.vocabService.NormalizeWord(word)
-
-	// Direct PK/SK lookup for specific POS (fastest path)
-	pk := "SRC#" + sourceLanguage + "#" + normalizedWord
-	sk := "TGT#" + targetLanguage + "#POS#" + strings.ToLower(pos)
-
-	vocab, err := h.vocabService.GetVocabularyByKeys(ctx, pk, sk)
+	vocab, err := h.vocabService.GetVocabularyByParams(ctx, sourceLanguage, targetLanguage, word, pos)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"message": "Vocabulary not found",
@@ -198,7 +145,7 @@ func (h *SearchHandler) GetVocabularyByParams(c *gin.Context) {
 	c.JSON(http.StatusOK, vocab)
 }
 
-func (h *SearchHandler) convertToSearchResult(vocab entities.VocabWord) VocabularySearchResult {
+func (h *SearchHandler) convertToSearchResult(vocab *entities.VocabWord) VocabularySearchResult {
 	return VocabularySearchResult{
 		PK:             vocab.PK,
 		SK:             vocab.SK,

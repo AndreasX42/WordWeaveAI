@@ -2,6 +2,8 @@ import os
 import re
 import unicodedata
 
+_NON_ALNUM = re.compile(r"[^a-z0-9]")
+
 
 def is_lambda_context() -> bool:
     """
@@ -14,12 +16,16 @@ def is_lambda_context() -> bool:
 
 
 def normalize_word(word: str) -> str:
-    """Return lowercase, accent stripped, alnumonly version of the word."""
-    _NORMALISE_RGX = re.compile(r"[^a-z0-9']")
     word = unicodedata.normalize("NFKC", word.lower())
+    word = (
+        word.replace("ß", "ss")
+        .replace("ä", "ae")
+        .replace("ö", "oe")
+        .replace("ü", "ue")
+    )
     word = "".join(
         ch
         for ch in unicodedata.normalize("NFD", word)
         if unicodedata.category(ch) != "Mn"
     )
-    return _NORMALISE_RGX.sub("", word)
+    return _NON_ALNUM.sub("", word)

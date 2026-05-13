@@ -5,6 +5,29 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+variable "aws_profile" {
+  description = "AWS CLI/profile name used as source credentials"
+  type        = string
+  default     = "personal"
+}
+
+variable "terraform_assume_role_arn" {
+  description = "IAM Role ARN for Terraform to assume (recommended). If null, Terraform uses the source credentials directly."
+  type        = string
+  default     = null
+}
+
+variable "terraform_state_bucket" {
+  description = "S3 bucket name that stores Terraform state for this repo"
+  type        = string
+}
+
+variable "terraform_common_state_key" {
+  description = "S3 object key for the common environment's Terraform state"
+  type        = string
+  default     = "common/terraform.tfstate"
+}
+
 variable "environment" {
   description = "Environment name"
   type        = string
@@ -83,6 +106,25 @@ variable "websocket_handler_zip_path" {
   type        = string
 }
 
+# Vocab processor Lambda (OpenAI / Instructor)
+variable "vocab_llm_node_model" {
+  description = "OpenAI model ID for VOCAB_LLM_NODE_MODEL on the vocab-processor Lambda"
+  type        = string
+  default     = "gpt-4.1-mini-2025-04-14"
+}
+
+variable "vocab_llm_supervisor_model" {
+  description = "OpenAI model ID for VOCAB_LLM_SUPERVISOR_MODEL on the vocab-processor Lambda"
+  type        = string
+  default     = "gpt-4.1-2025-04-14"
+}
+
+# ECS backend: SSM paths for secrets/config (env key -> parameter path)
+variable "backend_ssm_parameter_paths" {
+  description = "Map of backend container env var name to SSM Parameter Store path"
+  type        = map(string)
+}
+
 # Domain Configuration
 variable "frontend_domain_name" {
   description = "Frontend domain name"
@@ -92,6 +134,12 @@ variable "frontend_domain_name" {
 variable "backend_domain_name" {
   description = "Backend domain name"
   type        = string
+}
+
+variable "apex_domain_name" {
+  description = "Optional apex domain Alias A to the ALB (e.g. wordweave.xyz). Omit or set null to skip."
+  type        = string
+  default     = null
 }
 
 variable "acm_certificate_arn" {
@@ -196,4 +244,4 @@ variable "waf_rate_limit_response_message" {
   description = "Custom message to display when WAF rate limit is exceeded"
   type        = string
   default     = "Rate limit exceeded. Please try again in 5 minutes."
-} 
+}

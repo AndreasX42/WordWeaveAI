@@ -6,19 +6,36 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/AndreasX42/restapi/domain/services"
 	"github.com/AndreasX42/restapi/utils"
+	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/oauth2"
 )
 
-// GoogleUserInfo represents the user information from Google
+const (
+	defaultFrontendOrigin = "http://localhost:4200"
+	defaultProdOrigin     = "https://wordweave.xyz"
+
+	googleUserInfoURL = "https://www.googleapis.com/oauth2/v2/userinfo"
+	googleAPITimeout  = 3 * time.Second
+
+	cookiePath          = "/"
+	oauthStateCookie    = "oauthstate"
+	jwtCookie           = "jwt"
+	stateCookieMaxAge   = 120 // seconds; survives the OAuth round-trip only
+	jwtCookieMaxAge     = 120 // seconds; long enough for the frontend to read and store the token
+	frontendCallbackPath = "/auth/callback"
+)
+
+var defaultAllowedOrigins = []string{defaultFrontendOrigin, defaultProdOrigin}
+
 type GoogleUserInfo struct {
 	ID            string `json:"id"`
 	Email         string `json:"email"`
@@ -33,138 +50,145 @@ type GoogleUserInfo struct {
 type OAuthHandler struct {
 	userService       *services.UserService
 	googleOAuthConfig *oauth2.Config
+	authMiddleware    *jwt.GinJWTMiddleware
 	httpClient        *http.Client
 }
 
-func NewOAuthHandler(userService *services.UserService, googleOAuthConfig *oauth2.Config) *OAuthHandler {
+func NewOAuthHandler(userService *services.UserService, googleOAuthConfig *oauth2.Config, authMiddleware *jwt.GinJWTMiddleware) *OAuthHandler {
 	return &OAuthHandler{
 		userService:       userService,
 		googleOAuthConfig: googleOAuthConfig,
-		httpClient: &http.Client{
-			Timeout: time.Second * 10, // 10 second timeout for Google API calls
-		},
+		authMiddleware:    authMiddleware,
+		httpClient:        &http.Client{Timeout: googleAPITimeout},
 	}
 }
 
-// generateStateOauthCookie generates a random state string for OAuth security
-func generateStateOauthCookie() string {
+// isHTTPS reports whether the Secure cookie flag should be set (production only).
+func isHTTPS() bool {
+	return os.Getenv("GIN_MODE") == "release"
+}
+
+// setCookie sets an HttpOnly cookie with SameSite=Lax and Secure flag derived from the runtime mode.
+func (h *OAuthHandler) setCookie(c *gin.Context, name, value string, maxAgeSecs int) {
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(name, value, maxAgeSecs, cookiePath, "", isHTTPS(), true)
+}
+
+// allowedFrontendOrigins returns the set of whitelisted redirect targets from env or built-in defaults.
+func allowedFrontendOrigins() []string {
+	return utils.ParseCommaSeparatedList(os.Getenv("FRONTEND_ALLOWED_URLS"), defaultAllowedOrigins)
+}
+
+// safeRedirectOrigin returns FRONTEND_URL if it is in the allowed list; otherwise the first allowed entry.
+// This prevents open-redirect attacks by never redirecting to an arbitrary caller-supplied URL.
+func safeRedirectOrigin() string {
+	want := utils.GetEnvWithDefault("FRONTEND_URL", defaultFrontendOrigin)
+	allowed := allowedFrontendOrigins()
+	for _, a := range allowed {
+		if want == a {
+			return want
+		}
+	}
+	if len(allowed) > 0 {
+		return allowed[0]
+	}
+	return defaultFrontendOrigin
+}
+
+// callbackURL builds an absolute frontend callback URL.
+func callbackURL(base string, params url.Values) string {
+	u := fmt.Sprintf("%s%s", strings.TrimSuffix(base, "/"), frontendCallbackPath)
+	if len(params) > 0 {
+		u += "?" + params.Encode()
+	}
+	return u
+}
+
+func generateOAuthState() string {
 	b := make([]byte, 16)
-	rand.Read(b)
+	_, _ = rand.Read(b)
 	return base64.URLEncoding.EncodeToString(b)
 }
 
-// GoogleLogin initiates the Google OAuth flow
+// GoogleLogin initiates the Google OAuth 2.0 flow.
 func (h *OAuthHandler) GoogleLogin(c *gin.Context) {
-	// Generate random state
-	oauthState := generateStateOauthCookie()
-
-	// Store state in cookie for verification with security flags
-	isProduction := os.Getenv("GIN_MODE") == "release"
-	c.SetSameSite(http.SameSiteLaxMode) // CSRF protection
-	c.SetCookie("oauthstate", oauthState, 120, "/", "", isProduction, true)
-
-	// Get OAuth URL
-	url := h.googleOAuthConfig.AuthCodeURL(oauthState)
-
-	// Direct redirect to Google OAuth
-	c.Redirect(http.StatusFound, url)
+	state := generateOAuthState()
+	h.setCookie(c, oauthStateCookie, state, stateCookieMaxAge)
+	c.Redirect(http.StatusFound, h.googleOAuthConfig.AuthCodeURL(state))
 }
 
-// GoogleCallback handles the OAuth callback from Google
+// GoogleCallback completes the OAuth flow: validates state, exchanges the code,
+// fetches user info, upserts the user, and issues a short-lived JWT handoff cookie.
 func (h *OAuthHandler) GoogleCallback(c *gin.Context) {
-	// Verify state parameter
-	oauthState, err := c.Cookie("oauthstate")
+	storedState, err := c.Cookie(oauthStateCookie)
 	if err != nil {
-		h.redirectToFrontendWithError(c, "invalid_state", "OAuth state parameter missing or invalid")
+		h.redirectError(c, "invalid_state", "OAuth state parameter missing or invalid")
 		return
 	}
-
-	if c.Query("state") != oauthState {
-		h.redirectToFrontendWithError(c, "invalid_state", "OAuth state parameter mismatch")
+	if c.Query("state") != storedState {
+		h.redirectError(c, "invalid_state", "OAuth state parameter mismatch")
 		return
 	}
-
-	// Check for OAuth errors (user denied permission, etc.)
-	if oauthError := c.Query("error"); oauthError != "" {
-		errorDescription := c.Query("error_description")
-		if errorDescription == "" {
-			errorDescription = "OAuth authorization failed"
+	if oauthErr := c.Query("error"); oauthErr != "" {
+		desc := c.Query("error_description")
+		if desc == "" {
+			desc = "OAuth authorization failed"
 		}
-		h.redirectToFrontendWithError(c, oauthError, errorDescription)
+		h.redirectError(c, oauthErr, desc)
 		return
 	}
 
-	// Exchange code for token
 	code := c.Query("code")
 	if code == "" {
-		h.redirectToFrontendWithError(c, "missing_code", "Authorization code not found")
+		h.redirectError(c, "missing_code", "Authorization code not found")
 		return
 	}
 
 	token, err := h.googleOAuthConfig.Exchange(c.Request.Context(), code)
 	if err != nil {
-		h.redirectToFrontendWithError(c, "token_exchange_failed", "Failed to exchange authorization code")
+		h.redirectError(c, "token_exchange_failed", "Failed to exchange authorization code")
 		return
 	}
 
-	// Get user info from Google
-	userInfo, err := h.getUserInfoFromGoogle(c.Request.Context(), token.AccessToken)
+	userInfo, err := h.fetchGoogleUserInfo(c.Request.Context(), token.AccessToken)
 	if err != nil {
-		h.redirectToFrontendWithError(c, "user_info_failed", "Failed to fetch user information")
+		h.redirectError(c, "user_info_failed", "Failed to fetch user information")
 		return
 	}
 
-	// Create or login user
-	oauthReq := services.OAuthUserRequest{
+	// TODO: sync profile image updates on repeat logins
+	user, err := h.userService.CreateOrLoginOAuthUser(c.Request.Context(), services.OAuthUserRequest{
 		GoogleID:     userInfo.ID,
 		Email:        userInfo.Email,
 		Name:         userInfo.Name,
 		Username:     userInfo.GivenName,
 		ProfileImage: userInfo.Picture,
-	}
-
-	// TODO: Update user info if needed (like profile image)
-	user, err := h.userService.CreateOrLoginOAuthUser(c.Request.Context(), oauthReq)
+	})
 	if err != nil {
-		h.redirectToFrontendWithError(c, "user_creation_failed", "Failed to create or login user")
+		h.redirectError(c, "user_creation_failed", "Failed to create or login user")
 		return
 	}
 
-	// Generate JWT token
-	jwtToken, err := utils.GenerateJWT(user.ID, user.Username)
+	jwtToken, _, err := h.authMiddleware.TokenGenerator(user)
 	if err != nil {
-		h.redirectToFrontendWithError(c, "token_generation_failed", "Could not generate authentication token")
+		h.redirectError(c, "token_generation_failed", "Could not generate authentication token")
 		return
 	}
 
-	// Clear the OAuth state cookie
-	isProduction := os.Getenv("GIN_MODE") == "release"
-	c.SetSameSite(http.SameSiteLaxMode) // CSRF protection
-	c.SetCookie("oauthstate", "", -1, "/", "", isProduction, true)
+	h.setCookie(c, oauthStateCookie, "", -1) // clear state cookie
+	h.setCookie(c, jwtCookie, jwtToken, jwtCookieMaxAge)
 
-	// Store JWT token in secure HTTP-only cookie (most secure approach)
-	c.SetCookie("jwt", jwtToken, 120, "/", "", isProduction, true)
-
-	// Redirect to frontend with minimal success indicator - no user data in URL or cookies
-	// Frontend will call /api/auth/me endpoint to get user info using the auth cookie
-	redirectURL := fmt.Sprintf("%s/auth/callback?success=true", h.validateAndGetFrontendURL())
-
-	// Redirect to frontend
-	c.Redirect(http.StatusFound, redirectURL)
+	// Redirect with a minimal success signal; the frontend calls /api/auth/me to get user data.
+	c.Redirect(http.StatusFound, callbackURL(safeRedirectOrigin(), url.Values{"success": {"true"}}))
 }
 
-// getUserInfoFromGoogle fetches user information from Google using the access token
-func (h *OAuthHandler) getUserInfoFromGoogle(ctx context.Context, accessToken string) (*GoogleUserInfo, error) {
-	// Create HTTP request to Google's userinfo endpoint with context
-	req, err := http.NewRequestWithContext(ctx, "GET", "https://www.googleapis.com/oauth2/v2/userinfo", nil)
+func (h *OAuthHandler) fetchGoogleUserInfo(ctx context.Context, accessToken string) (*GoogleUserInfo, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, googleUserInfoURL, nil)
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Authorization", "Bearer "+accessToken)
 
-	// Add authorization header
-	req.Header.Add("Authorization", "Bearer "+accessToken)
-
-	// Make the request using reusable HTTP client
 	resp, err := h.httpClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -172,60 +196,19 @@ func (h *OAuthHandler) getUserInfoFromGoogle(ctx context.Context, accessToken st
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to get user info: %s", resp.Status)
-	}
-
-	// Read and parse response
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("google userinfo returned %s", resp.Status)
 	}
 
 	var userInfo GoogleUserInfo
-	if err := json.Unmarshal(body, &userInfo); err != nil {
-		return nil, err
+	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
+		return nil, fmt.Errorf("decoding google userinfo: %w", err)
 	}
-
 	return &userInfo, nil
 }
 
-// getFrontendURL returns the frontend URL from environment or default
-func (h *OAuthHandler) getFrontendURL() string {
-	frontendURL := os.Getenv("FRONTEND_URL")
-	if frontendURL == "" {
-		frontendURL = "http://localhost:4200"
-	}
-	return frontendURL
-}
-
-// validateAndGetFrontendURL validates frontend URL against allowed list to prevent open redirects
-func (h *OAuthHandler) validateAndGetFrontendURL() string {
-	frontendURL := h.getFrontendURL()
-
-	// Define allowed frontend URLs (prevent open redirect attacks)
-	allowedURLs := []string{
-		"http://localhost:4200",
-		"https://wordweave.xyz",
-	}
-
-	// Validate against allowed list
-	for _, allowed := range allowedURLs {
-		if frontendURL == allowed {
-			return frontendURL
-		}
-	}
-
-	// If not in allowed list, use safe default
-	return "http://localhost:4200"
-}
-
-// redirectToFrontendWithError redirects to frontend with error parameters
-func (h *OAuthHandler) redirectToFrontendWithError(c *gin.Context, errorType, errorDescription string) {
-	baseURL := h.validateAndGetFrontendURL()
+func (h *OAuthHandler) redirectError(c *gin.Context, code, description string) {
 	params := url.Values{}
-	params.Add("error", errorType)
-	params.Add("error_description", errorDescription)
-
-	redirectURL := fmt.Sprintf("%s/auth/callback?%s", baseURL, params.Encode())
-	c.Redirect(http.StatusFound, redirectURL)
+	params.Set("error", code)
+	params.Set("error_description", description)
+	c.Redirect(http.StatusFound, callbackURL(safeRedirectOrigin(), params))
 }

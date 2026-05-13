@@ -7,8 +7,17 @@ import (
 	"time"
 
 	"github.com/AndreasX42/restapi/domain/repositories"
+	"github.com/AndreasX42/restapi/utils"
 	"golang.org/x/sync/errgroup"
 )
+
+// statsCacheTTL is overridable via STATS_CACHE_TTL_SECONDS (default 300 = 5 minutes).
+var statsCacheTTL = 5 * time.Minute
+
+func init() {
+	secs := utils.EnvPositiveInt("STATS_CACHE_TTL_SECONDS", 300)
+	statsCacheTTL = time.Duration(secs) * time.Second
+}
 
 // StatsService provides system statistics aggregation with caching
 type StatsService struct {
@@ -46,9 +55,9 @@ func (s *StatsService) GetAppStats(ctx context.Context) (*SystemStats, error) {
 	// Check cache first (read lock)
 	s.mutex.RLock()
 	if s.cachedStats != nil && time.Now().Before(s.cacheExpiry) {
-		cachedResult := *s.cachedStats // Copy to avoid race conditions
+		cachedResult := copySystemStats(s.cachedStats)
 		s.mutex.RUnlock()
-		return &cachedResult, nil
+		return cachedResult, nil
 	}
 	s.mutex.RUnlock()
 
@@ -58,8 +67,7 @@ func (s *StatsService) GetAppStats(ctx context.Context) (*SystemStats, error) {
 
 	// Double-check cache after acquiring write lock
 	if s.cachedStats != nil && time.Now().Before(s.cacheExpiry) {
-		cachedResult := *s.cachedStats
-		return &cachedResult, nil
+		return copySystemStats(s.cachedStats), nil
 	}
 
 	// Initialize counts if not done yet
@@ -71,9 +79,7 @@ func (s *StatsService) GetAppStats(ctx context.Context) (*SystemStats, error) {
 	}
 
 	// Get fresh statistics in parallel
-	userChan := make(chan int, 1)
-	listChan := make(chan int, 1)
-	vocabChan := make(chan int, 1)
+	var userCount, listCount, vocabCount int
 
 	g, gCtx := errgroup.WithContext(ctx)
 
@@ -83,7 +89,7 @@ func (s *StatsService) GetAppStats(ctx context.Context) (*SystemStats, error) {
 		if err != nil {
 			return fmt.Errorf("user count: %w", err)
 		}
-		userChan <- count
+		userCount = count
 		return nil
 	})
 
@@ -93,7 +99,7 @@ func (s *StatsService) GetAppStats(ctx context.Context) (*SystemStats, error) {
 		if err != nil {
 			return fmt.Errorf("list count: %w", err)
 		}
-		listChan <- count
+		listCount = count
 		return nil
 	})
 
@@ -103,7 +109,7 @@ func (s *StatsService) GetAppStats(ctx context.Context) (*SystemStats, error) {
 		if err != nil {
 			return fmt.Errorf("vocab count: %w", err)
 		}
-		vocabChan <- count
+		vocabCount = count
 		return nil
 	})
 
@@ -111,11 +117,6 @@ func (s *StatsService) GetAppStats(ctx context.Context) (*SystemStats, error) {
 	if err := g.Wait(); err != nil {
 		return nil, err
 	}
-
-	// Collect results from channels
-	userCount := <-userChan
-	listCount := <-listChan
-	vocabCount := <-vocabChan
 
 	// Create new stats
 	stats := &SystemStats{
@@ -125,13 +126,17 @@ func (s *StatsService) GetAppStats(ctx context.Context) (*SystemStats, error) {
 		LastUpdated:     time.Now(),
 	}
 
-	// Cache the result for 1 minute
+	// Cache the result for a short period to avoid repeated aggregate reads.
 	s.cachedStats = stats
-	s.cacheExpiry = time.Now().Add(1 * time.Minute)
+	s.cacheExpiry = time.Now().Add(statsCacheTTL)
 
 	// Return a copy to avoid external modifications
+	return copySystemStats(stats), nil
+}
+
+func copySystemStats(stats *SystemStats) *SystemStats {
 	result := *stats
-	return &result, nil
+	return &result
 }
 
 // initializeAllCountsInternal initializes count records internally in parallel (private method)

@@ -20,6 +20,8 @@ type UserRepository interface {
 	GetByUsername(ctx context.Context, username string) (*entities.User, error)
 	GetByGoogleID(ctx context.Context, googleID string) (*entities.User, error)
 	Update(ctx context.Context, user *entities.User) error
+	IncrementRequestCountIfBelowLimit(ctx context.Context, userID string, maxRequests int) (bool, error)
+	DecrementRequestCount(ctx context.Context, userID string) error
 	Delete(ctx context.Context, id string) error
 	EmailExists(ctx context.Context, email string) (bool, error)
 	UsernameExists(ctx context.Context, username string) (bool, error)

@@ -8,30 +8,32 @@ import (
 
 	"github.com/AndreasX42/restapi/domain/entities"
 	"github.com/AndreasX42/restapi/domain/services"
+	"github.com/AndreasX42/restapi/utils"
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 )
 
-var identityKey = "user_id"
+const identityKey = "user_id"
 
 // JWTMiddleware creates a new JWT middleware with the UserService
 func JWTMiddleware(userService *services.UserService) (*jwt.GinJWTMiddleware, error) {
 	// Get JWT configuration from environment
 	secretKey := os.Getenv("JWT_SECRET_KEY")
-	if secretKey == "" {
-		log.Fatal("JWT_SECRET_KEY environment variable is required")
+	if secretKey == "" || len(secretKey) < 32 {
+		log.Fatal("JWT_SECRET_KEY environment variable is required and must be at least 32 characters long")
 	}
 
 	expirationMinutes, err := strconv.ParseInt(os.Getenv("JWT_EXPIRATION_TIME"), 10, 64)
-	if err != nil || expirationMinutes < 0 {
+	if err != nil || expirationMinutes <= 0 {
 		log.Fatal("JWT_EXPIRATION_TIME environment variable is required")
 	}
 
+	maxRefreshHours := utils.EnvPositiveInt("JWT_MAX_REFRESH_HOURS", 24)
 	authMiddleware, err := jwt.New(&jwt.GinJWTMiddleware{
 		Realm:       "restapi",
 		Key:         []byte(secretKey),
 		Timeout:     time.Duration(expirationMinutes) * time.Minute,
-		MaxRefresh:  time.Duration(24) * time.Hour,
+		MaxRefresh:  time.Duration(maxRefreshHours) * time.Hour,
 		IdentityKey: identityKey,
 
 		Authenticator: func(c *gin.Context) (any, error) {
@@ -80,11 +82,16 @@ func JWTMiddleware(userService *services.UserService) (*jwt.GinJWTMiddleware, er
 
 		IdentityHandler: func(c *gin.Context) any {
 			claims := jwt.ExtractClaims(c)
-			userID := claims[identityKey].(string)
+			userID, ok := claims[identityKey].(string)
+			if !ok {
+				return nil
+			}
+
 			user, err := userService.GetUserByID(c.Request.Context(), userID)
 			if err != nil {
 				return nil
 			}
+
 			return user
 		},
 
@@ -130,7 +137,7 @@ func JWTMiddleware(userService *services.UserService) (*jwt.GinJWTMiddleware, er
 			})
 		},
 
-		TokenLookup:   "header: Authorization, query: token, cookie: jwt",
+		TokenLookup:   "header: Authorization, cookie: jwt",
 		TokenHeadName: "Bearer",
 		TimeFunc:      time.Now,
 	})

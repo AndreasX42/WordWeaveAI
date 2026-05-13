@@ -6,11 +6,20 @@ terraform {
       version = "~> 6.0"
     }
   }
+
+  backend "s3" {}
 }
 
 provider "aws" {
-  region = var.aws_region
-  profile = "personal"
+  region  = var.aws_region
+  profile = var.aws_profile
+
+  dynamic "assume_role" {
+    for_each = var.terraform_assume_role_arn == null ? [] : [1]
+    content {
+      role_arn = var.terraform_assume_role_arn
+    }
+  }
 }
 
 data "aws_caller_identity" "current" {}

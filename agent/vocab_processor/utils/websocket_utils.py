@@ -2,6 +2,7 @@ import json
 import os
 from datetime import datetime, timezone
 from decimal import Decimal
+from enum import Enum
 from typing import Any, Dict, Optional
 
 import boto3
@@ -34,16 +35,16 @@ def _make_json_serializable(value: Any) -> Any:
 
 
 # DynamoDB and API Gateway setup
-_dynamodb = None
+_dynamodb: Optional[Any] = None
 connections_table_name = os.getenv("DYNAMODB_CONNECTIONS_TABLE_NAME")
 websocket_api_endpoint = os.getenv("WEBSOCKET_API_ENDPOINT")
 
 # Cache the connections table and API Gateway client
-_connections_table = None
-_api_gateway_client = None
+_connections_table: Optional[Any] = None
+_api_gateway_client: Optional[Any] = None
 
 
-def get_dynamodb_resource():
+def get_dynamodb_resource() -> Any:
     """Get DynamoDB resource (cached)."""
     global _dynamodb
     if _dynamodb is None:
@@ -51,7 +52,7 @@ def get_dynamodb_resource():
     return _dynamodb
 
 
-def get_connections_table():
+def get_connections_table() -> Any:
     """Get DynamoDB connections table (cached)."""
     global _connections_table
     if _connections_table is None and connections_table_name:
@@ -60,7 +61,7 @@ def get_connections_table():
     return _connections_table
 
 
-def get_api_gateway_client():
+def get_api_gateway_client() -> Any:
     """Get API Gateway Management API client (cached)."""
     global _api_gateway_client
     if _api_gateway_client is None and websocket_api_endpoint:
@@ -75,6 +76,20 @@ def create_vocab_word_key(source_word: str, target_language: str) -> str:
     return f"{target_language.lower()}#{normalize_word(source_word)}"
 
 
+class WebSocketOutboundMessageType(str, Enum):
+    """`type` field for outbound vocabulary progress WebSocket payloads."""
+
+    SUBSCRIPTION_CONFIRMED = "subscription_confirmed"
+    PROCESSING_STARTED = "processing_started"
+    STEP_UPDATE = "step_update"
+    CHUNK_UPDATE = "chunk_update"
+    PROCESSING_COMPLETED = "processing_completed"
+    PROCESSING_FAILED = "processing_failed"
+    WORD_EXISTS_REDIRECT = "word_exists_redirect"
+    VALIDATION_FAILED = "validation_failed"
+    CONNECTION_CLOSE = "connection_close"
+
+
 class WebSocketNotifier:
     """Handle WebSocket notifications for vocab processing updates with multi-user support."""
 
@@ -85,11 +100,14 @@ class WebSocketNotifier:
         self.api_gateway = get_api_gateway_client()
 
     def _create_message(
-        self, message_type: str, data: Any, step: Optional[str] = None
+        self,
+        message_type: WebSocketOutboundMessageType,
+        data: Any,
+        step: Optional[str] = None,
     ) -> dict[str, Any]:
         """Create a standardized WebSocket message."""
         message = {
-            "type": message_type,
+            "type": message_type.value,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "user_id": self.user_id,
             "data": data,
@@ -106,7 +124,7 @@ class WebSocketNotifier:
     def _send_to_connection(self, connection_id: str, message: dict[str, Any]) -> bool:
         """Send a message to a specific WebSocket connection."""
         if not self.api_gateway:
-            logger.debug("websocket_not_configured")
+            logger.warning("websocket_not_configured")
             return False
 
         try:
@@ -224,7 +242,7 @@ class WebSocketNotifier:
     ) -> None:
         """Send subscription confirmation to client."""
         confirmation_message = self._create_message(
-            "subscription_confirmed",
+            WebSocketOutboundMessageType.SUBSCRIPTION_CONFIRMED,
             {
                 "vocab_word": vocab_word_key,
                 "source_word": source_word,
@@ -236,7 +254,7 @@ class WebSocketNotifier:
 
     def _create_vocab_message(
         self,
-        message_type: str,
+        message_type: WebSocketOutboundMessageType,
         source_word: str,
         target_language: str,
         status: str,
@@ -254,7 +272,10 @@ class WebSocketNotifier:
     def send_processing_started(self, source_word: str, target_language: str):
         """Notify ALL subscribers that vocab processing has started for this word pair."""
         message = self._create_vocab_message(
-            "processing_started", source_word, target_language, "started"
+            WebSocketOutboundMessageType.PROCESSING_STARTED,
+            source_word,
+            target_language,
+            "started",
         )
         self._broadcast_to_vocab_word_subscribers(source_word, target_language, message)
 
@@ -268,7 +289,11 @@ class WebSocketNotifier:
     ):
         """Send an update for a specific processing step to ALL subscribers."""
         message = self._create_vocab_message(
-            "step_update", source_word, target_language, status, result=step_data
+            WebSocketOutboundMessageType.STEP_UPDATE,
+            source_word,
+            target_language,
+            status,
+            result=step_data,
         )
         message["step"] = step_name
         self._broadcast_to_vocab_word_subscribers(source_word, target_language, message)
@@ -278,7 +303,11 @@ class WebSocketNotifier:
     ):
         """Send a real-time chunk update from LangGraph streaming to ALL subscribers."""
         message = self._create_vocab_message(
-            "chunk_update", source_word, target_language, "processing", chunk=chunk_data
+            WebSocketOutboundMessageType.CHUNK_UPDATE,
+            source_word,
+            target_language,
+            "processing",
+            chunk=chunk_data,
         )
         self._broadcast_to_vocab_word_subscribers(source_word, target_language, message)
 
@@ -287,7 +316,7 @@ class WebSocketNotifier:
     ):
         """Notify ALL subscribers that vocab processing has completed for this word pair."""
         message = self._create_vocab_message(
-            "processing_completed",
+            WebSocketOutboundMessageType.PROCESSING_COMPLETED,
             source_word,
             target_language,
             "completed",
@@ -302,7 +331,11 @@ class WebSocketNotifier:
     ):
         """Notify ALL subscribers that vocab processing has failed for this word pair."""
         message = self._create_vocab_message(
-            "processing_failed", source_word, target_language, "failed", error=error
+            WebSocketOutboundMessageType.PROCESSING_FAILED,
+            source_word,
+            target_language,
+            "failed",
+            error=error,
         )
         self._broadcast_to_vocab_word_subscribers(source_word, target_language, message)
         # Close connections after failure
@@ -313,7 +346,7 @@ class WebSocketNotifier:
     ):
         """Notify ALL subscribers that a ddb hit occurred for this word pair."""
         message = self._create_vocab_message(
-            "word_exists_redirect",
+            WebSocketOutboundMessageType.WORD_EXISTS_REDIRECT,
             source_word,
             target_language,
             "redirect",
@@ -336,7 +369,7 @@ class WebSocketNotifier:
             result_dict = validation_result
 
         message = self._create_vocab_message(
-            "validation_failed",
+            WebSocketOutboundMessageType.VALIDATION_FAILED,
             source_word,
             target_language,
             "invalid",
@@ -388,7 +421,7 @@ class WebSocketNotifier:
 
         # Send close message to each connection
         close_message = self._create_message(
-            "connection_close",
+            WebSocketOutboundMessageType.CONNECTION_CLOSE,
             {
                 "source_word": source_word,
                 "target_language": target_language,
@@ -449,7 +482,7 @@ class WebSocketNotifier:
 
 # Enhanced convenience functions for multi-user notifications
 def notify_processing_started(
-    source_word: str, target_language: str, user_id: str = None, request_id: str = None
+    source_word: str, target_language: str, user_id: Optional[str] = None, request_id: Optional[str] = None
 ):
     """Quick function to notify ALL subscribers that processing started."""
     notifier = WebSocketNotifier(user_id, request_id)
@@ -460,8 +493,8 @@ def notify_chunk_update(
     source_word: str,
     target_language: str,
     chunk_data: Any,
-    user_id: str = None,
-    request_id: str = None,
+    user_id: Optional[str] = None,
+    request_id: Optional[str] = None,
 ):
     """Quick function to send chunk updates to ALL subscribers."""
     notifier = WebSocketNotifier(user_id, request_id)
@@ -472,8 +505,8 @@ def notify_processing_completed(
     source_word: str,
     target_language: str,
     result: dict[str, Any],
-    user_id: str = None,
-    request_id: str = None,
+    user_id: Optional[str] = None,
+    request_id: Optional[str] = None,
 ):
     """Quick function to notify ALL subscribers that processing completed."""
     notifier = WebSocketNotifier(user_id, request_id)
@@ -484,8 +517,8 @@ def notify_processing_failed(
     source_word: str,
     target_language: str,
     error: str,
-    user_id: str = None,
-    request_id: str = None,
+    user_id: Optional[str] = None,
+    request_id: Optional[str] = None,
 ):
     """Quick function to notify ALL subscribers that processing failed."""
     notifier = WebSocketNotifier(user_id, request_id)
@@ -493,7 +526,7 @@ def notify_processing_failed(
 
 
 def subscribe_connection_to_vocab_word(
-    connection_id: str, source_word: str, target_language: str, user_id: str = None
+    connection_id: str, source_word: str, target_language: str, user_id: Optional[str] = None
 ):
     """Subscribe a WebSocket connection to receive updates for a specific vocab_word."""
     notifier = WebSocketNotifier(user_id)

@@ -39,4 +39,8 @@ variable "route53_zone_id" {
   default     = null
 }
 
- 
+variable "apex_domain_name" {
+  description = "Optional apex/root domain for an Alias A to this ALB (e.g. wordweave.xyz). HTTPS default action forwards to frontend when host rules do not match."
+  type        = string
+  default     = null
+}

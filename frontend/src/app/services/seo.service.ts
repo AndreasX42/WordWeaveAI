@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { VocabularyWord } from '../models/word.model';
+import { wordCanonicalAbsoluteUrl } from '../shared/word-route-url';
 
 @Injectable({
   providedIn: 'root',
@@ -23,8 +24,12 @@ export class SEOService {
       word.target_word
     }. Get AI-generated definitions, pronunciation, and examples with WordWeave.`;
 
-    // Normalize POS for URL (e.g., "neuter noun" -> "noun")
-    const normalizedPos = this.normalizePOS(word.source_pos);
+    const canonicalUrl = wordCanonicalAbsoluteUrl({
+      sourceLanguage: word.source_language,
+      targetLanguage: word.target_language,
+      sourcePos: word.source_pos || 'pending',
+      sourceWord: word.source_word || '',
+    });
 
     // Update meta tags
     this.meta.updateTag({ name: 'description', content: description });
@@ -44,7 +49,7 @@ export class SEOService {
     this.meta.updateTag({ property: 'og:description', content: description });
     this.meta.updateTag({
       property: 'og:url',
-      content: `https://wordweave.xyz/words/${word.source_language}/${word.target_language}/${normalizedPos}/${word.source_word}`,
+      content: canonicalUrl,
     });
 
     // Update Twitter Card tags
@@ -52,12 +57,12 @@ export class SEOService {
     this.meta.updateTag({ name: 'twitter:description', content: description });
 
     // Add structured data for educational content
-    this.addWordStructuredData(word, normalizedPos);
+    this.addWordStructuredData(word, canonicalUrl);
   }
 
   private addWordStructuredData(
     word: VocabularyWord,
-    normalizedPos: string
+    canonicalUrl: string
   ): void {
     // Remove existing structured data
     const existingScript = document.querySelector(
@@ -81,7 +86,7 @@ export class SEOService {
         description: 'WordWeave AI-powered language learning vocabulary',
       },
       termCode: word.source_word,
-      url: `https://wordweave.xyz/words/${word.source_language}/${word.target_language}/${normalizedPos}/${word.source_word}`,
+      url: canonicalUrl,
       additionalType: 'https://schema.org/LinguisticSystem',
       inLanguage: word.source_language,
       about: {
@@ -136,9 +141,4 @@ export class SEOService {
     return languages[code] || code;
   }
 
-  private normalizePOS(pos: string): string {
-    if (!pos) return 'pending';
-    const posLower = pos.toLowerCase();
-    return posLower.includes('noun') ? 'noun' : posLower;
-  }
 }

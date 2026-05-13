@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/AndreasX42/restapi/domain/repositories"
 	"github.com/AndreasX42/restapi/utils"
@@ -66,7 +65,7 @@ func (s *SESEmailService) SendConfirmationEmail(email, code string) error {
 		},
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), utils.EnvMilliseconds("SES_SEND_TIMEOUT_MS", 30000))
 	defer cancel()
 
 	result, err := s.client.SendEmail(ctx, input)
@@ -106,7 +105,7 @@ func (s *SESEmailService) SendResetPasswordEmail(email, password string) error {
 		},
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), utils.EnvMilliseconds("SES_SEND_TIMEOUT_MS", 30000))
 	defer cancel()
 
 	result, err := s.client.SendEmail(ctx, input)

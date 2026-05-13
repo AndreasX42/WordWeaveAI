@@ -3,6 +3,7 @@ import os
 
 import boto3
 from aws_lambda_powertools import Logger
+from botocore.config import Config as BotoCoreConfig
 
 from vocab_processor.constants import Language
 from vocab_processor.utils.core_utils import is_lambda_context
@@ -10,12 +11,13 @@ from vocab_processor.utils.core_utils import is_lambda_context
 logger = Logger(service="vocab-processor")
 
 S3_BUCKET = os.getenv("S3_MEDIA_BUCKET_NAME")
+AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
 
 # Initialize S3 client with optimized configuration
 s3_client = boto3.client(
     "s3",
-    region_name=os.getenv("AWS_REGION", "us-east-1"),
-    config=boto3.session.Config(
+    region_name=AWS_REGION,
+    config=BotoCoreConfig(
         max_pool_connections=50,  # Increase connection pool
         retries={"max_attempts": 3, "mode": "adaptive"},
     ),
@@ -82,7 +84,7 @@ def generate_s3_url(s3_key: str) -> str:
     """Generate S3 URL from key."""
     if not is_lambda_context():
         return f"https://mock-s3-bucket.local/{s3_key}"
-    return f"https://{S3_BUCKET}.s3.amazonaws.com/{s3_key}"
+    return f"https://{S3_BUCKET}.s3.{AWS_REGION}.amazonaws.com/{s3_key}"
 
 
 async def upload_bytes_to_s3(data: bytes, s3_key: str, content_type: str) -> str:

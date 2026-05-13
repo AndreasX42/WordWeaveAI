@@ -9,21 +9,21 @@ RUN apk add --no-cache git g++ make cmake pcre-dev zlib-dev openssl-dev wget
 
 # Discover the nginx version from the base image and build brotli module
 RUN nginx_version=$(nginx -v 2>&1 | grep -o '[0-9.]\+') \
- && echo "Building Brotli for nginx version: $nginx_version" \
- # Fetch matching nginx sources
- && wget -q http://nginx.org/download/nginx-${nginx_version}.tar.gz \
- && tar -xzf nginx-${nginx_version}.tar.gz \
- # Fetch brotli module
- && git clone --recursive https://github.com/google/ngx_brotli.git \
- # First build the Brotli library dependencies
- && cd ngx_brotli/deps/brotli \
- && mkdir out && cd out \
- && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF .. \
- && cmake --build . --config Release --target brotlienc \
- # Now build the nginx module with proper library paths
- && cd /nginx-${nginx_version} \
- && ./configure --with-compat --add-dynamic-module=../ngx_brotli \
- && make modules
+    && echo "Building Brotli for nginx version: $nginx_version" \
+    # Fetch matching nginx sources
+    && wget -q http://nginx.org/download/nginx-${nginx_version}.tar.gz \
+    && tar -xzf nginx-${nginx_version}.tar.gz \
+    # Fetch brotli module
+    && git clone --recursive https://github.com/google/ngx_brotli.git \
+    # First build the Brotli library dependencies
+    && cd ngx_brotli/deps/brotli \
+    && mkdir out && cd out \
+    && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF .. \
+    && cmake --build . --config Release --target brotlienc \
+    # Now build the nginx module with proper library paths
+    && cd /nginx-${nginx_version} \
+    && ./configure --with-compat --add-dynamic-module=../ngx_brotli \
+    && make modules
 
 # ---------- App build stage ----------
 FROM public.ecr.aws/docker/library/node:22-alpine AS build

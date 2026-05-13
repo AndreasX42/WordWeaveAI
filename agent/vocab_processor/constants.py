@@ -13,11 +13,19 @@ def is_tracing_enabled() -> bool:
     """
     return os.getenv("LANGSMITH_TRACING_ENABLED", "false") == "true" and os.getenv(
         "LANGSMITH_API_KEY"
-    )
+    ) is not None
+
+
+def _optional_env_str(key: str, default: str) -> str:
+    raw = os.getenv(key)
+    if raw is None:
+        return default
+    stripped = raw.strip()
+    return default if stripped == "" else stripped
 
 
 if is_tracing_enabled():
-    from langsmith import traceable
+    from langsmith import traceable  # type: ignore
 else:
 
     # Create a no-op traceable decorator for production
@@ -119,15 +127,45 @@ class Language(str, Enum):
         return names[self]
 
     @classmethod
-    def from_code(cls, code: str) -> "Language":
-        """Get Language enum from ISO code."""
+    def parse(cls, raw: str | None) -> "Language":
+        """Parse language from input value."""
+        if isinstance(raw, Language):
+            return raw
+        if raw is None:
+            raise ValueError("language is required")
+        s = str(raw).strip().lower()
+        if not s:
+            raise ValueError("language string is empty")
+
         code_map = {"en": cls.ENGLISH, "es": cls.SPANISH, "de": cls.GERMAN}
-        return code_map[code.lower()]
+        if s in code_map:
+            return code_map[s]
+
+        name_map = {"english": cls.ENGLISH, "spanish": cls.SPANISH, "german": cls.GERMAN}
+        if s in name_map:
+            return name_map[s]
+
+        raise ValueError(f"Unsupported language identifier: {raw!r}")
+
+    @classmethod
+    def from_code(cls, code: str) -> "Language":
+        """Alias for :meth:`parse` (historical name). Accepts ISO codes and English names."""
+        return cls.parse(code)
+
+    @classmethod
+    def from_value(cls, value: str) -> "Language":
+        """Alias for :meth:`parse` (historical name). Accepts enum-style names and ISO codes."""
+        return cls.parse(value)
 
     @classmethod
     def all_values(cls) -> list[str]:
         """Get all language string values."""
         return [lang.value for lang in cls]
+
+    @classmethod
+    def allowed_codes(cls) -> list[str]:
+        """Get all allowed language ISO codes."""
+        return [lang.code for lang in cls]
 
 
 # Cache instructor clients to avoid recreation and improve performance
@@ -262,15 +300,17 @@ def get_instructor_node_executor_llm():
     """Get cached instructor client for GPT-4.1-mini with LangSmith tracing."""
     global _instructor_node_executor_llm
 
-    # "gpt-4.1-nano-2025-04-14" "gpt-4.1-2025-04-14"
-    model_name = "gpt-4.1-mini-2025-04-14"
+    model_name = _optional_env_str(
+        "VOCAB_LLM_NODE_MODEL",
+        "",
+    )
 
     if _instructor_node_executor_llm is None:
         base_client = from_openai(
             client=get_openai_client(),
             model=model_name,
-            temperature=0.0,
             mode=Mode.JSON,
+            service_tier="priority",
         )
         _instructor_node_executor_llm = TracedInstructorClient(base_client, model_name)
     return _instructor_node_executor_llm
@@ -280,15 +320,17 @@ def get_instructor_supervisor_llm():
     """Get cached supervisor LLM with LangSmith tracing."""
     global _instructor_supervisor_llm
 
-    # "gpt-4.1-2025-04-14"  # "gpt-4.1-mini-2025-04-14" "gpt-4o-2024-08-06"
-    model_name = "gpt-4.1-2025-04-14"
+    model_name = _optional_env_str(
+        "VOCAB_LLM_SUPERVISOR_MODEL",
+        "",
+    )
 
     if _instructor_supervisor_llm is None:
         base_client = from_openai(
             client=get_openai_client(),
             model=model_name,
-            temperature=0.0,
             mode=Mode.JSON,
+            service_tier="priority",
         )
         _instructor_supervisor_llm = TracedInstructorClient(base_client, model_name)
     return _instructor_supervisor_llm
@@ -310,7 +352,6 @@ def get_instructor_supervisor_llm():
 #         sync_instructor_client = from_bedrock(
 #             client=bedrock_client,
 #             mode=Mode.BEDROCK_JSON,
-#             temperature=0.0,
 #             model="us.anthropic.claude-sonnet-4-20250514-v1:0",
 #         )
 

@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from vocab_processor.constants import Language, PartOfSpeech
 from vocab_processor.prompts_simple import CLASSIFICATION_PROMPT_TEMPLATE
 from vocab_processor.tools.base_tool import create_llm_response
-from vocab_processor.utils.ddb_utils import check_word_exists, lang_code
+from vocab_processor.utils.ddb_utils import check_word_exists
 
 
 class WordClassificationLLM(BaseModel):
@@ -88,8 +88,8 @@ async def get_classification(
     # After getting the base word, check if it exists in the database
     existence_check = await check_word_exists(
         base_word=classification.source_word,
-        source_language=lang_code(source_language),
-        target_language=lang_code(target_language),
+        source_language=source_language.code,
+        target_language=target_language.code,
         source_part_of_speech=classification.source_part_of_speech,
     )
 

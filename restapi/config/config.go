@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/AndreasX42/restapi/domain/repositories"
@@ -31,6 +32,7 @@ type Container struct {
 	UserService          *services.UserService
 	VocabService         *services.VocabService
 	VocabListService     *services.VocabListService
+	VocabRequestService  *services.VocabRequestService
 	StatsService         *services.StatsService
 	UserHandler          *handlers.UserHandler
 	HealthHandler        *handlers.HealthHandler
@@ -98,17 +100,17 @@ func (c *Container) initAWS() {
 
 	// Optimize HTTP client for DynamoDB performance and ensure TLS for all AWS services
 	cfg.HTTPClient = &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout: utils.EnvMilliseconds("AWS_HTTP_TIMEOUT_MS", 30000),
 		Transport: &http.Transport{
-			MaxConnsPerHost:       50,                // Increase from default 100
-			MaxIdleConns:          100,               // Increase from default 100
-			MaxIdleConnsPerHost:   20,                // Increase from default 2
-			IdleConnTimeout:       120 * time.Second, // Keep connections alive longer
-			ResponseHeaderTimeout: 5 * time.Second,   // Wait max 5s for response headers
-			ExpectContinueTimeout: 1 * time.Second,   // Wait 1s for "100 Continue" response
-			DisableCompression:    true,              // DynamoDB responses are already compressed
-			WriteBufferSize:       32 * 1024,         // 32KB write buffer
-			ReadBufferSize:        32 * 1024,         // 32KB read buffer
+			MaxConnsPerHost:       utils.EnvPositiveInt("AWS_HTTP_MAX_CONNS_PER_HOST", 50),
+			MaxIdleConns:          utils.EnvPositiveInt("AWS_HTTP_MAX_IDLE_CONNS", 100),
+			MaxIdleConnsPerHost:   utils.EnvPositiveInt("AWS_HTTP_MAX_IDLE_CONNS_PER_HOST", 20),
+			IdleConnTimeout:       utils.EnvMilliseconds("AWS_HTTP_IDLE_CONN_TIMEOUT_MS", 120000),
+			ResponseHeaderTimeout: utils.EnvMilliseconds("AWS_HTTP_RESPONSE_HEADER_TIMEOUT_MS", 5000),
+			ExpectContinueTimeout: 1 * time.Second, // Wait 1s for "100 Continue" response
+			DisableCompression:    true,            // DynamoDB responses are already compressed
+			WriteBufferSize:       32 * 1024,       // 32KB write buffer
+			ReadBufferSize:        32 * 1024,       // 32KB read buffer
 			// TLS Configuration - Force TLS 1.2 minimum for all AWS services including SES
 			TLSHandshakeTimeout: 3 * time.Second,
 			ForceAttemptHTTP2:   true, // Use HTTP/2 when possible
@@ -142,10 +144,10 @@ func (c *Container) initSentry() {
 
 func (c *Container) initRepositories() {
 	// Create DynamoDB table references
-	usersTable := c.DynamoDB.Table(utils.GetTableName(os.Getenv("DYNAMODB_USER_TABLE_NAME")))
-	vocabTable := c.DynamoDB.Table(utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_TABLE_NAME")))
-	vocabListTable := c.DynamoDB.Table(utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_LIST_TABLE_NAME")))
-	vocabMediaTable := c.DynamoDB.Table(utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_MEDIA_TABLE_NAME")))
+	usersTable := c.DynamoDB.Table(requireTableName("DYNAMODB_USER_TABLE_NAME"))
+	vocabTable := c.DynamoDB.Table(requireTableName("DYNAMODB_VOCAB_TABLE_NAME"))
+	vocabListTable := c.DynamoDB.Table(requireTableName("DYNAMODB_VOCAB_LIST_TABLE_NAME"))
+	vocabMediaTable := c.DynamoDB.Table(requireTableName("DYNAMODB_VOCAB_MEDIA_TABLE_NAME"))
 
 	// Initialize repositories
 	c.UserRepository = infraRepos.NewDynamoUserRepository(usersTable)
@@ -159,6 +161,9 @@ func (c *Container) initServices() {
 	c.UserService = services.NewUserService(c.UserRepository, c.EmailService)
 	c.VocabService = services.NewVocabService(c.VocabRepository, c.VocabMediaRepository)
 	c.VocabListService = services.NewVocabListService(c.VocabListRepository, c.VocabRepository, c.VocabMediaRepository)
+	queueURL := requireEnv("SQS_VOCAB_REQUEST_QUEUE_URL")
+	maxRequestsFreeTier := requirePositiveIntEnv("MAX_VOCAB_REQUESTS_FREE_TIER")
+	c.VocabRequestService = services.NewVocabRequestService(c.SQSClient, c.UserRepository, queueURL, maxRequestsFreeTier)
 	c.StatsService = services.NewStatsService(c.UserRepository, c.VocabListRepository, c.VocabRepository)
 }
 
@@ -166,11 +171,9 @@ func (c *Container) initHandlers() {
 	c.HealthHandler = handlers.NewHealthHandler(c.DynamoDB)
 	c.SearchHandler = handlers.NewSearchHandler(c.VocabService)
 	c.VocabListHandler = handlers.NewVocabListHandler(c.VocabListService)
-	c.VocabRequestHandler = handlers.NewVocabRequestHandler(c.SQSClient, c.UserRepository)
-	c.OAuthHandler = handlers.NewOAuthHandler(c.UserService, c.GoogleOAuthConfig.Config)
+	c.VocabRequestHandler = handlers.NewVocabRequestHandler(c.VocabRequestService)
 	c.SentryHandler = handlers.NewSentryHandler(c.SentryConfig.Client)
 	c.StatsHandler = handlers.NewStatsHandler(c.StatsService)
-	// UserHandler will be set later in main.go after JWT middleware is created
 }
 
 // SetUserHandler sets the user handler after JWT middleware is available
@@ -178,7 +181,17 @@ func (c *Container) SetUserHandler(authMiddleware *jwt.GinJWTMiddleware) {
 	c.UserHandler = handlers.NewUserHandler(c.UserService, authMiddleware)
 }
 
+// SetOAuthHandler sets the OAuth handler after JWT middleware is available
+func (c *Container) SetOAuthHandler(authMiddleware *jwt.GinJWTMiddleware) {
+	c.OAuthHandler = handlers.NewOAuthHandler(c.UserService, c.GoogleOAuthConfig.Config, authMiddleware)
+}
+
 func (c *Container) createTables() {
+	if !utils.EnvBool("DYNAMODB_AUTO_CREATE_TABLES", false) {
+		log.Println("Skipping DynamoDB auto-create (DYNAMODB_AUTO_CREATE_TABLES=false)")
+		return
+	}
+
 	ctx := context.Background()
 
 	// Create User table
@@ -195,7 +208,7 @@ func (c *Container) createTables() {
 }
 
 func (c *Container) createUserTable(ctx context.Context) {
-	tableName := utils.GetTableName(os.Getenv("DYNAMODB_USER_TABLE_NAME"))
+	tableName := requireTableName("DYNAMODB_USER_TABLE_NAME")
 
 	// Check if table exists first
 	table := c.DynamoDB.Table(tableName)
@@ -223,7 +236,7 @@ func (c *Container) createUserTable(ctx context.Context) {
 }
 
 func (c *Container) createVocabularyTable(ctx context.Context) {
-	tableName := utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_TABLE_NAME"))
+	tableName := requireTableName("DYNAMODB_VOCAB_TABLE_NAME")
 
 	// Check if table exists first
 	table := c.DynamoDB.Table(tableName)
@@ -250,7 +263,7 @@ func (c *Container) createVocabularyTable(ctx context.Context) {
 }
 
 func (c *Container) createVocabularyListTable(ctx context.Context) {
-	tableName := utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_LIST_TABLE_NAME"))
+	tableName := requireTableName("DYNAMODB_VOCAB_LIST_TABLE_NAME")
 
 	// Check if table exists first
 	table := c.DynamoDB.Table(tableName)
@@ -275,7 +288,7 @@ func (c *Container) createVocabularyListTable(ctx context.Context) {
 }
 
 func (c *Container) createVocabularyMediaTable(ctx context.Context) {
-	tableName := utils.GetTableName(os.Getenv("DYNAMODB_VOCAB_MEDIA_TABLE_NAME"))
+	tableName := requireTableName("DYNAMODB_VOCAB_MEDIA_TABLE_NAME")
 
 	// Check if table exists first
 	table := c.DynamoDB.Table(tableName)
@@ -303,7 +316,9 @@ func (c *Container) createVocabularyMediaTable(ctx context.Context) {
 func (c *Container) waitForTable(ctx context.Context, tableName string) {
 	table := c.DynamoDB.Table(tableName)
 
-	for i := 0; i < 60; i++ { // Wait up to 60 seconds
+	maxSec := utils.EnvPositiveInt("DYNAMODB_TABLE_WAIT_TIMEOUT_SECONDS", 60)
+
+	for i := 0; i < maxSec; i++ {
 		desc, err := table.Describe().Run(ctx)
 		if err != nil {
 			log.Printf("Error checking table status: %v", err)
@@ -320,4 +335,24 @@ func (c *Container) waitForTable(ctx context.Context, tableName string) {
 	}
 
 	log.Fatalf("Table %s did not become active within timeout", tableName)
+}
+
+func requireEnv(key string) string {
+	value, exists := os.LookupEnv(key)
+	if !exists || value == "" {
+		log.Fatalf("%s environment variable is required", key)
+	}
+	return value
+}
+
+func requirePositiveIntEnv(key string) int {
+	value, err := strconv.Atoi(requireEnv(key))
+	if err != nil || value <= 0 {
+		log.Fatalf("%s environment variable must be a positive integer", key)
+	}
+	return value
+}
+
+func requireTableName(envKey string) string {
+	return utils.GetTableName(requireEnv(envKey))
 }

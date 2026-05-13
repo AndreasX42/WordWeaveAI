@@ -1,0 +1,8 @@
+bucket       = "REPLACE_ME_terraform_state_bucket"
+key          = "dev/terraform.tfstate"
+region       = "us-east-1"
+use_lockfile = true
+encrypt      = true
+
+# Optional but recommended: backend assume role (same role used by provider)
+role_arn     = "arn:aws:iam::123456789012:role/wordweave-terraform"

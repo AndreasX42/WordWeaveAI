@@ -1,9 +1,32 @@
 # AWS Configuration
-aws_region = "us-east-1"
+aws_region  = "us-east-1"
+aws_profile = "personal"
 
-# Project Configuration
+# Terraform execution role
+terraform_assume_role_arn = "arn:aws:iam::123456789012:role/wordweave-terraform"
+
+# Terraform remote state bucket
+terraform_state_bucket = "wordweave-terraform-state-123456789012"
+
+# Must match environments/common/backend.hcl "key" (default bootstrap: common/terraform.tfstate)
+terraform_common_state_key = "common/terraform.tfstate"
+
+# Environment / Project
+environment  = "dev"
 project_name = "wordweave"
-environment = "dev"
+
+# Domain Configuration
+frontend_domain_name = "app.example.com"
+backend_domain_name  = "api.example.com"
+# apex_domain_name   = "example.com" # optional Alias A → ALB
+
+# Lambda build artifacts
+lambda_layer_zip_path      = "../../dist/layer.zip"
+lambda_function_zip_path   = "../../dist/function.zip"
+websocket_handler_zip_path = "../../dist/websocket.zip"
+
+# Data layer names
+s3_media_bucket_name = "wordweave-dev-media-123456789012"
 
 # VPC Configuration
 vpc_cidr = "10.0.0.0/16"
@@ -19,15 +42,6 @@ dynamodb_vocab_media_table_name = "wordweave-dev-vocab-media"
 dynamodb_connections_table_name = "wordweave-dev-connections"
 dynamodb_vocab_list_table_name = "wordweave-dev-vocab-list"
 
-# Lambda Configuration - Paths to ZIP files built by build_lambda.py
-lambda_layer_zip_path = "resources/layers/lambda_requirements_layer.zip"
-lambda_function_zip_path = "resources/lambda/vocab_processor_zip.zip"
-websocket_handler_zip_path = "resources/lambda/websocket_handler_zip.zip"
-
-# Domain Configuration
-frontend_domain_name = "dev.example.com"  # Replace with your actual domain
-backend_domain_name = "api-dev.example.com"  # Replace with your actual domain
-
 # ACM Certificate ARN (optional if using common environment)
 # acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012"
 
@@ -38,7 +52,30 @@ backend_cpu = 256
 backend_memory = 512
 desired_count = 1
 
-# Container Images - Update with your actual image URIs
+# Vocab processor Lambda — OpenAI model IDs (VOCAB_LLM_* env vars)
+vocab_llm_node_model       = "gpt-4.1-mini-2025-04-14"
+vocab_llm_supervisor_model = "gpt-4.1-2025-04-14"
+
+# ECS backend: env key -> SSM path (adjust /dev/ segment if environment != dev)
+backend_ssm_parameter_paths = {
+  GOOGLE_CLIENT_ID             = "/wordweave/dev/backend/google-client-id"
+  GOOGLE_CLIENT_SECRET         = "/wordweave/dev/backend/google-client-secret"
+  GOOGLE_REDIRECT_URL          = "/wordweave/dev/backend/google-redirect-url"
+  SENTRY_DSN                   = "/apikeys/SENTRY_DSN"
+  JWT_SECRET_KEY               = "/wordweave/dev/backend/jwt-secret-key"
+  JWT_EXPIRATION_TIME          = "/wordweave/dev/backend/jwt-expiration-time"
+  CORS_ALLOWED_ORIGINS         = "/wordweave/dev/backend/cors-allowed-origins"
+  FRONTEND_URL                 = "/wordweave/dev/backend/frontend-url"
+  MAX_VOCAB_REQUESTS_FREE_TIER = "/wordweave/dev/backend/max-vocab-requests-free-tier"
+  SES_FROM_EMAIL               = "/wordweave/dev/backend/ses-from-email"
+  SES_FROM_NAME                = "/wordweave/dev/backend/ses-from-name"
+}
+
+# Container Images
 frontend_image_uri = "123456789012.dkr.ecr.us-east-1.amazonaws.com/wordweave-frontend:latest"
 backend_image_uri = "123456789012.dkr.ecr.us-east-1.amazonaws.com/wordweave-restapi:latest" 
 
+# CI/CD Configuration
+github_connection_arn = "arn:aws:codestar-connections:us-east-1:123456789012:connection/example-connection-id"
+github_repo          = "your-org/wordweave"
+github_branch        = "main" 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/AndreasX42/restapi/domain/entities"
 	"github.com/AndreasX42/restapi/domain/repositories"
+	"github.com/AndreasX42/restapi/utils"
 	"github.com/guregu/dynamo/v2"
 )
 
@@ -28,9 +29,9 @@ type UserRecord struct {
 	IsAdmin          bool      `dynamo:"is_admin"`
 	CreatedAt        time.Time `dynamo:"created_at"`
 	// OAuth fields
-	GoogleID     string `dynamo:"google_id" index:"GoogleIDIndex,hash"`
-	IsOAuthUser  bool   `dynamo:"is_oauth_user"`
-	ProfileImage string `dynamo:"profile_image"`
+	GoogleID     string `dynamo:"google_id,omitempty" index:"GoogleIDIndex,hash"`
+	IsOAuthUser  bool   `dynamo:"is_oauth_user,omitempty"`
+	ProfileImage string `dynamo:"profile_image,omitempty"`
 	RequestCount int    `dynamo:"request_count"`
 }
 
@@ -161,6 +162,27 @@ func (r *DynamoUserRepository) Update(ctx context.Context, user *entities.User) 
 		Run(ctx)
 }
 
+func (r *DynamoUserRepository) IncrementRequestCountIfBelowLimit(ctx context.Context, userID string, maxRequests int) (bool, error) {
+	err := r.table.Update("user_id", userID).
+		Add("request_count", 1).
+		If("attribute_exists(user_id) AND (attribute_not_exists(request_count) OR request_count < ?)", maxRequests).
+		Run(ctx)
+	if err != nil {
+		if strings.Contains(err.Error(), "ConditionalCheckFailedException") {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+func (r *DynamoUserRepository) DecrementRequestCount(ctx context.Context, userID string) error {
+	return r.table.Update("user_id", userID).
+		Add("request_count", -1).
+		If("attribute_exists(user_id) AND request_count > ?", 0).
+		Run(ctx)
+}
+
 func (r *DynamoUserRepository) Delete(ctx context.Context, id string) error {
 	// Delete the user record
 	err := r.table.Delete("user_id", id).
@@ -208,6 +230,10 @@ func (r *DynamoUserRepository) UsernameExists(ctx context.Context, username stri
 
 func (r *DynamoUserRepository) BatchValidateExistence(ctx context.Context, email, username string) (*repositories.ValidationResult, error) {
 	result := &repositories.ValidationResult{}
+
+	// Normalize email and username to remove whitespace and convert to lowercase
+	email = strings.ToLower(strings.Join(strings.Fields(email), ""))
+	username = strings.ToLower(strings.Join(strings.Fields(username), ""))
 
 	// Use channels to handle concurrent queries
 	type checkResult struct {
@@ -258,7 +284,7 @@ func (r *DynamoUserRepository) BatchValidateExistence(ctx context.Context, email
 
 // incrementUserCount atomically increments or decrements the total user count
 func (r *DynamoUserRepository) incrementUserCount(ctx context.Context, delta int) error {
-	countUserID := "COUNT#users"
+	countUserID := utils.UserCountPK()
 
 	return r.table.Update("user_id", countUserID).
 		Add("count", delta).
@@ -268,7 +294,7 @@ func (r *DynamoUserRepository) incrementUserCount(ctx context.Context, delta int
 // GetTotalUserCount retrieves the total number of users
 func (r *DynamoUserRepository) GetTotalUserCount(ctx context.Context) (int, error) {
 	var record UserCountRecord
-	countUserID := "COUNT#users"
+	countUserID := utils.UserCountPK()
 
 	err := r.table.Get("user_id", countUserID).One(ctx, &record)
 	if err != nil {
@@ -285,7 +311,7 @@ func (r *DynamoUserRepository) GetTotalUserCount(ctx context.Context) (int, erro
 // InitializeUserCount initializes the user count record if it doesn't exist
 func (r *DynamoUserRepository) InitializeUserCount(ctx context.Context) error {
 	countRecord := UserCountRecord{
-		UserID: "COUNT#users",
+		UserID: utils.UserCountPK(),
 		Count:  0,
 	}
 

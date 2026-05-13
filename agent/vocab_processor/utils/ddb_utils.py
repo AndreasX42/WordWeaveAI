@@ -7,6 +7,7 @@ from typing import Any
 import boto3
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools.metrics import Metrics, MetricUnit
+from botocore.config import Config
 from botocore.exceptions import ClientError
 from pydantic import BaseModel, Field
 
@@ -16,45 +17,43 @@ from vocab_processor.utils.core_utils import is_lambda_context, normalize_word
 logger = Logger(service="vocab-processor")
 metrics = Metrics(namespace="VocabProcessor")
 
-dynamodb = boto3.resource(
+dynamodb: Any = boto3.resource(
     "dynamodb",
     region_name=os.getenv("AWS_REGION", "us-east-1"),
-    config=boto3.session.Config(
+    config=Config(
         max_pool_connections=50, retries={"max_attempts": 3, "mode": "adaptive"}
     ),
 )
 
 # Lazy initialization to avoid import-time errors during testing
-_vocab_table = None
-_media_table = None
+_table_cache: dict[str, Any] = {}
+
+
+def _get_cached_table(
+    env_var: str,
+) -> Any:
+    cached = _table_cache.get(env_var)
+    if cached is not None:
+        return cached
+    table_name = os.getenv(env_var)
+    if not table_name:
+        raise ValueError(f"{env_var} environment variable not set")
+    table = dynamodb.Table(table_name)
+    _table_cache[env_var] = table
+    return table
+
 
 
 def get_vocab_table():
     """Get vocab table instance."""
-    global _vocab_table
-    if _vocab_table is None:
-        table_name = os.getenv("DYNAMODB_VOCAB_TABLE_NAME")
-        if not table_name:
-            raise ValueError("DYNAMODB_VOCAB_TABLE_NAME environment variable not set")
-        _vocab_table = dynamodb.Table(table_name)
-    return _vocab_table
+    return _get_cached_table("DYNAMODB_VOCAB_TABLE_NAME")
 
 
 def get_media_table():
     """Get media table instance."""
-    global _media_table
-    if _media_table is None:
-        try:
-            table_name = os.getenv("DYNAMODB_VOCAB_MEDIA_TABLE_NAME")
-            if not table_name:
-                raise ValueError(
-                    "DYNAMODB_VOCAB_MEDIA_TABLE_NAME environment variable not set"
-                )
-            _media_table = dynamodb.Table(table_name)
-        except Exception as exc:
-            logger.error("media_table_connection_failed", error=str(exc))
-            raise
-    return _media_table
+    return _get_cached_table(
+        "DYNAMODB_VOCAB_MEDIA_TABLE_NAME",
+    )
 
 
 class VocabProcessRequestDto(BaseModel):
@@ -73,28 +72,21 @@ class VocabProcessRequestDto(BaseModel):
 
         # Validate target_language (required)
         if self.target_language:
-            valid_codes = [lang.code for lang in Language]
-            if self.target_language not in valid_codes:
+            if self.target_language not in Language.allowed_codes():
                 raise ValueError(
-                    f"Invalid target_language '{self.target_language}'. Must be one of: {valid_codes}"
+                    f"Invalid target_language '{self.target_language}'. Must be one of: {Language.allowed_codes()}"
                 )
 
         # Validate source_language (optional)
         if self.source_language:
-            valid_codes = [lang.code for lang in Language]
-            if self.source_language not in valid_codes:
+            if self.source_language not in Language.allowed_codes():
                 raise ValueError(
-                    f"Invalid source_language '{self.source_language}'. Must be one of: {valid_codes}"
+                    f"Invalid source_language '{self.source_language}'. Must be one of: {Language.allowed_codes()}"
                 )
 
         # Validate source_word is not empty
         if not self.source_word or not self.source_word.strip():
             raise ValueError("source_word cannot be empty")
-
-
-def lang_code(lang_enum) -> str:
-    """Return iso code for Language enum, falling back to .value."""
-    return getattr(lang_enum, "code", str(lang_enum.value).lower())
 
 
 def _get_pos_category(part_of_speech_value: str) -> str:
@@ -117,7 +109,7 @@ async def check_word_exists(
 
     # Extract the part-of-speech value if it's an enum
     if hasattr(source_part_of_speech, "value"):
-        pos_value = source_part_of_speech.value
+        pos_value: str = source_part_of_speech.value  # type: ignore
     else:
         pos_value = str(source_part_of_speech)
 
@@ -305,8 +297,8 @@ async def get_existing_media_for_search_words(
 
         for item in items:
             # Score based on usage count (higher is better) and recency
-            usage_count = int(item.get("usage_count", 0))
-            last_used = item.get("last_used", "2020-01-01")
+            usage_count: int = int(item.get("usage_count", 0))  # type: ignore
+            last_used: str = item.get("last_used", "2020-01-01")  # type: ignore
 
             # Simple scoring: usage_count * recency_factor
             hours_since_last_used = (
@@ -321,8 +313,8 @@ async def get_existing_media_for_search_words(
                 best_match = item
 
         if best_match:
-            media_ref = best_match["media_ref"]
-            search_term = best_match["search_term"]
+            media_ref: str = best_match["media_ref"]  # type: ignore
+            search_term: str = best_match["search_term"]  # type: ignore
 
             # Fetch the actual media object from the media table
             media_response = await asyncio.to_thread(
@@ -460,21 +452,23 @@ async def store_media_references(
 
 
 async def store_result(result: dict[str, Any], req: VocabProcessRequestDto):
-    src_lang = result.get("source_language")
-    tgt_lang = result.get("target_language")
-    src_word = result.get("source_word")
-    tgt_word = result.get("target_word")
+    from vocab_processor.constants import Language
+
+    src_lang: Language = Language.parse(result.get("source_language", "") or "")
+    tgt_lang: Language = Language.parse(result.get("target_language", "") or "")
+    src_word: str = result.get("source_word", "")
+    tgt_word: str = result.get("target_word", "")
 
     if not all([src_lang, tgt_lang, src_word, tgt_word]):
         raise ValueError("Pipeline result missing mandatory fields")
 
     if not is_lambda_context():
         logger.info(
-            f"Local dev mode: skipping DynamoDB storage for {src_word} -> {tgt_word} ({lang_code(src_lang)} -> {lang_code(tgt_lang)})"
+            f"Local dev mode: skipping DynamoDB storage for {src_word} -> {tgt_word} ({src_lang.code} -> {tgt_lang.code})"
         )
         return
 
-    pk = f"SRC#{lang_code(src_lang)}#{normalize_word(src_word)}"
+    pk = f"SRC#{src_lang.code}#{normalize_word(src_word)}"
 
     # Handle source_part_of_speech - could be enum, string, or None
     source_pos_raw = result.get("source_part_of_speech")
@@ -487,7 +481,7 @@ async def store_result(result: dict[str, Any], req: VocabProcessRequestDto):
 
     normalized_pos = _get_pos_category(source_pos)
 
-    sk = f"TGT#{lang_code(tgt_lang)}#POS#{normalized_pos}"
+    sk = f"TGT#{tgt_lang.code}#POS#{normalized_pos}"
 
     # Prepare search words for individual entries
     search_query = result.get("search_query", [])
@@ -500,13 +494,13 @@ async def store_result(result: dict[str, Any], req: VocabProcessRequestDto):
         "SK": sk,
         # Source word
         "source_word": src_word,
-        "source_language": lang_code(src_lang),
+        "source_language": src_lang.code,
         "source_article": result.get("source_article"),
         "source_pos": getattr(result.get("source_part_of_speech"), "value", None),
         "source_definition": result.get("source_definition"),
         # Target word
         "target_word": tgt_word,
-        "target_language": lang_code(tgt_lang),
+        "target_language": tgt_lang.code,
         "target_pos": getattr(result.get("target_part_of_speech"), "value", None),
         "target_article": result.get("target_article"),
         "target_plural_form": result.get("target_plural_form"),
@@ -522,8 +516,8 @@ async def store_result(result: dict[str, Any], req: VocabProcessRequestDto):
         # Store media reference instead of full media object
         "media_ref": result.get("media_ref"),  # Reference to media table
         # GSI-1: Reverse lookup
-        "LKP": f"LKP#{lang_code(tgt_lang)}#{normalize_word(tgt_word)}",
-        "SRC_LANG": f"SRC#{lang_code(src_lang)}",
+        "LKP": f"LKP#{tgt_lang.code}#{normalize_word(tgt_word)}",
+        "SRC_LANG": f"SRC#{src_lang.code}",
         # GSI-2: English word lookup for Media reuse
         "english_word": normalize_word(result.get("english_word", "")),
         # Metadata
@@ -562,7 +556,7 @@ async def store_result(result: dict[str, Any], req: VocabProcessRequestDto):
 
             if media_ref:
                 await store_media_references(
-                    media_ref, normalized_search_words, result.get("media")
+                    media_ref, normalized_search_words, result.get("media", {})
                 )
     except ClientError as err:
         if err.response["Error"].get("Code") == "ConditionalCheckFailedException":

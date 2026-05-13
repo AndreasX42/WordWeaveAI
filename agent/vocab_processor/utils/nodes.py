@@ -1,5 +1,5 @@
 import json
-
+from typing import Any
 from aws_lambda_powertools import Logger
 
 from vocab_processor.tools import (
@@ -14,7 +14,12 @@ from vocab_processor.tools import (
     validate_word,
 )
 from vocab_processor.utils.state import VocabState
-from vocab_processor.utils.supervisor import LLMRouter, TaskType, supervisor
+from vocab_processor.utils.supervisor import (
+    LLMRouter,
+    TaskType,
+    expected_parallel_task_names,
+    supervisor,
+)
 
 logger = Logger(service="vocab-processor")
 logger.setLevel("ERROR")
@@ -51,7 +56,7 @@ def _create_fallback_result(tool_name: str, inputs: dict, error_msg: str) -> dic
 
 
 async def execute_with_quality_gate(
-    state: VocabState, tool_func, tool_name: str, task_type: TaskType, inputs: dict
+    state: VocabState, tool_func: Any, tool_name: str, task_type: TaskType, inputs: dict
 ) -> dict:
     """Execute a tool with supervisor quality control and retry logic."""
 
@@ -71,7 +76,7 @@ async def execute_with_quality_gate(
         response = await tool_func.ainvoke(inputs)
 
         result = getattr(response, "result", response)
-        prompt = getattr(response, "prompt", None)
+        prompt = getattr(response, "prompt", "")
         result_dict = _convert_to_dict(result)
 
         # Validate result quality
@@ -79,13 +84,12 @@ async def execute_with_quality_gate(
             tool_name, result_dict, state, prompt
         )
 
-        print()
-        print("-" * 100)
-        print("tool_name", tool_name)
-        print("result_dict", result_dict)
-        print("validation_result", validation_result)
-        print("-" * 100)
-        print()
+        logger.debug(
+            "execute_with_quality_gate_detail",
+            tool_name=tool_name,
+            result_dict=result_dict,
+            validation_result=validation_result.model_dump(),
+        )
 
         # Log quality results efficiently
         logger.info(
@@ -158,12 +162,11 @@ async def execute_without_quality_gate(tool_func, tool_name: str, inputs: dict) 
         response = await tool_func.ainvoke(inputs)
         result_dict = _convert_to_dict(getattr(response, "result", response))
 
-        print()
-        print("-" * 100)
-        print("tool_name", tool_name)
-        print("result_dict", result_dict)
-        print("-" * 100)
-        print()
+        logger.debug(
+            "execute_without_quality_gate_detail",
+            tool_name=tool_name,
+            result_dict=result_dict,
+        )
 
         logger.info(msg=f"{tool_name}_executed_successfully")
 
@@ -224,7 +227,7 @@ async def node_validate_source_word(state: VocabState) -> VocabState:
             "validation_quality_score": quality_result.get(
                 "validation_quality_score", 0.0
             ),
-        }
+        } # type: ignore
 
     except Exception as e:
         logger.error("validation_execution_failed", error=str(e))
@@ -234,7 +237,7 @@ async def node_validate_source_word(state: VocabState) -> VocabState:
             "validation_suggestions": [],
             "validation_quality_approved": False,
             "validation_quality_score": 0.0,
-        }
+        } # type: ignore
 
 
 async def node_get_classification(state: VocabState) -> VocabState:
@@ -275,7 +278,7 @@ async def node_get_classification(state: VocabState) -> VocabState:
             "classification_quality_approved", False
         ),
         "classification_quality_score": result.get("classification_quality_score", 0.0),
-    }
+    } # type: ignore
 
 
 async def node_get_translation(state: VocabState) -> VocabState:
@@ -314,7 +317,7 @@ async def node_get_translation(state: VocabState) -> VocabState:
             "translation_quality_approved", False
         ),
         "translation_quality_score": result.get("translation_quality_score", 0.0),
-    }
+    } # type: ignore
 
 
 async def node_get_synonyms(state: VocabState) -> VocabState:
@@ -325,7 +328,7 @@ async def node_get_synonyms(state: VocabState) -> VocabState:
             "synonyms": [],
             "synonyms_quality_approved": True,
             "synonyms_quality_score": 10.0,
-        }
+        } # type: ignore
 
     inputs = {
         "target_word": state.target_word,
@@ -351,7 +354,7 @@ async def node_get_synonyms(state: VocabState) -> VocabState:
         "synonyms": result.get("synonyms", []),
         "synonyms_quality_approved": result.get("synonyms_quality_approved", False),
         "synonyms_quality_score": result.get("synonyms_quality_score", 0.0),
-    }
+    } # type: ignore
 
 
 async def node_get_syllables(state: VocabState) -> VocabState:
@@ -380,7 +383,7 @@ async def node_get_syllables(state: VocabState) -> VocabState:
         "syllables_quality_approved": result.get("syllables_quality_approved", False),
         "target_phonetic_guide": result.get("phonetic_guide", ""),
         "syllables_quality_score": result.get("syllables_quality_score", 0.0),
-    }
+    } # type: ignore
 
 
 async def node_get_pronunciation(state: VocabState) -> VocabState:
@@ -404,7 +407,7 @@ async def node_get_pronunciation(state: VocabState) -> VocabState:
 
     return {
         "pronunciations": result,
-    }
+    } # type: ignore
 
 
 async def node_get_media(state: VocabState) -> VocabState:
@@ -442,7 +445,7 @@ async def node_get_media(state: VocabState) -> VocabState:
         "media_adapted": result.get("media_adapted", False),
         "media_quality_approved": result.get("media_quality_approved", False),
         "media_quality_score": result.get("media_quality_score", 0.0),
-    }
+    } # type: ignore
 
 
 async def node_get_examples(state: VocabState) -> VocabState:
@@ -473,7 +476,7 @@ async def node_get_examples(state: VocabState) -> VocabState:
         "examples": result.get("examples", []),
         "examples_quality_approved": result.get("examples_quality_approved", False),
         "examples_quality_score": result.get("examples_quality_score", 0.0),
-    }
+    } # type: ignore
 
 
 async def node_get_conjugation(state: VocabState) -> VocabState:
@@ -483,7 +486,7 @@ async def node_get_conjugation(state: VocabState) -> VocabState:
             "conjugation": None,
             "conjugation_quality_approved": True,
             "conjugation_quality_score": 10.0,
-        }
+        } # type: ignore
 
     inputs = {
         "target_word": state.target_word,
@@ -510,7 +513,7 @@ async def node_get_conjugation(state: VocabState) -> VocabState:
             "conjugation_quality_approved", False
         ),
         "conjugation_quality_score": result.get("conjugation_quality_score", 0.0),
-    }
+    } # type: ignore
 
 
 # Supervisor nodes for quality gates
@@ -536,13 +539,13 @@ async def supervisor_check_sequential_quality(state: VocabState) -> VocabState:
         logger.info(
             "sequential_quality_gates_passed", status="Ready for parallel execution"
         )
-        return {"sequential_quality_passed": True}
+        return {"sequential_quality_passed": True} # type: ignore
     else:
         logger.warning("sequential_quality_gates_failed", failed_steps=failed_steps)
         return {
             "sequential_quality_passed": False,
             "failed_quality_steps": failed_steps,
-        }
+        } # type: ignore
 
 
 async def supervisor_coordinate_parallel_tasks(state: VocabState) -> VocabState:
@@ -553,7 +556,7 @@ async def supervisor_coordinate_parallel_tasks(state: VocabState) -> VocabState:
 
     logger.info("parallel_tasks_coordination", tasks=parallel_tasks)
 
-    return {"parallel_tasks_to_execute": parallel_tasks}
+    return {"parallel_tasks_to_execute": parallel_tasks} # type: ignore
 
 
 async def supervisor_final_quality_check(state: VocabState) -> VocabState:
@@ -602,7 +605,7 @@ async def supervisor_final_quality_check(state: VocabState) -> VocabState:
         "quality_checks_passed": len(quality_scores),
         "quality_checks_failed": len(failed_quality_checks),
         "processing_complete": True,
-    }
+    } # type: ignore
 
 
 async def join_parallel_tasks(state: VocabState) -> VocabState:
@@ -611,19 +614,8 @@ async def join_parallel_tasks(state: VocabState) -> VocabState:
     # Get the list of completed tasks from state (initialize if not exists or None)
     completed_tasks = getattr(state, "completed_parallel_tasks", []) or []
 
-    # Determine which task just completed by checking which quality fields are set
-    parallel_tasks = ["media", "examples", "syllables"]
-
-    # Add conjugation if it's a verb
-    if state.target_part_of_speech and state.target_part_of_speech.is_conjugatable:
-        parallel_tasks.append("conjugation")
-
-    # Add synonyms if the word has synonyms
-    if state.target_part_of_speech and state.target_part_of_speech.has_synonyms:
-        parallel_tasks.append("synonyms")
-
-    # Add pronunciation
-    parallel_tasks.append("pronunciation")
+    # Must match graph edges + supervisor.coordinate_parallel_tasks (synonyms always run)
+    parallel_tasks = expected_parallel_task_names(state)
 
     # Find newly completed tasks (tasks that have quality approval but aren't in completed list)
     newly_completed = []
@@ -667,7 +659,7 @@ async def join_parallel_tasks(state: VocabState) -> VocabState:
         return {
             "completed_parallel_tasks": updated_completed_tasks,
             "parallel_tasks_complete": True,
-        }
+        } # type: ignore
     else:
         logger.info(
             "join_parallel_tasks", status="Waiting for more parallel tasks to complete"
@@ -675,4 +667,4 @@ async def join_parallel_tasks(state: VocabState) -> VocabState:
         return {
             "completed_parallel_tasks": updated_completed_tasks,
             "parallel_tasks_complete": False,
-        }
+        } # type: ignore

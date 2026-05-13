@@ -34,13 +34,14 @@ type VocabListWord struct {
 func NewVocabList(userID, name, description string) *VocabList {
 	now := time.Now()
 	return &VocabList{
-		ID:          uuid.New().String(),
-		UserID:      userID,
-		Name:        name,
-		Description: description,
-		CreatedAt:   now,
-		UpdatedAt:   now,
-		WordCount:   0,
+		ID:           uuid.New().String(),
+		UserID:       userID,
+		Name:         name,
+		Description:  description,
+		CreatedAt:    now,
+		UpdatedAt:    now,
+		WordCount:    0,
+		LearnedCount: 0,
 	}
 }
 
