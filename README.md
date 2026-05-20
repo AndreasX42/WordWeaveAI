@@ -6,9 +6,9 @@ and multimedia content to accelerate your vocabulary learning.
 
 ## 🖥️ Demo
 
-<video controls width="900">
-  <source src="https://raw.githubusercontent.com/AndreasX42/WordWeaveAI/master/demo.mp4" type="video/mp4">
-</video>
+
+[![Watch Demo]()](https://github.com/user-attachments/assets/08b1aafd-019e-4e16-b178-a7e7ede24087)
+
 
 ## 📖 Stack
 
