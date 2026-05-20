@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/AndreasX42/restapi/domain/entities"
+	awstypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/AndreasX42/restapi/domain/repositories"
 	"github.com/AndreasX42/restapi/utils"
 	"github.com/guregu/dynamo/v2"
@@ -168,7 +169,7 @@ func (r *DynamoUserRepository) IncrementRequestCountIfBelowLimit(ctx context.Con
 		If("attribute_exists(user_id) AND (attribute_not_exists(request_count) OR request_count < ?)", maxRequests).
 		Run(ctx)
 	if err != nil {
-		if strings.Contains(err.Error(), "ConditionalCheckFailedException") {
+		if isDynamoConditionalFailure(err) {
 			return false, nil
 		}
 		return false, err
@@ -319,10 +320,22 @@ func (r *DynamoUserRepository) InitializeUserCount(ctx context.Context) error {
 		If("attribute_not_exists(user_id)").
 		Run(ctx)
 
-	// If the conditional check failed, it means the record already exists
-	if err != nil && strings.Contains(err.Error(), "ConditionalCheckFailedException") {
+	if err != nil && isDynamoConditionalFailure(err) {
 		return nil
 	}
 
 	return err
+}
+
+// isDynamoConditionalFailure detects DynamoDB ConditionalCheckFailed (AWS SDK v2 wraps it;
+// substring matching alone is brittle across SDK releases).
+func isDynamoConditionalFailure(err error) bool {
+	if err == nil {
+		return false
+	}
+	var ccf *awstypes.ConditionalCheckFailedException
+	if errors.As(err, &ccf) {
+		return true
+	}
+	return strings.Contains(err.Error(), "ConditionalCheckFailedException")
 }

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -64,9 +65,11 @@ func (h *VocabRequestHandler) RequestVocab(c *gin.Context) {
 
 	deduplicationID, err := h.vocabRequestService.RequestVocab(c.Request.Context(), serviceRequest)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		if errors.Is(err, services.ErrVocabQuotaExceeded) {
+			c.JSON(http.StatusTooManyRequests, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 

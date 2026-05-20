@@ -291,13 +291,13 @@ func TestVocabRequestHandler_RequestVocab(t *testing.T) {
 		recorder := httptest.NewRecorder()
 		router.ServeHTTP(recorder, request)
 
-		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+		assert.Equal(t, http.StatusTooManyRequests, recorder.Code)
 
 		var response map[string]any
 		err := json.Unmarshal(recorder.Body.Bytes(), &response)
 		require.NoError(t, err)
 
-		assert.Contains(t, response["error"], "you have reached the maximum number of 10 requests")
+		assert.Contains(t, response["error"], "maximum vocabulary requests exceeded")
 	})
 
 	t.Run("SQS error handling", func(t *testing.T) {
@@ -445,8 +445,8 @@ func TestVocabRequestHandler_DeduplicationID(t *testing.T) {
 		if len(messages) > 0 {
 			message := messages[0]
 
-			// Deduplication ID should be: hello_world-en-es (spaces replaced with underscores)
-			assert.Equal(t, "hello_world-en-es", message.DeduplicationID)
+			// Dedup IDs include user so FIFO doesn't merge different users’ requests
+			assert.Equal(t, "test-user-123-hello_world-en-es", message.DeduplicationID)
 		}
 	})
 
@@ -477,10 +477,11 @@ func TestVocabRequestHandler_DeduplicationID(t *testing.T) {
 		if len(messages) > 0 {
 			message := messages[0]
 
-			// Should only contain alphanumeric, underscore, and hyphen characters
 			dedupID := message.DeduplicationID
+			assert.True(t, strings.HasPrefix(dedupID, "test-user-123-"))
+			assert.True(t, strings.HasSuffix(dedupID, "-fr-en"))
+
 			assert.Regexp(t, "^[a-zA-Z0-9_-]+$", dedupID)
-			assert.Equal(t, "caf__nave-fr-en", dedupID) // Double underscore because multiple special chars get replaced
 		}
 	})
 
@@ -514,8 +515,8 @@ func TestVocabRequestHandler_DeduplicationID(t *testing.T) {
 		if len(messages) > 0 {
 			message := messages[0]
 
-			// Should be truncated to 50 chars for the word part, plus language codes
-			assert.True(t, len(message.DeduplicationID) <= 50+3+3+2) // word(50) + lang1(3) + lang2(3) + separators(2)
+			// Dedup capped at FIFO max length (AWS SQS FIFO limit)
+			assert.LessOrEqual(t, len(message.DeduplicationID), 128)
 		}
 	})
 
@@ -593,12 +594,12 @@ func TestVocabRequestHandler_RateLimiting(t *testing.T) {
 		recorder := httptest.NewRecorder()
 		router.ServeHTTP(recorder, request)
 
-		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+		assert.Equal(t, http.StatusTooManyRequests, recorder.Code)
 
 		var response map[string]any
 		err := json.Unmarshal(recorder.Body.Bytes(), &response)
 		require.NoError(t, err)
 
-		assert.Equal(t, "you have reached the maximum number of 0 requests", response["error"])
+		assert.Equal(t, "maximum vocabulary requests exceeded (0)", response["error"])
 	})
 }

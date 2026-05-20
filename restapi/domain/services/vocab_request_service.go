@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"regexp"
@@ -12,6 +13,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 )
+
+// ErrVocabQuotaExceeded is returned when the user has exhausted their vocab request allotment.
+var ErrVocabQuotaExceeded = errors.New("maximum vocabulary requests exceeded")
 
 type VocabRequestService struct {
 	sqsClient           SQSAPI
@@ -82,7 +86,7 @@ func (s *VocabRequestService) RequestVocab(ctx context.Context, request VocabReq
 	}
 
 	if !reserved {
-		return "", fmt.Errorf("you have reached the maximum number of %d requests", s.maxRequestsFreeTier)
+		return "", fmt.Errorf("%w (%d)", ErrVocabQuotaExceeded, s.maxRequestsFreeTier)
 	}
 
 	// Send message to SQS FIFO queue
