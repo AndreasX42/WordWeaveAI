@@ -4,6 +4,12 @@
 Our agent system automatically generates translations, synonyms, pronunciation guides, usage examples, conjugation tables,
 and multimedia content to accelerate your vocabulary learning.
 
+## 🖥️ Demo
+
+<video controls width="900">
+  <source src="https://raw.githubusercontent.com/AndreasX42/WordWeaveAI/master/demo.mp4" type="video/mp4">
+</video>
+
 ## 📖 Stack
 
 `Frontend` [Angular 20](https://angular.dev/) \
